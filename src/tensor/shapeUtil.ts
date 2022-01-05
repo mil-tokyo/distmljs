@@ -1,0 +1,161 @@
+/* ブロードキャスト等の形状操作ユーティリティ
+ */
+
+import { arange } from '../util';
+
+export function getBroadcastStride(
+  fromShape: ReadonlyArray<number>,
+  toShape: ReadonlyArray<number>
+): number[] {
+  // fromShapeがtoShapeより短ければ、先頭に長さ1の次元を付与
+  // fromShapeの各次元がtoShapeと一致するか確認。長さ1ならそこはbroadcast対象でstride=0となる。
+  // toShapeのインデックスと内積して、fromShapeに対応するテンソルの要素のインデックスが得られるstrideを返す
+  const expandedFromShape = [...fromShape];
+  if (expandedFromShape.length > toShape.length) {
+    throw new Error('fromShape is longer than toShape');
+  }
+  while (expandedFromShape.length < toShape.length) {
+    expandedFromShape.unshift(1);
+  }
+  const strides: number[] = [];
+  let size = 1;
+  for (let dim = toShape.length - 1; dim >= 0; dim--) {
+    const f = expandedFromShape[dim];
+    const t = toShape[dim];
+    if (f === t) {
+      strides.unshift(size);
+    } else if (f === 1) {
+      strides.unshift(0); // broadcastされる軸
+    } else {
+      throw new Error(`axis length does not match: ${fromShape} vs ${toShape}`);
+    }
+    size *= f;
+  }
+  return strides;
+}
+
+export function getMultiBroadcastShape(
+  shapes: ReadonlyArray<ReadonlyArray<number>>
+): { shape: number[]; allStrides: number[][] } {
+  const resultDim = Math.max(...shapes.map((s) => s.length));
+  // 先頭に長さ1の次元をつけて、次元数をそろえる
+  const expandedShapes: number[][] = [];
+  for (const shape of shapes) {
+    const expandedShape: number[] = [...shape];
+    while (expandedShape.length < resultDim) {
+      expandedShape.unshift(1);
+    }
+    expandedShapes.push(expandedShape);
+  }
+  // 長さが1でないものに合わせる
+  const broadcastedShape: number[] = [];
+  for (let dim = 0; dim < resultDim; dim++) {
+    let axisLength = 1;
+    for (const shape of expandedShapes) {
+      if (axisLength === 1) {
+        if (axisLength !== shape[dim]) {
+          axisLength = shape[dim];
+        }
+      } else if (shape[dim] !== 1 && axisLength !== shape[dim]) {
+        throw new Error(`axis length does not match: ${shapes}`);
+      }
+    }
+    broadcastedShape.push(axisLength);
+  }
+  // 各テンソルを読みだすときのstrideを計算
+  const allStrides = shapes.map((s) => getBroadcastStride(s, broadcastedShape));
+  return { shape: broadcastedShape, allStrides };
+}
+
+export function getReductionByAxis(
+  fromShape: ReadonlyArray<number>,
+  axis?: number | number[] | null
+): {
+  toShape: number[];
+  toShapeStrides: number[];
+  toShapeKeepdims: number[];
+  reductionShape: number[];
+  reductionStrides: number[];
+} {
+  let axes: number[];
+  if (axis == null) {
+    axes = arange(fromShape.length);
+  } else if (typeof axis === 'number') {
+    axes = [axis];
+  } else if (Array.isArray(axis)) {
+    axes = axis;
+  } else {
+    throw new Error(`axis is not number nor Array.`);
+  }
+  let fromSize = 1;
+  const toShape: number[] = [];
+  const toShapeKeepdims: number[] = [];
+  const toShapeStrides: number[] = [];
+  const reductionShape: number[] = [];
+  const reductionStrides: number[] = [];
+  for (let dim = fromShape.length - 1; dim >= 0; dim--) {
+    const f = fromShape[dim];
+    if (axes.includes(dim)) {
+      toShapeKeepdims.unshift(1);
+      reductionShape.unshift(f);
+      reductionStrides.unshift(fromSize);
+    } else {
+      toShapeKeepdims.unshift(f);
+      toShape.unshift(f);
+      toShapeStrides.unshift(fromSize);
+    }
+
+    fromSize *= f;
+  }
+
+  return {
+    toShape,
+    toShapeKeepdims,
+    toShapeStrides,
+    reductionShape,
+    reductionStrides,
+  };
+}
+
+export function getReductionByBroadcastShape(
+  fromShape: ReadonlyArray<number>,
+  toShape: ReadonlyArray<number>
+): {
+  toShapeSqueeze: number[];
+  toShapeSqueezeFromStrides: number[];
+  reductionShape: number[];
+  reductionStrides: number[];
+} {
+  // toShapeからfromShapeへbroadcastする場合の逆変換でreductionする場合のインデックス計算
+  const expandedToShape: number[] = [...toShape];
+  while (expandedToShape.length < fromShape.length) {
+    expandedToShape.unshift(1);
+  }
+
+  let fromSize = 1;
+  const toShapeSqueeze: number[] = [];
+  const toShapeSqueezeFromStrides: number[] = [];
+  const reductionShape: number[] = [];
+  const reductionStrides: number[] = [];
+  for (let dim = fromShape.length - 1; dim >= 0; dim--) {
+    const t = expandedToShape[dim];
+    const f = fromShape[dim];
+    if (t === 1 && f !== t) {
+      // broadcast軸
+      reductionShape.unshift(f);
+      reductionStrides.unshift(fromSize);
+    } else {
+      toShapeSqueeze.unshift(t);
+      toShapeSqueezeFromStrides.unshift(fromSize);
+    }
+
+    fromSize *= f;
+  }
+
+  return {
+    toShapeSqueeze,
+    toShapeSqueezeFromStrides,
+    reductionShape,
+    reductionStrides,
+  };
+}

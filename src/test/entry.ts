@@ -10,6 +10,7 @@ XXX: テスト対象グループ名、YYY: テスト対象クラス名
 新規グループを追加する場合は下にimportを追記
 */
 import './tensor/index';
+import './nn/index';
 
 window.addEventListener('load', () => {
   mocha.run();
