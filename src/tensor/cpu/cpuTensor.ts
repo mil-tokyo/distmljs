@@ -42,7 +42,7 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
-import { repeat } from './core/manipulation';
+import { repeat, tile } from './core/manipulation';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -600,5 +600,9 @@ export class CPUTensor extends Tensor {
     axis?: number
   ): CPUTensor {
     return repeat(x, repeats, axis);
+  }
+
+  static tile(x: CPUTensor, reps: ReadonlyArray<number> | number): CPUTensor {
+    return tile(x, reps);
   }
 }

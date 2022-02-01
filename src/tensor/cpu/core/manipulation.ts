@@ -8,3 +8,11 @@ export function repeat(
   // TODO: implement
   throw new Error();
 }
+
+export function tile(
+  x: CPUTensor,
+  reps: ReadonlyArray<number> | number
+): CPUTensor {
+  // TODO: implement
+  throw new Error();
+}
