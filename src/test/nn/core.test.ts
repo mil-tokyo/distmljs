@@ -2,7 +2,7 @@
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import { add, mul } from '../../nn/functions';
-import { CPUTensor } from '../../tensor/cpuTensor';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 
 describe('backprop', () => {
   it('backprop of add', async () => {

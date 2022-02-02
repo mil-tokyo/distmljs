@@ -1,15 +1,9 @@
 import { nonNull } from '../../util';
+import { TensorTextureShape, WebGLTensor } from './webglTensor';
 
 // [x y u v] * [upper-left, lower-left, upper-right, lower-right]
-const vertexArray = new Float32Array([-1, +1, -1, -1, +1, +1, +1, -1]),
-  vertex_shader_source_1 = `
-precision highp float;
-attribute vec2 _xy;
-void main() { 
-  gl_Position = vec4(_xy, 0, 1); 
-}
-`,
-  vertex_shader_source_2 = `#version 300 es
+const vertexArray = new Float32Array([-1, +1, -1, -1, +1, +1, +1, -1]);
+const vertex_shader_source_2 = `#version 300 es
 precision highp float;
 in vec2 _xy;
 void main() { 
@@ -17,11 +11,25 @@ void main() {
 }
 `;
 
-function deleteTextureWait() {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, 1);
-  });
+export const webglShaderHeader = `#version 300 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+precision highp sampler2DArray;
+out vec4 fragColor;
+`;
+
+export interface WebGLUniformItem {
+  name: string;
+  value: number;
+  type: 'float' | 'int';
 }
+
+// function deleteTextureWait() {
+//   return new Promise<void>((resolve) => {
+//     setTimeout(resolve, 1);
+//   });
+// }
 
 function initWebGL() {
   const canvas = document.createElement('canvas');
@@ -45,13 +53,33 @@ export class NNWebGLContext {
   gl: WebGL2RenderingContext;
   maxTextureSize: number;
   fb: WebGLFramebuffer;
+  supportsTexture32bit: boolean;
+  supportsTexture16bit: boolean;
+  canOnlyReadRGBA: boolean;
+  private programs: Map<string, { program: WebGLProgram }> = new Map();
+  private vshader!: WebGLShader;
 
   constructor() {
     const { gl, maxTextureSize } = initWebGL();
     this.gl = gl;
     this.maxTextureSize = maxTextureSize;
-    // Enable color mode of gl.R32F
-    gl.getExtension('EXT_color_buffer_float');
+
+    if (gl.getExtension('EXT_color_buffer_float')) {
+      // Enable color mode of gl.R32F
+      this.supportsTexture32bit = true;
+      // EXT_color_buffer_float が取得できればR16Fも含んでいる
+      // これが取得できても、EXT_color_buffer_half_floatが取得できない環境もある
+      this.supportsTexture16bit = true;
+    } else if (gl.getExtension('EXT_color_buffer_half_float')) {
+      // Enable color mode of gl.R16F
+      this.supportsTexture32bit = false;
+      this.supportsTexture16bit = true;
+    } else {
+      // 浮動小数点数テクスチャが格納できない環境はサポート外
+      throw new Error(
+        'Neither EXT_color_buffer_float nor EXT_color_buffer_half_float are supported'
+      );
+    }
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.STENCIL_TEST);
     gl.disable(gl.BLEND);
@@ -66,6 +94,10 @@ export class NNWebGLContext {
     this.bindArrayBuffer(vertexBuffer);
     this.fb = nonNull(gl.createFramebuffer());
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+
+    // バグ回避
+    const isMac = navigator.userAgent.includes('Mac');
+    this.canOnlyReadRGBA = isMac;
   }
 
   createArrayBuffer(vertexArray: Float32Array): WebGLBuffer {
@@ -79,4 +111,188 @@ export class NNWebGLContext {
   bindArrayBuffer(buffer: WebGLBuffer): void {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
   }
+
+  createTexture(textureShape: TensorTextureShape): WebGLTexture {
+    const gl = this.gl;
+    const texture = nonNull(gl.createTexture());
+    gl.activeTexture(gl.TEXTURE0);
+    let target: number;
+    switch (textureShape.dim) {
+      case '2D':
+        target = gl.TEXTURE_2D;
+        gl.bindTexture(target, texture);
+        gl.texStorage2D(
+          target,
+          1,
+          textureShape.internalFormat,
+          textureShape.width,
+          textureShape.height
+        );
+        break;
+      case '2DArray':
+        target = gl.TEXTURE_2D_ARRAY;
+        gl.bindTexture(target, texture);
+        gl.texStorage3D(
+          target,
+          1,
+          textureShape.internalFormat,
+          textureShape.width,
+          textureShape.height,
+          textureShape.depth
+        );
+        break;
+      default:
+        throw new Error();
+    }
+    gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.bindTexture(target, null);
+
+    return texture;
+  }
+
+  createShader(type: number, source: string): WebGLShader {
+    const shader = nonNull(this.gl.createShader(type));
+
+    this.gl.shaderSource(shader, source);
+    this.gl.compileShader(shader);
+    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+      throw Error(`Shader Compile failed: ${this.gl.getShaderInfoLog(shader)}`);
+    }
+
+    return shader;
+  }
+
+  addKernel(name: string, sourceCode: string): void {
+    if (this.programs.has(name)) {
+      return;
+    }
+    this.programs.set(name, { program: this.compileKernel(sourceCode) });
+  }
+
+  hasKernel(name: string): boolean {
+    return this.programs.has(name);
+  }
+
+  compileKernel(sourceCode: string): WebGLProgram {
+    const { gl } = this;
+    if (!this.vshader) {
+      this.vshader = this.createShader(
+        gl.VERTEX_SHADER,
+        vertex_shader_source_2
+      );
+    }
+    const fshader = this.createShader(gl.FRAGMENT_SHADER, sourceCode),
+      program = nonNull(this.gl.createProgram());
+
+    this.gl.attachShader(program, fshader);
+    this.gl.attachShader(program, this.vshader);
+    this.gl.linkProgram(program);
+    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+      throw new Error('ShaderProgram Initialization failed.');
+    }
+
+    return program;
+  }
+
+  runKernel(
+    name: string,
+    inputs: { tensor: WebGLTensor; name: string }[],
+    output: WebGLTensor,
+    uniforms: WebGLUniformItem[],
+    drawLayer: number | null = null
+  ): void {
+    if (output.buffer.textureShape.dim === '2DArray' && drawLayer == null) {
+      for (let d = 0; d < output.buffer.textureShape.depth; d++) {
+        this.runKernelSingleDrawLayer(name, inputs, output, uniforms, d);
+      }
+    } else {
+      this.runKernelSingleDrawLayer(
+        name,
+        inputs,
+        output,
+        uniforms,
+        drawLayer || 0
+      );
+    }
+  }
+
+  private runKernelSingleDrawLayer(
+    name: string,
+    inputs: { tensor: WebGLTensor; name: string }[],
+    output: WebGLTensor,
+    uniforms: WebGLUniformItem[],
+    drawLayer: number
+  ): void {
+    const { gl } = this;
+    const kobj = this.programs.get(name);
+    if (!kobj) {
+      throw new Error(`Unknown kernel ${name}`);
+    }
+
+    const xyAttribLoc = gl.getAttribLocation(kobj.program, '_xy');
+    for (let i = 0; i < inputs.length; i++) {
+      inputs[i].tensor.buffer.bindToReadTexture(i);
+    }
+    output.buffer.bindToDrawTexture(drawLayer);
+
+    gl.useProgram(kobj.program);
+
+    const extendedUniforms: WebGLUniformItem[] = [
+      ...uniforms,
+      { type: 'int', name: '_ka_depth', value: drawLayer },
+    ];
+    for (let i = 0; i < inputs.length; i++) {
+      extendedUniforms.push({ type: 'int', name: inputs[i].name, value: i });
+    }
+
+    for (const uniform of extendedUniforms) {
+      const loc = gl.getUniformLocation(kobj.program, uniform.name);
+      if (loc == null) {
+        continue;
+      }
+      switch (uniform.type) {
+        case 'float':
+          gl.uniform1f(loc, uniform.value);
+          break;
+        case 'int':
+          gl.uniform1i(loc, uniform.value);
+          break;
+        default:
+          throw new Error();
+      }
+    }
+    gl.vertexAttribPointer(xyAttribLoc, 2, gl.FLOAT, true, 8, 0);
+    gl.enableVertexAttribArray(xyAttribLoc);
+
+    const fbStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (fbStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error(`FRAMEBUFFER status invalid: ${fbStatus}.`);
+    }
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexArray.length / 2);
+    // TODO: 完了を待つかどうか
+    // gl.flush();
+    // gl.finish();
+
+    for (let i = 0; i < inputs.length; i++) {
+      inputs[i].tensor.buffer.unbindFromReadTexture();
+    }
+
+    output.buffer.unbindFromDrawTexture();
+  }
+}
+
+let context: NNWebGLContext | null = null;
+export async function initializeNNWebGLContext(): Promise<void> {
+  // 現状非同期処理はないが、将来的に機能テストなどを加える可能性がある
+  context = new NNWebGLContext();
+}
+
+export function getNNWebGLContext(): NNWebGLContext {
+  if (!context) {
+    throw new Error('WebGL Context does not exist');
+  }
+  return context;
 }

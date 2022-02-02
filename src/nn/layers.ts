@@ -1,5 +1,5 @@
 import { Variable } from '.';
-import { CPUTensor } from '../tensor/cpuTensor';
+import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
 import { linear } from './functions';

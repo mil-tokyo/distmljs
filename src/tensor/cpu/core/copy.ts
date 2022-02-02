@@ -1,6 +1,6 @@
-import { TypedArrayTypes } from '../../dtype';
+import { TypedArrayTypes } from '../../../dtype';
 import { CPUTensor } from '../cpuTensor';
-import { getBroadcastStride } from '../shapeUtil';
+import { getBroadcastStride } from '../../shapeUtil';
 
 function broadcastCopy0(
   dx: TypedArrayTypes,

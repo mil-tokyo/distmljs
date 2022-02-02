@@ -1,20 +1,14 @@
-import { Backend } from '../backend';
+import { Backend } from '../../backend';
 import {
   DType,
   DTypeDefault,
   TypedArrayForDType,
   TypedArrayTypes,
-} from '../dtype';
-import { arange, arrayEqual } from '../util';
-import {
-  coreadd,
-  corediv,
-  coremul,
-  corepow,
-  coresub,
-} from './cpuTensorCore/binary';
-import { broadcastTo, stridedCopy } from './cpuTensorCore/copy';
-import { sum, sumTo } from './cpuTensorCore/reduction';
+} from '../../dtype';
+import { arange, arrayEqual } from '../../util';
+import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import { broadcastTo, stridedCopy } from './core/copy';
+import { sum, sumTo } from './core/reduction';
 import {
   coreabs,
   coreacos,
@@ -37,10 +31,10 @@ import {
   coretan,
   coretanh,
   unaryWrap,
-} from './cpuTensorCore/unary';
-import { getMultiBroadcastShape } from './shapeUtil';
-import { Tensor } from './tensor';
-import { WebGLTensor } from './webgl/webglTensor';
+} from './core/unary';
+import { getMultiBroadcastShape } from '../shapeUtil';
+import { Tensor } from '../tensor';
+import { WebGLTensor } from '../webgl/webglTensor';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -50,7 +44,7 @@ class CPUTensorBuffer {
 }
 
 export class CPUTensor extends Tensor {
-  buffer: CPUTensorBuffer | null;
+  buffer: CPUTensorBuffer;
 
   private constructor(
     shape: ArrayLike<number>,
@@ -103,11 +97,15 @@ export class CPUTensor extends Tensor {
     dtype?: DType
   ): CPUTensor {
     const t = new CPUTensor(shape || [data.length], dtype);
-    if (data.length !== t.size) {
+    t.setArray(data);
+    return t;
+  }
+
+  setArray(data: ArrayLike<number>): void {
+    if (data.length !== this.size) {
       throw new Error('length mismatch');
     }
-    t.buffer?.data.set(data);
-    return t;
+    this.buffer.data.set(data);
   }
 
   /**
@@ -125,6 +123,11 @@ export class CPUTensor extends Tensor {
   toArray(): number[] {
     const buffer = this.getBuffer();
     return Array.from(buffer.data);
+  }
+
+  async toArrayAsync(): Promise<number[]> {
+    // GPUテンソルと同じインターフェースを提供する目的
+    return this.toArray();
   }
 
   getBuffer(): CPUTensorBuffer {
@@ -161,7 +164,7 @@ export class CPUTensor extends Tensor {
     if (!this.buffer) {
       throw new Error('Double-dispose of CPUTensor');
     }
-    this.buffer = null;
+    (this as { buffer: CPUTensorBuffer | null }).buffer = null;
   }
 
   static abs(x: CPUTensor): CPUTensor {

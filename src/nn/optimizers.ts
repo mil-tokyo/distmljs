@@ -1,4 +1,4 @@
-import { CPUTensor } from '../tensor/cpuTensor';
+import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Optimizer, Parameter } from './core';
 
 export class SGD extends Optimizer {

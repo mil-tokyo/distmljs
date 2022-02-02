@@ -1,5 +1,5 @@
 import { defaultNNContext } from '../context';
-import { CPUTensor } from '../tensor/cpuTensor';
+import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Tensor } from '../tensor/tensor';
 import { arange, arrayEqual } from '../util';
 import {

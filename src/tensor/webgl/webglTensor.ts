@@ -5,50 +5,462 @@ import {
   TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
-import { arrayEqual } from '../../util';
-import { CPUTensor } from '../cpuTensor';
+import { arrayEqual, arrayProd } from '../../util';
+import { CPUTensor } from '../cpu/cpuTensor';
 import { Tensor } from '../tensor';
+import { add } from './core/binary';
+import {
+  packToFloat16Array,
+  packToFloat32Array,
+  packToInt32Array,
+  unpackFromFloat16Array,
+  unpackFromFloat32Array,
+  unpackFromInt32Array,
+} from './core/pack';
+import { exp } from './core/unary';
+import { getNNWebGLContext, webglShaderHeader } from './webglContext';
 
 let webglAllocCount = 0;
 const existingBuffers: Set<WebGLTensorBuffer> = new Set();
+export interface TensorTextureShapeFormat {
+  internalFormat: number;
+  format: number;
+  type: number;
+}
+
+export const tensorTextureShapeFormatR32F = {
+  internalFormat: WebGL2RenderingContext.R32F,
+  format: WebGL2RenderingContext.RED,
+  type: WebGL2RenderingContext.FLOAT,
+};
+
+export const tensorTextureShapeFormatR16F = {
+  internalFormat: WebGL2RenderingContext.R16F,
+  format: WebGL2RenderingContext.RED,
+  type: WebGL2RenderingContext.HALF_FLOAT,
+};
+
+export const tensorTextureShapeFormatR32I = {
+  internalFormat: WebGL2RenderingContext.R32I,
+  format: WebGL2RenderingContext.RED_INTEGER,
+  type: WebGL2RenderingContext.INT,
+};
+
+export const tensorTextureShapeFormatRGBA32F = {
+  internalFormat: WebGL2RenderingContext.RGBA32F,
+  format: WebGL2RenderingContext.RGBA,
+  type: WebGL2RenderingContext.FLOAT,
+};
+
+export const tensorTextureShapeFormatRGBA16F = {
+  internalFormat: WebGL2RenderingContext.RGBA16F,
+  format: WebGL2RenderingContext.RGBA,
+  type: WebGL2RenderingContext.HALF_FLOAT,
+};
+
+export const tensorTextureShapeFormatRGBA32I = {
+  internalFormat: WebGL2RenderingContext.RGBA32I,
+  format: WebGL2RenderingContext.RGBA,
+  type: WebGL2RenderingContext.INT,
+};
+
+export const tensorTextureShapeFormatDefault = tensorTextureShapeFormatR32F;
+
+export interface TensorTextureShape2D extends TensorTextureShapeFormat {
+  dim: '2D';
+  width: number;
+  height: number;
+}
+
+export interface TensorTextureShape2DArray extends TensorTextureShapeFormat {
+  dim: '2DArray';
+  width: number;
+  height: number;
+  depth: number;
+}
+
+export type TensorTextureShape =
+  | TensorTextureShape2D
+  | TensorTextureShape2DArray;
 
 class WebGLTensorBuffer {
-  // TODO: GPUアクセスの実装
-  public readonly mem: TypedArrayTypes;
+  public readonly texture: WebGLTexture;
   public ref: number;
-  constructor(public readonly length: number, public readonly dtype: DType) {
+  public target: number;
+  private isBoundToDrawFrameBuffer = false;
+  private readTextureUnitIndices: number[] = [];
+  public dimPerPixel: number;
+  public textureLength: number;
+  constructor(public readonly textureShape: TensorTextureShape) {
     this.ref = 1;
-    this.mem = new TypedArrayForDType[dtype](this.length);
+    const ctx = getNNWebGLContext();
+    this.texture = ctx.createTexture(textureShape);
+    switch (textureShape.format) {
+      case WebGL2RenderingContext.RED:
+      case WebGL2RenderingContext.RED_INTEGER:
+        this.dimPerPixel = 1;
+        break;
+      case WebGL2RenderingContext.RGBA:
+        this.dimPerPixel = 4;
+        break;
+      default:
+        throw new Error();
+    }
+    switch (textureShape.dim) {
+      case '2D':
+        this.target = WebGL2RenderingContext.TEXTURE_2D;
+        this.textureLength =
+          textureShape.height * textureShape.width * this.dimPerPixel;
+        break;
+      case '2DArray':
+        this.target = WebGL2RenderingContext.TEXTURE_2D_ARRAY;
+        this.textureLength =
+          textureShape.depth *
+          textureShape.height *
+          textureShape.width *
+          this.dimPerPixel;
+        break;
+    }
+
     webglAllocCount++;
     existingBuffers.add(this);
   }
 
   dispose() {
-    // TODO: dispose gpu memory
+    // TODO: texture pool
     webglAllocCount--;
     existingBuffers.delete(this);
+    const ctx = getNNWebGLContext();
+    ctx.gl.deleteTexture(this.texture);
+    (this as { texture: WebGLTexture | null }).texture = null;
+  }
+
+  bindToReadTexture(unit: number): void {
+    if (this.isBoundToDrawFrameBuffer)
+      throw Error(
+        'This buffer is already registered as draw buffer. ' +
+          'You may forgot to unbind the binding while previous operations.'
+      );
+
+    const ctx = getNNWebGLContext();
+    const { gl } = ctx;
+
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(this.target, this.texture);
+
+    this.readTextureUnitIndices.push(unit);
+  }
+
+  unbindFromReadTexture(): void {
+    const ctx = getNNWebGLContext();
+    const { gl } = ctx;
+
+    for (const unit of this.readTextureUnitIndices) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(this.target, null);
+    }
+
+    this.readTextureUnitIndices = [];
+  }
+
+  bindToDrawTexture(layer = 0): void {
+    if (this.readTextureUnitIndices.length > 0)
+      throw Error(
+        'This buffer is already registered as read buffer. ' +
+          'You cannot bind a texture as both read and draw texture buffer at same time.'
+      );
+    if (this.isBoundToDrawFrameBuffer)
+      throw Error(
+        'This buffer is already registered as draw buffer. ' +
+          'You may forgot to unbind the binding while previous operations.'
+      );
+
+    const ctx = getNNWebGLContext();
+    const { gl } = ctx;
+    gl.viewport(0, 0, this.textureShape.width, this.textureShape.height);
+    gl.scissor(0, 0, this.textureShape.width, this.textureShape.height);
+
+    switch (this.textureShape.dim) {
+      case '2D':
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          this.texture,
+          0
+        );
+        break;
+      case '2DArray':
+        gl.framebufferTextureLayer(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          this.texture,
+          0,
+          layer
+        );
+        break;
+      default:
+        throw new Error();
+    }
+
+    this.isBoundToDrawFrameBuffer = true;
+  }
+
+  unbindFromDrawTexture(): void {
+    if (!this.isBoundToDrawFrameBuffer) return;
+
+    const ctx = getNNWebGLContext();
+    const { gl } = ctx;
+
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      null,
+      0
+    );
+
+    this.isBoundToDrawFrameBuffer = false;
+  }
+
+  getDataRawFloat32(): Float32Array {
+    if (
+      this.textureShape.dim !== '2D' ||
+      this.textureShape.type !== WebGL2RenderingContext.FLOAT
+    ) {
+      throw new Error();
+    }
+    const buf = new Float32Array(
+      this.textureShape.height * this.textureShape.width * this.dimPerPixel
+    );
+    this.readPixels2D(buf);
+    return buf;
+  }
+
+  getDataRaw():
+    | { type: 'Float32Array'; buffer: Float32Array }
+    | { type: 'Uint16Array'; buffer: Uint16Array }
+    | { type: 'Int32Array'; buffer: Int32Array } {
+    switch (this.textureShape.dim) {
+      case '2D': {
+        const length =
+          this.textureShape.height * this.textureShape.width * this.dimPerPixel;
+        switch (this.textureShape.type) {
+          case WebGL2RenderingContext.FLOAT: {
+            const buffer = new Float32Array(length);
+            this.readPixels2D(buffer);
+            return { type: 'Float32Array', buffer };
+          }
+          case WebGL2RenderingContext.HALF_FLOAT: {
+            const buffer = new Uint16Array(length);
+            this.readPixels2D(buffer);
+            return { type: 'Uint16Array', buffer };
+          }
+          case WebGL2RenderingContext.INT: {
+            const buffer = new Int32Array(length);
+            this.readPixels2D(buffer);
+            return { type: 'Int32Array', buffer };
+          }
+          default:
+            throw new Error();
+        }
+      }
+      case '2DArray': {
+        const sliceLength =
+          this.textureShape.height * this.textureShape.width * this.dimPerPixel;
+        const totalLength = sliceLength * this.textureShape.depth;
+        switch (this.textureShape.type) {
+          case WebGL2RenderingContext.FLOAT: {
+            const buffer = new Float32Array(totalLength);
+            this.readPixels2DArray(
+              buffer,
+              sliceLength,
+              this.textureShape.depth
+            );
+            return { type: 'Float32Array', buffer };
+          }
+          case WebGL2RenderingContext.HALF_FLOAT: {
+            const buffer = new Uint16Array(totalLength);
+            this.readPixels2DArray(
+              buffer,
+              sliceLength,
+              this.textureShape.depth
+            );
+            return { type: 'Uint16Array', buffer };
+          }
+          case WebGL2RenderingContext.INT: {
+            const buffer = new Int32Array(totalLength);
+            this.readPixels2DArray(
+              buffer,
+              sliceLength,
+              this.textureShape.depth
+            );
+            return { type: 'Int32Array', buffer };
+          }
+          default:
+            throw new Error();
+        }
+      }
+    }
+  }
+
+  setDataRaw(data: ArrayBufferView): void {
+    const ctx = getNNWebGLContext();
+    this.bindToReadTexture(0);
+    switch (this.textureShape.dim) {
+      case '2D':
+        ctx.gl.texSubImage2D(
+          this.target,
+          0,
+          0,
+          0,
+          this.textureShape.width,
+          this.textureShape.height,
+          this.textureShape.format,
+          this.textureShape.type,
+          data,
+          0
+        );
+        break;
+      case '2DArray':
+        ctx.gl.texSubImage3D(
+          this.target,
+          0,
+          0,
+          0,
+          0,
+          this.textureShape.width,
+          this.textureShape.height,
+          this.textureShape.depth,
+          this.textureShape.format,
+          this.textureShape.type,
+          data,
+          0
+        );
+        break;
+      default:
+        throw new Error('not implemented');
+    }
+    this.unbindFromReadTexture();
+  }
+
+  private readPixels2D(buf: ArrayBufferView) {
+    const ctx = getNNWebGLContext();
+    this.bindToDrawTexture();
+    ctx.gl.readPixels(
+      0,
+      0,
+      this.textureShape.width,
+      this.textureShape.height,
+      this.textureShape.format,
+      this.textureShape.type,
+      buf
+    );
+    this.unbindFromDrawTexture();
+  }
+
+  private readPixels2DArray(
+    buf: ArrayBufferView,
+    sliceLength: number,
+    depth: number
+  ) {
+    const ctx = getNNWebGLContext();
+    for (let layer = 0; layer < depth; layer++) {
+      this.bindToDrawTexture(layer);
+      ctx.gl.readPixels(
+        0,
+        0,
+        this.textureShape.width,
+        this.textureShape.height,
+        this.textureShape.format,
+        this.textureShape.type,
+        buf,
+        sliceLength * layer
+      );
+      this.unbindFromDrawTexture();
+    }
   }
 }
 
 export class WebGLTensor extends Tensor {
-  buffer: WebGLTensorBuffer | null;
+  buffer: WebGLTensorBuffer;
 
   private constructor(
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault,
-    buffer?: WebGLTensorBuffer
+    buffer?: WebGLTensorBuffer,
+    textureShape?: TensorTextureShape
   ) {
     super('webgl', shape, dtype);
+    const ctx = getNNWebGLContext();
     if (buffer) {
       this.buffer = buffer;
     } else {
-      this.buffer = new WebGLTensorBuffer(this.size, dtype);
+      this.buffer = new WebGLTensorBuffer(
+        textureShape ||
+          this.calcDefaultTextureShape(
+            this.size,
+            this.dtype,
+            ctx.maxTextureSize,
+            ctx.supportsTexture32bit
+          )
+      );
+    }
+  }
+
+  private calcDefaultTextureShape(
+    length: number,
+    dtype: DType,
+    maxTextureSize: number,
+    supportsTexture32bit: boolean
+  ): TensorTextureShape {
+    let format: TensorTextureShapeFormat;
+    switch (dtype) {
+      case 'float32':
+        format = supportsTexture32bit
+          ? tensorTextureShapeFormatR32F
+          : tensorTextureShapeFormatR16F;
+        break;
+      case 'int32':
+        format = tensorTextureShapeFormatR32I;
+        break;
+      default:
+        throw new Error(
+          `WebGL texture for dtype ${dtype} is not yet supported`
+        );
+    }
+    if (length <= maxTextureSize) {
+      return {
+        dim: '2D',
+        width: length,
+        height: 1,
+        ...format,
+      };
+    } else {
+      let height = Math.ceil(length / maxTextureSize);
+      if (height > maxTextureSize) {
+        const depth = Math.ceil(height / maxTextureSize);
+        height = maxTextureSize;
+        return {
+          dim: '2DArray',
+          width: maxTextureSize,
+          height: maxTextureSize,
+          depth,
+          ...format,
+        };
+      }
+      return {
+        dim: '2D',
+        width: maxTextureSize,
+        height,
+        ...format,
+      };
     }
   }
 
   alias(shape?: ArrayLike<number>): WebGLTensor {
     let t: WebGLTensor;
-    const buffer = this.getBuffer();
+    const buffer = this.buffer;
     try {
       buffer.ref++;
       t = new WebGLTensor(shape || this.shape, this.dtype, buffer);
@@ -63,27 +475,42 @@ export class WebGLTensor extends Tensor {
     return { webglAllocCount };
   }
 
-  static async zeros(
-    shape: ArrayLike<number>,
-    dtype: DType = DTypeDefault
-  ): Promise<WebGLTensor> {
-    return new WebGLTensor(shape, dtype);
+  static s(value: number): WebGLTensor {
+    return WebGLTensor.fromArray([value], []);
   }
 
-  static async ones(
+  static empty(
+    shape: ArrayLike<number>,
+    dtype: DType = DTypeDefault,
+    buffer?: WebGLTensorBuffer,
+    textureShape?: TensorTextureShape
+  ): WebGLTensor {
+    return new WebGLTensor(shape, dtype, buffer, textureShape);
+  }
+
+  static zeros(
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault
-  ): Promise<WebGLTensor> {
-    const t = new WebGLTensor(shape, dtype);
-    t.getBuffer().mem.fill(1);
-    return t;
+  ): WebGLTensor {
+    const data = new Float32Array(arrayProd(shape));
+    return WebGLTensor.fromArray(data, shape, dtype);
+  }
+
+  static ones(
+    shape: ArrayLike<number>,
+    dtype: DType = DTypeDefault
+  ): WebGLTensor {
+    const data = new Float32Array(arrayProd(shape));
+    data.fill(1);
+    return WebGLTensor.fromArray(data, shape, dtype);
   }
 
   to(backend: 'cpu'): Promise<CPUTensor>;
   async to(backend: Backend): Promise<Tensor> {
     switch (backend) {
       case 'cpu':
-        return CPUTensor.fromArray(await this.toArray(), this.shape);
+        // TODO: Arrayを介さずTypedArrayを用いてパフォーマンス向上
+        return CPUTensor.fromArray(await this.toArrayAsync(), this.shape);
       case 'webgl':
         return this.alias();
       default:
@@ -91,28 +518,50 @@ export class WebGLTensor extends Tensor {
     }
   }
 
-  static async fromArray(
+  static fromArray(
     data: ArrayLike<number>,
-    shape?: ArrayLike<number>
-  ): Promise<WebGLTensor> {
-    const t = new WebGLTensor(shape || [data.length]);
-    if (data.length !== t.size) {
-      throw new Error('length mismatch');
-    }
-    t.buffer?.mem.set(data);
+    shape?: ArrayLike<number>,
+    dtype?: DType
+  ): WebGLTensor {
+    const t = new WebGLTensor(shape || [data.length], dtype);
+    t.setArray(data);
     return t;
   }
 
-  async toArray(): Promise<number[]> {
-    const buffer = this.getBuffer();
-    return Array.from(buffer.mem);
+  setArray(data: ArrayLike<number>): void {
+    if (data.length !== this.size) {
+      throw new Error('length mismatch');
+    }
+    // pack to texture raw format
+    let packed: ArrayBufferView;
+    switch (this.buffer.textureShape.type) {
+      case WebGL2RenderingContext.FLOAT:
+        packed = packToFloat32Array(data, this.buffer.textureLength);
+        break;
+      case WebGL2RenderingContext.HALF_FLOAT:
+        packed = packToFloat16Array(data, this.buffer.textureLength);
+        break;
+      case WebGL2RenderingContext.INT:
+        packed = packToInt32Array(data, this.buffer.textureLength);
+        break;
+      default:
+        throw new Error();
+    }
+    this.buffer.setDataRaw(packed);
   }
 
-  private getBuffer(): WebGLTensorBuffer {
-    if (!this.buffer) {
-      throw new Error('WebGLTensor already disposed');
+  async toArrayAsync(): Promise<number[]> {
+    const rawData = this.buffer.getDataRaw();
+    switch (rawData.type) {
+      case 'Float32Array':
+        return Array.from(unpackFromFloat32Array(rawData.buffer, this.size));
+      case 'Uint16Array':
+        return Array.from(unpackFromFloat16Array(rawData.buffer, this.size));
+      case 'Int32Array':
+        return Array.from(unpackFromInt32Array(rawData.buffer, this.size));
+      default:
+        throw new Error();
     }
-    return this.buffer;
   }
 
   dispose() {
@@ -123,22 +572,11 @@ export class WebGLTensor extends Tensor {
     if (this.buffer.ref <= 0) {
       this.buffer.dispose();
     }
-    this.buffer = null;
+    (this as { buffer: WebGLTensorBuffer | null }).buffer = null;
   }
 
   static add(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
-    // TODO: broadcast, type check
-    if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error('shape not match');
-    }
-    const output = new WebGLTensor(lhs.shape);
-    const dl = lhs.getBuffer().mem;
-    const dr = rhs.getBuffer().mem;
-    const dy = output.getBuffer().mem;
-    for (let i = 0; i < output.size; i++) {
-      dy[i] = dl[i] + dr[i];
-    }
-    return output;
+    return add(lhs, rhs);
   }
 
   static mul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
@@ -146,23 +584,10 @@ export class WebGLTensor extends Tensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
       throw new Error('shape not match');
     }
-    const output = new WebGLTensor(lhs.shape);
-    const dl = lhs.getBuffer().mem;
-    const dr = rhs.getBuffer().mem;
-    const dy = output.getBuffer().mem;
-    for (let i = 0; i < output.size; i++) {
-      dy[i] = dl[i] * dr[i];
-    }
-    return output;
+    throw new Error();
   }
 
   static exp(x: WebGLTensor): WebGLTensor {
-    const output = new WebGLTensor(x.shape);
-    const dx = x.getBuffer().mem;
-    const dy = output.getBuffer().mem;
-    for (let i = 0; i < output.size; i++) {
-      dy[i] = Math.exp(dx[i]);
-    }
-    return output;
+    return exp(x);
   }
 }

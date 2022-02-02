@@ -11,7 +11,9 @@ XXX: テスト対象グループ名、YYY: テスト対象クラス名
 */
 import './tensor/index';
 import './nn/index';
+import { initializeNNWebGLContext } from '../tensor';
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+  await initializeNNWebGLContext();
   mocha.run();
 });

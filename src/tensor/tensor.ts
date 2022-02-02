@@ -1,4 +1,4 @@
-import { CPUTensor } from './cpuTensor';
+import { CPUTensor } from './cpu/cpuTensor';
 import { Backend } from '../backend';
 import { DType } from '../dtype';
 

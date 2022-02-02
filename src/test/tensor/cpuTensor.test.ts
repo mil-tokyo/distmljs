@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { CPUTensor } from '../../tensor/cpuTensor';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { arange } from '../../util';
 
 describe('basic', () => {

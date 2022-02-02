@@ -15,7 +15,7 @@ import {
   sum,
   transpose,
 } from '../../nn/functions';
-import { CPUTensor } from '../../tensor/cpuTensor';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { arange } from '../../util';
 import { arrayNearlyEqual } from '../testUtil';
 
