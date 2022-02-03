@@ -1,5 +1,9 @@
 import { assert } from 'chai';
-import { WebGLTensor } from '../../tensor/webgl/webglTensor';
+import {
+  getTensorTextureShapeFormatForDType,
+  tensorTextureShapeFormatRGBA16F,
+  WebGLTensor,
+} from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
 
 describe('webgl basic', () => {
@@ -20,9 +24,46 @@ describe('webgl basic', () => {
   });
 
   it('create from array', async () => {
-    const t = WebGLTensor.fromArray([10, 20, 30, 40, 50, 60], [2, 3]);
+    const t = WebGLTensor.fromArray([10, 20, 30, 4.5, 50, 60], [2, 3]);
+    const cpu = await t.to('cpu');
+    assert.equal(cpu.get(1, 0), 4.5); // float32 / float16で厳密に一致する
+  });
+
+  it('create from array int32', async () => {
+    // float32では正確に表せない数値
+    const t = WebGLTensor.fromArray(
+      [10, 20, 30, 16843009, 16843010, 16843011],
+      [2, 3],
+      'int32'
+    );
+    const cpu = await t.to('cpu');
+    assert.equal(cpu.get(1, 0), 16843009);
+    assert.equal(cpu.get(1, 1), 16843010);
+    assert.equal(cpu.get(1, 2), 16843011);
+  });
+
+  it('create from array uint8', async () => {
+    const t = WebGLTensor.fromArray([10, 20, 30, 40, 50, 60], [2, 3], 'uint8');
     const cpu = await t.to('cpu');
     assert.equal(cpu.get(1, 0), 40);
+  });
+
+  it('create from array bool', async () => {
+    const t = WebGLTensor.fromArray([0, 1, 0, 1, 1, 0], [2, 3], 'bool');
+    const cpu = await t.to('cpu');
+    assert.equal(cpu.get(1, 0), 1);
+  });
+
+  it('create from array 2DArray', async () => {
+    const t = WebGLTensor.empty([2, 3], 'float32', undefined, {
+      ...getTensorTextureShapeFormatForDType('float32'),
+      dim: '2DArray',
+      width: 2,
+      height: 2,
+      depth: 2,
+    });
+    t.setArray([10, 20, 30, 4.5, 50, 60]);
+    assert.deepEqual(await t.toArrayAsync(), [10, 20, 30, 4.5, 50, 60]);
   });
 });
 

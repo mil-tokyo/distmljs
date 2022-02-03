@@ -13,9 +13,11 @@ import {
   packToFloat16Array,
   packToFloat32Array,
   packToInt32Array,
+  packToUint8Array,
   unpackFromFloat16Array,
   unpackFromFloat32Array,
   unpackFromInt32Array,
+  unpackFromUint8Array,
 } from './core/pack';
 import { exp } from './core/unary';
 import { getNNWebGLContext, webglShaderHeader } from './webglContext';
@@ -46,6 +48,12 @@ export const tensorTextureShapeFormatR32I = {
   type: WebGL2RenderingContext.INT,
 };
 
+export const tensorTextureShapeFormatR8UI = {
+  internalFormat: WebGL2RenderingContext.R8UI,
+  format: WebGL2RenderingContext.RED_INTEGER,
+  type: WebGL2RenderingContext.UNSIGNED_BYTE,
+};
+
 export const tensorTextureShapeFormatRGBA32F = {
   internalFormat: WebGL2RenderingContext.RGBA32F,
   format: WebGL2RenderingContext.RGBA,
@@ -63,6 +71,39 @@ export const tensorTextureShapeFormatRGBA32I = {
   format: WebGL2RenderingContext.RGBA,
   type: WebGL2RenderingContext.INT,
 };
+
+export function getTensorTextureShapeFormatForDType(
+  dtype: DType,
+  supportsTexture32bit?: boolean
+): TensorTextureShapeFormat {
+  let b32: boolean;
+  if (supportsTexture32bit == null) {
+    const context = getNNWebGLContext();
+    b32 = context.supportsTexture32bit;
+  } else {
+    b32 = supportsTexture32bit;
+  }
+  let format: TensorTextureShapeFormat;
+  switch (dtype) {
+    case 'float32':
+      format = b32
+        ? tensorTextureShapeFormatR32F
+        : tensorTextureShapeFormatR16F;
+      break;
+    case 'int32':
+      format = tensorTextureShapeFormatR32I;
+      break;
+    case 'uint8':
+      format = tensorTextureShapeFormatR8UI;
+      break;
+    case 'bool':
+      format = tensorTextureShapeFormatR8UI;
+      break;
+    default:
+      throw new Error(`WebGL texture for dtype ${dtype} is not yet supported`);
+  }
+  return format;
+}
 
 export const tensorTextureShapeFormatDefault = tensorTextureShapeFormatR32F;
 
@@ -240,7 +281,8 @@ class WebGLTensorBuffer {
   getDataRaw():
     | { type: 'Float32Array'; buffer: Float32Array }
     | { type: 'Uint16Array'; buffer: Uint16Array }
-    | { type: 'Int32Array'; buffer: Int32Array } {
+    | { type: 'Int32Array'; buffer: Int32Array }
+    | { type: 'Uint8Array'; buffer: Uint8Array } {
     switch (this.textureShape.dim) {
       case '2D': {
         const length =
@@ -260,6 +302,11 @@ class WebGLTensorBuffer {
             const buffer = new Int32Array(length);
             this.readPixels2D(buffer);
             return { type: 'Int32Array', buffer };
+          }
+          case WebGL2RenderingContext.UNSIGNED_BYTE: {
+            const buffer = new Uint8Array(length);
+            this.readPixels2D(buffer);
+            return { type: 'Uint8Array', buffer };
           }
           default:
             throw new Error();
@@ -296,6 +343,15 @@ class WebGLTensorBuffer {
               this.textureShape.depth
             );
             return { type: 'Int32Array', buffer };
+          }
+          case WebGL2RenderingContext.UNSIGNED_BYTE: {
+            const buffer = new Uint8Array(totalLength);
+            this.readPixels2DArray(
+              buffer,
+              sliceLength,
+              this.textureShape.depth
+            );
+            return { type: 'Uint8Array', buffer };
           }
           default:
             throw new Error();
@@ -414,21 +470,10 @@ export class WebGLTensor extends Tensor {
     maxTextureSize: number,
     supportsTexture32bit: boolean
   ): TensorTextureShape {
-    let format: TensorTextureShapeFormat;
-    switch (dtype) {
-      case 'float32':
-        format = supportsTexture32bit
-          ? tensorTextureShapeFormatR32F
-          : tensorTextureShapeFormatR16F;
-        break;
-      case 'int32':
-        format = tensorTextureShapeFormatR32I;
-        break;
-      default:
-        throw new Error(
-          `WebGL texture for dtype ${dtype} is not yet supported`
-        );
-    }
+    const format = getTensorTextureShapeFormatForDType(
+      dtype,
+      supportsTexture32bit
+    );
     if (length <= maxTextureSize) {
       return {
         dim: '2D',
@@ -509,8 +554,11 @@ export class WebGLTensor extends Tensor {
   async to(backend: Backend): Promise<Tensor> {
     switch (backend) {
       case 'cpu':
-        // TODO: Arrayを介さずTypedArrayを用いてパフォーマンス向上
-        return CPUTensor.fromArray(await this.toArrayAsync(), this.shape);
+        return CPUTensor.fromArray(
+          await this.toTypedArrayAsync(),
+          this.shape,
+          this.dtype
+        );
       case 'webgl':
         return this.alias();
       default:
@@ -544,24 +592,34 @@ export class WebGLTensor extends Tensor {
       case WebGL2RenderingContext.INT:
         packed = packToInt32Array(data, this.buffer.textureLength);
         break;
+      case WebGL2RenderingContext.UNSIGNED_BYTE:
+        packed = packToUint8Array(data, this.buffer.textureLength);
+        break;
       default:
         throw new Error();
     }
     this.buffer.setDataRaw(packed);
   }
 
-  async toArrayAsync(): Promise<number[]> {
+  async toTypedArrayAsync(): Promise<TypedArrayTypes> {
+    // 同期的に行えるがブロックする。計算完了まで非同期的に待機することも考えられる。
     const rawData = this.buffer.getDataRaw();
     switch (rawData.type) {
       case 'Float32Array':
-        return Array.from(unpackFromFloat32Array(rawData.buffer, this.size));
+        return unpackFromFloat32Array(rawData.buffer, this.size);
       case 'Uint16Array':
-        return Array.from(unpackFromFloat16Array(rawData.buffer, this.size));
+        return unpackFromFloat16Array(rawData.buffer, this.size);
       case 'Int32Array':
-        return Array.from(unpackFromInt32Array(rawData.buffer, this.size));
+        return unpackFromInt32Array(rawData.buffer, this.size);
+      case 'Uint8Array':
+        return unpackFromUint8Array(rawData.buffer, this.size);
       default:
         throw new Error();
     }
+  }
+
+  async toArrayAsync(): Promise<number[]> {
+    return Array.from(await this.toTypedArrayAsync());
   }
 
   dispose() {

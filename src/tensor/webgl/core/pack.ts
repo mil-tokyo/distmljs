@@ -42,6 +42,15 @@ export function packToInt32Array(
   return buffer;
 }
 
+export function packToUint8Array(
+  src: ArrayLike<number>,
+  length: number
+): Uint8Array {
+  const buffer = new Uint8Array(length);
+  buffer.set(src);
+  return buffer;
+}
+
 export function unpackFromFloat32Array(
   src: Float32Array,
   length: number
@@ -75,6 +84,16 @@ export function unpackFromInt32Array(
 ): Int32Array {
   const buffer = new Int32Array(length);
   const srcView = new Int32Array(src.buffer, src.byteOffset, length);
+  buffer.set(srcView);
+  return buffer;
+}
+
+export function unpackFromUint8Array(
+  src: Uint8Array,
+  length: number
+): Uint8Array {
+  const buffer = new Uint8Array(length);
+  const srcView = new Uint8Array(src.buffer, src.byteOffset, length);
   buffer.set(srcView);
   return buffer;
 }

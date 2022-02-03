@@ -120,6 +120,11 @@ export class CPUTensor extends Tensor {
     return t;
   }
 
+  toTypedArray(): TypedArrayTypes {
+    const buffer = this.getBuffer();
+    return buffer.data.slice();
+  }
+
   toArray(): number[] {
     const buffer = this.getBuffer();
     return Array.from(buffer.data);
@@ -128,6 +133,11 @@ export class CPUTensor extends Tensor {
   async toArrayAsync(): Promise<number[]> {
     // GPUテンソルと同じインターフェースを提供する目的
     return this.toArray();
+  }
+
+  async toTypedArrayAsync(): Promise<TypedArrayTypes> {
+    // GPUテンソルと同じインターフェースを提供する目的
+    return this.toTypedArray();
   }
 
   getBuffer(): CPUTensorBuffer {
