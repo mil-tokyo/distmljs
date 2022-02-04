@@ -306,63 +306,66 @@ export class WebGLTensorBuffer {
 
     let dstShapeFormat: TensorTextureShapeFormat;
 
-    let dtype: DType;
+    let srcDtype: DType;
+    let dstDtype: DType;
     switch (this.textureShape.internalFormat) {
       case WebGL2RenderingContext.R32F:
         dstShapeFormat = tensorTextureShapeFormatRGBA32F;
-        dtype = 'float32';
+        srcDtype = dstDtype = 'float32';
         break;
       case WebGL2RenderingContext.R16F:
         dstShapeFormat = tensorTextureShapeFormatRGBA16F;
-        dtype = 'float32';
+        srcDtype = dstDtype = 'float32';
         break;
       case WebGL2RenderingContext.R32I:
         dstShapeFormat = tensorTextureShapeFormatRGBA32I;
-        dtype = 'int32';
+        srcDtype = dstDtype = 'int32';
         break;
       case WebGL2RenderingContext.R8UI:
-        dstShapeFormat = tensorTextureShapeFormatRGBA8UI;
-        dtype = 'uint8';
+        // Mac FirefoxでRGBA8UIが読み出せないためint32の状態で取り出す
+        dstShapeFormat = tensorTextureShapeFormatRGBA32I;
+        srcDtype = 'uint8';
+        dstDtype = 'int32';
         break;
       default:
-        throw new Error('X');
+        throw new Error();
     }
-    const { vec4Type } = getTypeForDType(dtype);
+    const { vec4Type, scalarType } = getTypeForDType(dstDtype);
     const dst = new WebGLTensorBuffer({
       ...dstShapeFormat,
       dim: '2D',
       width,
       height,
     });
-    const kernelName = `packRToRGBA_${this.textureShape.dim}_${dtype}`;
+    const kernelName = `packRToRGBA_${this.textureShape.dim}_${srcDtype}_${dstDtype}`;
     if (!ctx.hasKernel(kernelName)) {
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
           `
-${shaderGenTensorOutputUniform(1, dst.textureShape.dim, dtype)}
-${shaderGenTensorNDGet('tex_input', 1, this.textureShape.dim, dtype)}
+${shaderGenTensorOutputUniform(1, dst.textureShape.dim, dstDtype)}
+${shaderGenTensorNDGet('tex_input', 1, this.textureShape.dim, srcDtype)}
 uniform int input_pixels;
 void main() {
   ${shaderGenTensorOutputCoordsWithReturn(1, dst.textureShape.dim)}
   ${vec4Type} v = ${vec4Type}(0.0, 0.0, 0.0, 0.0);
   int pos = tex_output_0 * 4;
   if (pos < input_pixels) {
-    v.r = get_tex_input(pos);
+    v.r = ${scalarType}(get_tex_input(pos));
   }
   pos++;
   if (pos < input_pixels) {
-    v.g = get_tex_input(pos);
+    v.g = ${scalarType}(get_tex_input(pos));
   }
   pos++;
   if (pos < input_pixels) {
-    v.b = get_tex_input(pos);
+    v.b = ${scalarType}(get_tex_input(pos));
   }
   pos++;
   if (pos < input_pixels) {
-    v.a = get_tex_input(pos);
+    v.a = ${scalarType}(get_tex_input(pos));
   }
-  ${shaderGenOutput('v', dtype, true)};
+  ${shaderGenOutput('v', srcDtype, true)};
 }
       `
       );
@@ -387,6 +390,12 @@ void main() {
       const packed = this.packRToRGBA();
       const packedData = packed.getDataRaw();
       packed.dispose();
+      if (this.textureShape.internalFormat === WebGL2RenderingContext.R8UI) {
+        // RGBA8UIが直接読めずInt32Arrayとして読まれるので、Uint8Arrayに変換してpackの有無での差異をなくす
+        const uint8 = new Uint8Array(packedData.buffer.length);
+        uint8.set(packedData.buffer);
+        return { type: 'Uint8Array', buffer: uint8 };
+      }
       return packedData;
     }
     switch (this.textureShape.dim) {
@@ -507,6 +516,9 @@ void main() {
   }
 
   private readPixels2D(buf: ArrayBufferView) {
+    // Mac + ChromeではRチャンネルのみのテクスチャを読み出せない
+    // Mac + Firefoxではさらに、RGBA8UIも読み出せない
+    // packRToRGBAで基本的に回避しているが、これを経由せずRGBA8UIを直接使うコードがあるとエラーになりうる
     const ctx = getNNWebGLContext();
     this.bindToDrawTexture();
     ctx.gl.readPixels(

@@ -104,10 +104,12 @@ export class NNWebGLContext {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 
     // バグ回避
-    // Mac Chromeで、RチャンネルのみのテクスチャをreadPixelsで読みだそうとするとエラーとなる
+    // Mac+(Chrome/Firefox)で、RチャンネルのみのテクスチャをreadPixelsで読みだそうとするとエラーとなる
     // GL ERROR :GL_INVALID_OPERATION : glReadPixels: format and type incompatible with the current read framebuffer
     const ua = navigator.userAgent;
-    this.canOnlyReadRGBA = ua.includes('Macintosh') && ua.includes('Chrome/');
+    this.canOnlyReadRGBA =
+      ua.includes('Macintosh') &&
+      (ua.includes('Chrome/') || ua.includes('Firefox/'));
   }
 
   createArrayBuffer(vertexArray: Float32Array): WebGLBuffer {
