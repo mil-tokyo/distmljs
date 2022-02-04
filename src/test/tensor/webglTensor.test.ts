@@ -573,91 +573,91 @@ describe('webglTensor', () => {
   //   });
   // });
 
-  // describe('reshape', () => {
-  //   it('2d-2d', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.reshape(x, [1, 6]);
-  //     assert.deepEqual(y.shape, [1, 6]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
-  //   });
-  //   it('0d-2d', async () => {
-  //     const x = WebGLTensor.fromArray([3], []);
-  //     const y = WebGLTensor.reshape(x, [1, 1]);
-  //     assert.deepEqual(y.shape, [1, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3]);
-  //   });
-  //   it('2d-1d', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.reshape(x, 6);
-  //     assert.deepEqual(y.shape, [6]);
-  //   });
-  //   it('2d-1d -1', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.reshape(x, -1);
-  //     assert.deepEqual(y.shape, [6]);
-  //   });
-  //   it('2d-2d -1', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.reshape(x, [3, -1]);
-  //     assert.deepEqual(y.shape, [3, 2]);
-  //   });
-  //   it('3d-2d -1', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.reshape(x, [4, -1]);
-  //     assert.deepEqual(y.shape, [4, 6]);
-  //   });
-  //   it('3d-3d 0', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.reshape(x, [0, 2, 6], false);
-  //     // allowZero=falseで0を指定すると、元のshapeの対応次元からサイズをコピー
-  //     assert.deepEqual(y.shape, [2, 2, 6]);
-  //   });
-  //   it('3d-3d 0,-1', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.reshape(x, [0, 2, -1], false);
-  //     assert.deepEqual(y.shape, [2, 2, 6]);
-  //   });
-  //   it('3d-3d size0', async () => {
-  //     const x = WebGLTensor.fromArray([], [2, 0, 4]);
-  //     // allowZero=true (default)だと0指定は長さ0として扱う
-  //     const y = WebGLTensor.reshape(x, [0, 1]);
-  //     assert.deepEqual(y.shape, [0, 1]);
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [4]);
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [2, 3, 5]);
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [5, -1]); //割り切れない
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [-1, -1]); //マイナス複数
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray([], [0, 2, 3]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [0, -1]); //サイズ0に対してマイナスは不定となるためダメ
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGLTensor.reshape(x, [0, 3, 4]);
-  //     });
-  //   });
-  // });
+  describe('reshape', () => {
+    it('2d-2d', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.reshape(x, [1, 6]);
+      assert.deepEqual(y.shape, [1, 6]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+    it('0d-2d', async () => {
+      const x = WebGLTensor.fromArray([3], []);
+      const y = WebGLTensor.reshape(x, [1, 1]);
+      assert.deepEqual(y.shape, [1, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [3]);
+    });
+    it('2d-1d', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.reshape(x, 6);
+      assert.deepEqual(y.shape, [6]);
+    });
+    it('2d-1d -1', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.reshape(x, -1);
+      assert.deepEqual(y.shape, [6]);
+    });
+    it('2d-2d -1', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.reshape(x, [3, -1]);
+      assert.deepEqual(y.shape, [3, 2]);
+    });
+    it('3d-2d -1', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.reshape(x, [4, -1]);
+      assert.deepEqual(y.shape, [4, 6]);
+    });
+    it('3d-3d 0', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.reshape(x, [0, 2, 6], false);
+      // allowZero=falseで0を指定すると、元のshapeの対応次元からサイズをコピー
+      assert.deepEqual(y.shape, [2, 2, 6]);
+    });
+    it('3d-3d 0,-1', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.reshape(x, [0, 2, -1], false);
+      assert.deepEqual(y.shape, [2, 2, 6]);
+    });
+    it('3d-3d size0', async () => {
+      const x = WebGLTensor.fromArray([], [2, 0, 4]);
+      // allowZero=true (default)だと0指定は長さ0として扱う
+      const y = WebGLTensor.reshape(x, [0, 1]);
+      assert.deepEqual(y.shape, [0, 1]);
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [4]);
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [2, 3, 5]);
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [5, -1]); //割り切れない
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [-1, -1]); //マイナス複数
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray([], [0, 2, 3]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [0, -1]); //サイズ0に対してマイナスは不定となるためダメ
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGLTensor.reshape(x, [0, 3, 4]);
+      });
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { Backend } from '../../backend';
 import { DType, DTypeDefault, TypedArrayTypes } from '../../dtype';
 import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
+import { calcReshape } from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo } from './core/copy';
@@ -605,7 +606,7 @@ export class WebGLTensor extends Tensor {
     if (length <= maxTextureSize) {
       return {
         dim: '2D',
-        width: length,
+        width: Math.max(length, 1), // 最低でも1x1サイズを確保
         height: 1,
         ...format,
       };
@@ -806,5 +807,13 @@ export class WebGLTensor extends Tensor {
 
   static sumTo(x: WebGLTensor, shape: ReadonlyArray<number>): WebGLTensor {
     return sumTo(x, shape);
+  }
+
+  static reshape(
+    x: WebGLTensor,
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGLTensor {
+    return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 }

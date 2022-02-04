@@ -32,7 +32,7 @@ import {
   coretanh,
   unaryWrap,
 } from './core/unary';
-import { getMultiBroadcastShape } from '../shapeUtil';
+import { calcReshape, getMultiBroadcastShape } from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { WebGLTensor } from '../webgl/webglTensor';
 
@@ -525,53 +525,7 @@ export class CPUTensor extends Tensor {
     shape: ReadonlyArray<number> | number,
     allowZero = true
   ): CPUTensor {
-    let shapeArray: ReadonlyArray<number>;
-    if (typeof shape === 'number') {
-      shapeArray = [shape];
-    } else {
-      shapeArray = shape;
-    }
-    let nonMinusProd = 1;
-    let minusAxis: number | null = null;
-    const newShape: number[] = [];
-    for (let dim = 0; dim < shapeArray.length; dim++) {
-      let s = shapeArray[dim];
-      if (s < 0) {
-        if (minusAxis !== null) {
-          throw new Error('Multiple -1 value in shape');
-        }
-        minusAxis = dim;
-      } else {
-        if (s === 0) {
-          if (!allowZero) {
-            // ONNXのReshapeオペレータの機能
-            // copy original value from x.shape
-            if (x.shape.length < dim) {
-              throw new Error('No corresponding input shape axis for zero');
-            }
-            s = x.shape[dim];
-          }
-        }
-        nonMinusProd *= s;
-      }
-      newShape.push(s);
-    }
-    if (minusAxis !== null) {
-      if (nonMinusProd === 0) {
-        throw new Error('Cannot determine size for -1: zero division');
-      }
-      if (x.size % nonMinusProd !== 0) {
-        throw new Error('Cannot determine size for -1: non-integer result');
-      }
-      const minusAxisSize = x.size / nonMinusProd;
-      newShape[minusAxis] = minusAxisSize;
-    } else {
-      if (nonMinusProd !== x.size) {
-        throw new Error('Size does not match');
-      }
-    }
-
-    return x.alias(newShape);
+    return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
   static transpose(
