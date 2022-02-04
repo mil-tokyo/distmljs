@@ -15,6 +15,7 @@ import {
   unpackFromInt32Array,
   unpackFromUint8Array,
 } from './core/pack';
+import { sum, sumTo } from './core/reduction';
 import {
   getTypeForDType,
   shaderGenOutput,
@@ -793,5 +794,17 @@ export class WebGLTensor extends Tensor {
     shape: ReadonlyArray<number>
   ): WebGLTensor {
     return broadcastTo(x, shape);
+  }
+
+  static sum(
+    x: WebGLTensor,
+    axis?: number | number[] | null,
+    keepdims?: boolean
+  ): WebGLTensor {
+    return sum(x, axis, keepdims);
+  }
+
+  static sumTo(x: WebGLTensor, shape: ReadonlyArray<number>): WebGLTensor {
+    return sumTo(x, shape);
   }
 }

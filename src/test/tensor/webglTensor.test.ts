@@ -316,220 +316,210 @@ describe('webglTensor', () => {
     // TODO: add cases
   });
 
-  // describe('broadcastShapes', () => {
-  //   it('2d', async () => {
-  //     assert.deepEqual(
-  //       WebGLTensor.broadcastShapes([
-  //         [1, 3],
-  //         [2, 1],
-  //       ]),
-  //       [2, 3]
-  //     );
-  //     assert.deepEqual(WebGLTensor.broadcastShapes([[3], [2, 1]]), [2, 3]);
-  //     assert.deepEqual(WebGLTensor.broadcastShapes([[3], [2, 3]]), [2, 3]);
-  //     assert.deepEqual(WebGLTensor.broadcastShapes([[], [2, 3]]), [2, 3]);
-  //   });
-  //   // TODO: add cases
-  // });
+  describe('sum', () => {
+    it('2dto1d axis0', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, 0);
+      assert.deepEqual(y.shape, [3]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
+    });
+    it('2dto1d axis0 keepdims', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, 0, true);
+      assert.deepEqual(y.shape, [1, 3]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
+    });
+    it('2dto1d axis1', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, 1);
+      assert.deepEqual(y.shape, [2]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 12]);
+    });
+    it('2dto1d axis1 keepdims', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, 1, true);
+      assert.deepEqual(y.shape, [2, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 12]);
+    });
+    it('2dto0d axis[0,1]', async () => {
+      // scalar
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, [0, 1]);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [15]);
+    });
+    it('2dto0d axisnull', async () => {
+      // scalar
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [15]);
+    });
+    it('2dto0d axisnull keepdims', async () => {
+      // scalar
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sum(x, null, true);
+      assert.deepEqual(y.shape, [1, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [15]);
+    });
+    it('3dto2d axis0', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sum(x, 0);
+      assert.deepEqual(y.shape, [3, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+      );
+    });
+    it('3dto2d axis1', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sum(x, 1);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [12, 15, 18, 21, 48, 51, 54, 57]
+      );
+    });
+    it('3dto2d axis2', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sum(x, 2);
+      assert.deepEqual(y.shape, [2, 3]);
+      assert.deepEqual(await y.toArrayAsync(), [6, 22, 38, 54, 70, 86]);
+    });
+    it('3dto0d axisnull', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sum(x);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [276]);
+    });
+    it('3dto1d axis[0,2]', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sum(x, [0, 2]);
+      assert.deepEqual(y.shape, [3]);
+      assert.deepEqual(await y.toArrayAsync(), [60, 92, 124]);
+    });
+    it('4dto2d axis[0,2]', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
+      const y = WebGLTensor.sum(x, [0, 2]);
+      assert.deepEqual(y.shape, [3, 5]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          300, 308, 316, 324, 332, 460, 468, 476, 484, 492, 620, 628, 636, 644,
+          652,
+        ]
+      );
+    });
+    it('4dto3d axis1 keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
+      const y = WebGLTensor.sum(x, 1, true);
+      assert.deepEqual(y.shape, [2, 1, 4, 5]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108,
+          111, 114, 117, 240, 243, 246, 249, 252, 255, 258, 261, 264, 267, 270,
+          273, 276, 279, 282, 285, 288, 291, 294, 297,
+        ]
+      );
+    });
+  });
 
-  // describe('sum', () => {
-  //   it('2dto1d axis0', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, 0);
-  //     assert.deepEqual(y.shape, [3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
-  //   });
-  //   it('2dto1d axis0 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, 0, true);
-  //     assert.deepEqual(y.shape, [1, 3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
-  //   });
-  //   it('2dto1d axis1', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, 1);
-  //     assert.deepEqual(y.shape, [2]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 12]);
-  //   });
-  //   it('2dto1d axis1 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, 1, true);
-  //     assert.deepEqual(y.shape, [2, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 12]);
-  //   });
-  //   it('2dto0d axis[0,1]', async () => {
-  //     // scalar
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, [0, 1]);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [15]);
-  //   });
-  //   it('2dto0d axisnull', async () => {
-  //     // scalar
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [15]);
-  //   });
-  //   it('2dto0d axisnull keepdims', async () => {
-  //     // scalar
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sum(x, null, true);
-  //     assert.deepEqual(y.shape, [1, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [15]);
-  //   });
-  //   it('3dto2d axis0', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sum(x, 0);
-  //     assert.deepEqual(y.shape, [3, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
-  //     );
-  //   });
-  //   it('3dto2d axis1', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sum(x, 1);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(await y.toArrayAsync(), [12, 15, 18, 21, 48, 51, 54, 57]);
-  //   });
-  //   it('3dto2d axis2', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sum(x, 2);
-  //     assert.deepEqual(y.shape, [2, 3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [6, 22, 38, 54, 70, 86]);
-  //   });
-  //   it('3dto0d axisnull', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sum(x);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [276]);
-  //   });
-  //   it('3dto1d axis[0,2]', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sum(x, [0, 2]);
-  //     assert.deepEqual(y.shape, [3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [60, 92, 124]);
-  //   });
-  //   it('4dto2d axis[0,2]', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-  //     const y = WebGLTensor.sum(x, [0, 2]);
-  //     assert.deepEqual(y.shape, [3, 5]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         300, 308, 316, 324, 332, 460, 468, 476, 484, 492, 620, 628, 636, 644,
-  //         652,
-  //       ]
-  //     );
-  //   });
-  //   it('4dto3d axis1 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-  //     const y = WebGLTensor.sum(x, 1, true);
-  //     assert.deepEqual(y.shape, [2, 1, 4, 5]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108,
-  //         111, 114, 117, 240, 243, 246, 249, 252, 255, 258, 261, 264, 267, 270,
-  //         273, 276, 279, 282, 285, 288, 291, 294, 297,
-  //       ]
-  //     );
-  //   });
-  // });
-
-  // describe('sumTo', () => {
-  //   it('2dto1d axis0', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sumTo(x, [3]);
-  //     assert.deepEqual(y.shape, [3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
-  //   });
-  //   it('2dto1d axis0 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sumTo(x, [1, 3]);
-  //     assert.deepEqual(y.shape, [1, 3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
-  //   });
-  //   it('2dto1d axis1 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sumTo(x, [2, 1]);
-  //     assert.deepEqual(y.shape, [2, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 12]);
-  //   });
-  //   it('2dto0d axisnull', async () => {
-  //     // scalar
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sumTo(x, []);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [15]);
-  //   });
-  //   it('2dto0d axisnull keepdims', async () => {
-  //     // scalar
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.sumTo(x, [1, 1]);
-  //     assert.deepEqual(y.shape, [1, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [15]);
-  //   });
-  //   it('3dto2d axis0', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sumTo(x, [3, 4]);
-  //     assert.deepEqual(y.shape, [3, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
-  //     );
-  //   });
-  //   it('3dto2d axis1 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sumTo(x, [2, 1, 4]);
-  //     assert.deepEqual(y.shape, [2, 1, 4]);
-  //     assert.deepEqual(await y.toArrayAsync(), [12, 15, 18, 21, 48, 51, 54, 57]);
-  //   });
-  //   it('3dto2d axis2 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sumTo(x, [2, 3, 1]);
-  //     assert.deepEqual(y.shape, [2, 3, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [6, 22, 38, 54, 70, 86]);
-  //   });
-  //   it('3dto0d axisnull', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sumTo(x, []);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [276]);
-  //   });
-  //   it('3dto1d axis[0,2] keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.sumTo(x, [1, 3, 1]);
-  //     assert.deepEqual(y.shape, [1, 3, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [60, 92, 124]);
-  //   });
-  //   it('4dto2d axis[0,2] keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-  //     const y = WebGLTensor.sumTo(x, [1, 3, 1, 5]);
-  //     assert.deepEqual(y.shape, [1, 3, 1, 5]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         300, 308, 316, 324, 332, 460, 468, 476, 484, 492, 620, 628, 636, 644,
-  //         652,
-  //       ]
-  //     );
-  //   });
-  //   it('4dto3d axis1 keepdims', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-  //     const y = WebGLTensor.sumTo(x, [2, 1, 4, 5]);
-  //     assert.deepEqual(y.shape, [2, 1, 4, 5]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108,
-  //         111, 114, 117, 240, 243, 246, 249, 252, 255, 258, 261, 264, 267, 270,
-  //         273, 276, 279, 282, 285, 288, 291, 294, 297,
-  //       ]
-  //     );
-  //   });
-  // });
+  describe('sumTo', () => {
+    it('2dto1d axis0', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sumTo(x, [3]);
+      assert.deepEqual(y.shape, [3]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
+    });
+    it('2dto1d axis0 keepdims', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sumTo(x, [1, 3]);
+      assert.deepEqual(y.shape, [1, 3]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 5, 7]);
+    });
+    it('2dto1d axis1 keepdims', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sumTo(x, [2, 1]);
+      assert.deepEqual(y.shape, [2, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 12]);
+    });
+    it('2dto0d axisnull', async () => {
+      // scalar
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sumTo(x, []);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [15]);
+    });
+    it('2dto0d axisnull keepdims', async () => {
+      // scalar
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.sumTo(x, [1, 1]);
+      assert.deepEqual(y.shape, [1, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [15]);
+    });
+    it('3dto2d axis0', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sumTo(x, [3, 4]);
+      assert.deepEqual(y.shape, [3, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+      );
+    });
+    it('3dto2d axis1 keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sumTo(x, [2, 1, 4]);
+      assert.deepEqual(y.shape, [2, 1, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [12, 15, 18, 21, 48, 51, 54, 57]
+      );
+    });
+    it('3dto2d axis2 keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sumTo(x, [2, 3, 1]);
+      assert.deepEqual(y.shape, [2, 3, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [6, 22, 38, 54, 70, 86]);
+    });
+    it('3dto0d axisnull', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sumTo(x, []);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [276]);
+    });
+    it('3dto1d axis[0,2] keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.sumTo(x, [1, 3, 1]);
+      assert.deepEqual(y.shape, [1, 3, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [60, 92, 124]);
+    });
+    it('4dto2d axis[0,2] keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
+      const y = WebGLTensor.sumTo(x, [1, 3, 1, 5]);
+      assert.deepEqual(y.shape, [1, 3, 1, 5]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          300, 308, 316, 324, 332, 460, 468, 476, 484, 492, 620, 628, 636, 644,
+          652,
+        ]
+      );
+    });
+    it('4dto3d axis1 keepdims', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
+      const y = WebGLTensor.sumTo(x, [2, 1, 4, 5]);
+      assert.deepEqual(y.shape, [2, 1, 4, 5]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108,
+          111, 114, 117, 240, 243, 246, 249, 252, 255, 258, 261, 264, 267, 270,
+          273, 276, 279, 282, 285, 288, 291, 294, 297,
+        ]
+      );
+    });
+  });
 
   // describe('transpose', () => {
   //   it('2d', async () => {
