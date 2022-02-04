@@ -586,6 +586,10 @@ export class WebGLTensor extends Tensor {
     return typeof tensor === 'object' && (tensor as Tensor).backend === 'webgl';
   }
 
+  getClass(): typeof WebGLTensor {
+    return WebGLTensor;
+  }
+
   private calcDefaultTextureShape(
     length: number,
     dtype: DType,
