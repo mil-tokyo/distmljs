@@ -24,10 +24,14 @@ export function packToFloat16Array(
   const buffer = new Uint16Array(length);
   for (let i = 0; i < srcLength; i++) {
     const x = srcUInt32[i];
-    const packed =
-      ((x >> 16) & 0x8000) |
-      ((((x & 0x7f800000) - 0x38000000) >> 13) & 0x7c00) |
-      ((x >> 13) & 0x03ff);
+    // 非正規化数, NaNは不正確
+    let exp = ((x >> 13) & 0x3fc00) - 0x1c000;
+    if (exp < 0) {
+      exp = 0;
+    } else if (exp > 0x7c00) {
+      exp = 0x7c00;
+    }
+    const packed = ((x >> 16) & 0x8000) | exp | ((x >> 13) & 0x3ff);
     buffer[i] = packed;
   }
   return buffer;
@@ -69,10 +73,15 @@ export function unpackFromFloat16Array(
   const bufferUInt32 = new Uint32Array(buffer.buffer);
   for (let i = 0; i < length; i++) {
     const h = src[i];
-    const unpacked =
-      ((h & 0x8000) << 16) |
-      (((h & 0x7c00) + 0x1c000) << 13) |
-      ((h & 0x03ff) << 13);
+    let exp = ((h << 13) & 0xf800000) + 0x38000000;
+    if (exp === 0x38000000) {
+      // 0
+      exp = 0;
+    } else if (exp === 0x47800000) {
+      // inf
+      exp = 0x7f800000;
+    }
+    const unpacked = ((h << 16) & 0x80000000) | exp | ((h & 0x3ff) << 13);
     bufferUInt32[i] = unpacked;
   }
   return buffer;
