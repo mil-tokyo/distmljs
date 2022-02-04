@@ -5,7 +5,7 @@ import {
   TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
-import { arange, arrayEqual } from '../../util';
+import { arrayEqual } from '../../util';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { sum, sumTo } from './core/reduction';
@@ -32,7 +32,11 @@ import {
   coretanh,
   unaryWrap,
 } from './core/unary';
-import { calcReshape, getMultiBroadcastShape } from '../shapeUtil';
+import {
+  calcReshape,
+  calcTransposeShape,
+  getMultiBroadcastShape,
+} from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { WebGLTensor } from '../webgl/webglTensor';
 
@@ -532,23 +536,11 @@ export class CPUTensor extends Tensor {
     x: CPUTensor,
     axes?: ReadonlyArray<number> | null
   ): CPUTensor {
-    let axesChecked: ReadonlyArray<number>;
-    if (axes) {
-      if (axes.length !== x.ndim) {
-        throw new Error('length of axes does not match with x');
-      }
-      // ほか、すべての軸が1つずつ使われているかのチェックをすべき
-      axesChecked = axes;
-    } else {
-      axesChecked = arange(x.ndim - 1, -1, -1); // 逆順[x.ndim-1, x.ndim-2, ..., 2, 1, 0]
-    }
-    const newShape: number[] = [];
-    const srcStrides: number[] = [];
-    for (let dim = 0; dim < axesChecked.length; dim++) {
-      const ax = axesChecked[dim];
-      newShape.push(x.shape[ax]);
-      srcStrides.push(x.strides[ax]);
-    }
+    const { newShape, srcStrides } = calcTransposeShape(
+      x.shape,
+      x.strides,
+      axes
+    );
     return stridedCopy(x, newShape, srcStrides);
   }
 }

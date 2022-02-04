@@ -213,3 +213,28 @@ export function calcReshape(
   }
   return newShape;
 }
+
+export function calcTransposeShape(
+  xShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  axes?: ReadonlyArray<number> | null
+): { newShape: number[]; srcStrides: number[] } {
+  let axesChecked: ReadonlyArray<number>;
+  if (axes) {
+    if (axes.length !== xShape.length) {
+      throw new Error('length of axes does not match with x');
+    }
+    // ほか、すべての軸が1つずつ使われているかのチェックをすべき
+    axesChecked = axes;
+  } else {
+    axesChecked = arange(xShape.length - 1, -1, -1); // 逆順[x.ndim-1, x.ndim-2, ..., 2, 1, 0]
+  }
+  const newShape: number[] = [];
+  const srcStrides: number[] = [];
+  for (let dim = 0; dim < axesChecked.length; dim++) {
+    const ax = axesChecked[dim];
+    newShape.push(xShape[ax]);
+    srcStrides.push(xStrides[ax]);
+  }
+  return { newShape, srcStrides };
+}

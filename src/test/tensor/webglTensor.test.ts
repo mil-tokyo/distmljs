@@ -1,7 +1,6 @@
 import { assert } from 'chai';
 import {
   getTensorTextureShapeFormatForDType,
-  tensorTextureShapeFormatRGBA16F,
   WebGLTensor,
 } from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
@@ -521,57 +520,57 @@ describe('webglTensor', () => {
     });
   });
 
-  // describe('transpose', () => {
-  //   it('2d', async () => {
-  //     const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGLTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [3, 2]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 3, 1, 4, 2, 5]);
-  //   });
-  //   it('1d', async () => {
-  //     // do nothing
-  //     const x = WebGLTensor.fromArray([0, 1], [2]);
-  //     const y = WebGLTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [2]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 1]);
-  //   });
-  //   it('3d', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [4, 3, 2]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15,
-  //         7, 19, 11, 23,
-  //       ]
-  //     );
-  //   });
-  //   it('3d 2,0,1', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.transpose(x, [2, 0, 1]);
-  //     assert.deepEqual(y.shape, [4, 2, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7,
-  //         11, 15, 19, 23,
-  //       ]
-  //     );
-  //   });
-  //   it('3d 0,2,1', async () => {
-  //     const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGLTensor.transpose(x, [0, 2, 1]);
-  //     assert.deepEqual(y.shape, [2, 4, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11, 12, 16, 20, 13, 17, 21, 14, 18,
-  //         22, 15, 19, 23,
-  //       ]
-  //     );
-  //   });
-  // });
+  describe('transpose', () => {
+    it('2d', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.transpose(x);
+      assert.deepEqual(y.shape, [3, 2]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 3, 1, 4, 2, 5]);
+    });
+    it('1d', async () => {
+      // do nothing
+      const x = WebGLTensor.fromArray([0, 1], [2]);
+      const y = WebGLTensor.transpose(x);
+      assert.deepEqual(y.shape, [2]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1]);
+    });
+    it('3d', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.transpose(x);
+      assert.deepEqual(y.shape, [4, 3, 2]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15,
+          7, 19, 11, 23,
+        ]
+      );
+    });
+    it('3d 2,0,1', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.transpose(x, [2, 0, 1]);
+      assert.deepEqual(y.shape, [4, 2, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7,
+          11, 15, 19, 23,
+        ]
+      );
+    });
+    it('3d 0,2,1', async () => {
+      const x = WebGLTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGLTensor.transpose(x, [0, 2, 1]);
+      assert.deepEqual(y.shape, [2, 4, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11, 12, 16, 20, 13, 17, 21, 14, 18,
+          22, 15, 19, 23,
+        ]
+      );
+    });
+  });
 
   describe('reshape', () => {
     it('2d-2d', async () => {
