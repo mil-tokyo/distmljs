@@ -9,7 +9,7 @@ export type TestFlag = { [K in TestTarget]?: boolean };
 function loadTestFlag(): TestFlag {
   const params = new URLSearchParams(window.location.search);
   const target = params.get('target');
-  if (target) {
+  if (target != null) {
     const map: Record<string, boolean> = {};
     for (const key of target.split(',')) {
       map[key] = true;
