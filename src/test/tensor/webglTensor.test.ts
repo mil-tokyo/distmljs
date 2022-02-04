@@ -86,16 +86,23 @@ describe('webglTensor', () => {
     });
 
     it('exp 2darray', async () => {
-      const x = WebGLTensor.empty([2], 'float32', undefined, {
+      const x = WebGLTensor.empty([2, 2, 2], 'float32', undefined, {
         ...getTensorTextureShapeFormatForDType('float32'),
         dim: '2DArray',
-        width: 1,
-        height: 1,
+        width: 2,
+        height: 2,
         depth: 2,
       });
-      x.setArray([1, -1]);
+      x.setArray([1, -1, 2, -2, 3, -3, 4, -4]);
       const y = WebGLTensor.exp(x);
-      arrayNearlyEqual(await y.toArrayAsync(), [2.71828182845904, 0.367879441]);
+      arrayNearlyEqual(
+        await y.toArrayAsync(),
+        [
+          2.7182817459106445, 0.3678794503211975, 7.389056205749512,
+          0.1353352814912796, 20.08553695678711, 0.049787066876888275,
+          54.598148345947266, 0.018315639346837997,
+        ]
+      );
     });
   });
 
@@ -107,16 +114,19 @@ describe('webglTensor', () => {
     });
 
     it('abs 2darray', async () => {
-      const x = WebGLTensor.empty([2], 'float32', undefined, {
+      const x = WebGLTensor.empty([6], 'float32', undefined, {
         ...getTensorTextureShapeFormatForDType('float32'),
         dim: '2DArray',
-        width: 1,
-        height: 1,
+        width: 2,
+        height: 2,
         depth: 2,
       });
-      x.setArray([1.5, -3.5]);
+      x.setArray([1.5, -3.5, 0.0, 10.25, -2.5, -1.0]);
       const y = WebGLTensor.abs(x);
-      arrayNearlyEqual(await y.toArrayAsync(), [1.5, 3.5]);
+      arrayNearlyEqual(
+        await y.toArrayAsync(),
+        [1.5, 3.5, 0.0, 10.25, 2.5, 1.0]
+      );
     });
 
     it('abs int32', async () => {
@@ -169,18 +179,21 @@ describe('webglTensor', () => {
       assert.deepEqual(await y.toArrayAsync(), [110, 120, 230, 240]);
     });
 
-    it('broadcast 1d[2,1] to 2d 2darray', async () => {
-      const lhs = WebGLTensor.empty([2, 2], 'float32', undefined, {
+    it('broadcast 1d[4,1] to 2d 2darray', async () => {
+      const lhs = WebGLTensor.empty([4, 2], 'float32', undefined, {
         ...getTensorTextureShapeFormatForDType('float32'),
         dim: '2DArray',
-        width: 1,
+        width: 2,
         height: 2,
         depth: 2,
       });
-      lhs.setArray([10, 20, 30, 40]);
-      const rhs = WebGLTensor.fromArray([100, 200], [2, 1]);
+      lhs.setArray([10, 20, 30, 40, 50, 60, 70, 80]);
+      const rhs = WebGLTensor.fromArray([100, 200, 300, 400], [4, 1]);
       const y = WebGLTensor.add(lhs, rhs);
-      assert.deepEqual(await y.toArrayAsync(), [110, 120, 230, 240]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [110, 120, 230, 240, 350, 360, 470, 480]
+      );
       // TODO: test when output is 2DArray (mock WebGLTensor.empty is needed)
     });
   });

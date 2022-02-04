@@ -105,6 +105,17 @@ export class NNWebGLContext {
   }
 
   createTexture(textureShape: TensorTextureShape): WebGLTexture {
+    if (
+      textureShape.dim === '2DArray' &&
+      (textureShape.width === 1 || textureShape.height === 1)
+    ) {
+      // texSubImage3D raises Error when the following condition is met
+      // WebGL: INVALID_OPERATION: texSubImage3D: ArrayBufferView not big enough for request
+      // (textureShape.dim === "2DArray" && (textureShape.width === 1 || textureShape.height === 1) && textureShape.internalFormat === WebGL2RenderingContext.R16F
+      throw new Error(
+        'The condition raises error: textureShape.dim === "2DArray" && (textureShape.width === 1 || textureShape.height === 1))'
+      );
+    }
     const gl = this.gl;
     const texture = nonNull(gl.createTexture());
     gl.activeTexture(gl.TEXTURE0);
