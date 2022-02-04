@@ -4,6 +4,7 @@ import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import { broadcastTo } from './core/copy';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -785,5 +786,12 @@ export class WebGLTensor extends Tensor {
 
   static exp(x: WebGLTensor): WebGLTensor {
     return coreexp(x);
+  }
+
+  static broadcastTo(
+    x: WebGLTensor,
+    shape: ReadonlyArray<number>
+  ): WebGLTensor {
+    return broadcastTo(x, shape);
   }
 }
