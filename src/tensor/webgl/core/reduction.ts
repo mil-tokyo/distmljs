@@ -23,6 +23,10 @@ function dispatchSum(
   reductionShape: number[],
   reductionStrides: number[]
 ): void {
+  if (x.buffer.dimPerPixel !== 1) {
+    // TODO
+    throw new Error('dispatchSum: RGBA texture not yet supported');
+  }
   const dtype = x.dtype;
   const { scalarType } = getTypeForDType(dtype);
 

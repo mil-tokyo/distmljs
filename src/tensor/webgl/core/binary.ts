@@ -1,4 +1,5 @@
 import { DType } from '../../../dtype';
+import { arange } from '../../../util';
 import { getMultiBroadcastShape } from '../../shapeUtil';
 import { getNNWebGLContext } from '../webglContext';
 import { WebGLTensor } from '../webglTensor';
@@ -52,34 +53,9 @@ function binaryWrap(
   const output = WebGLTensor.empty(shape, dtype);
   const ctx = getNNWebGLContext();
   const ndim = shape.length;
-  let get_expr: string;
-  switch (ndim) {
-    case 0:
-      get_expr = '';
-      break;
-    case 1:
-      get_expr = 'tex_output_0';
-      break;
-    case 2:
-      get_expr = 'tex_output_0, tex_output_1';
-      break;
-    case 3:
-      get_expr = 'tex_output_0, tex_output_1, tex_output_2';
-      break;
-    case 4:
-      get_expr = 'tex_output_0, tex_output_1, tex_output_2, tex_output_3';
-      break;
-    case 5:
-      get_expr =
-        'tex_output_0, tex_output_1, tex_output_2, tex_output_3, tex_output_4';
-      break;
-    case 6:
-      get_expr =
-        'tex_output_0, tex_output_1, tex_output_2, tex_output_3, tex_output_4, tex_output_5';
-      break;
-    default:
-      throw new Error(`${name}: dimension ${ndim} is not yet supported`);
-  }
+  const get_expr = arange(ndim)
+    .map((i) => `tex_output_${i}`)
+    .join(',');
   const kernelName = `binary_${name}_${ndim}_${dtype}_${output.buffer.textureShape.dim}_${lhs.buffer.textureShape.dim}_${rhs.buffer.textureShape.dim}`;
   if (!ctx.hasKernel(kernelName)) {
     ctx.addKernel(
