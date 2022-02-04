@@ -1,15 +1,40 @@
-import { getNNWebGLContext, webglShaderHeader } from '../webglContext';
+import { DType } from '../../../dtype';
+import { getNNWebGLContext } from '../webglContext';
 import { WebGLTensor } from '../webglTensor';
+import {
+  shaderGenOutput,
+  shaderGenTensorElementwiseGet,
+  shaderGenTensorOutputUniformElementwise,
+  shaderGenTensorOutputUniformElementwiseItem,
+  webglShaderHeader,
+} from './shaderHelper';
 
-export function exp(x: WebGLTensor): WebGLTensor {
-  if (x.dtype !== 'float32') {
-    throw new Error();
-  }
+function unaryWrap(
+  x: WebGLTensor,
+  name: string,
+  exprs: { [T in DType]?: string }
+): WebGLTensor {
   if (x.buffer.dimPerPixel !== 1) {
-    // TODO
-    throw new Error();
+    throw new Error(`${name}: RGBA texture is not yet supported`);
   }
-  // TODO: unaryに一般化
+  const dtype = x.dtype;
+  const dim = x.buffer.textureShape.dim;
+  let returnType: string;
+  const expr = exprs[dtype];
+  if (!expr) {
+    throw new Error(`${name}: dtype ${dtype} is not supported`);
+  }
+  switch (dtype) {
+    case 'float32':
+      returnType = 'float';
+      break;
+    case 'int32':
+      returnType = 'int';
+      break;
+    default:
+      returnType = 'uint';
+      break;
+  }
   const output = WebGLTensor.empty(
     x.shape,
     x.dtype,
@@ -17,38 +42,36 @@ export function exp(x: WebGLTensor): WebGLTensor {
     x.buffer.textureShape
   );
   const ctx = getNNWebGLContext();
-  if (output.buffer.textureShape.dim === '2D') {
-    if (!ctx.hasKernel('exp')) {
-      ctx.addKernel(
-        'exp',
-        webglShaderHeader +
-          `
-uniform sampler2D tex_input;
+  // TODO: カーネル名マングリング手段の一般化
+  const kernelName = `unary_${name}_${dim}_${dtype}`;
+  if (!ctx.hasKernel(kernelName)) {
+    ctx.addKernel(
+      kernelName,
+      webglShaderHeader +
+        `
+${shaderGenTensorOutputUniformElementwise(dim, dtype)}
+${shaderGenTensorElementwiseGet('tex_input', dim, dtype)}
 void main() {
-  float r = texelFetch(tex_input, ivec2(int(gl_FragCoord.x), int(gl_FragCoord.y)), 0).r;
-  fragColor = vec4(exp(r), 0.0, 0.0, 0.0);
+  ${returnType} v_s = get_tex_input();
+  ${expr}
+  ${shaderGenOutput('v', dtype)}
 }
 `
-      );
-    }
-    ctx.runKernel('exp', [{ tensor: x, name: 'tex_input' }], output, []);
-  } else {
-    if (!ctx.hasKernel('exp2d')) {
-      ctx.addKernel(
-        'exp2d',
-        webglShaderHeader +
-          `
-uniform sampler2DArray tex_input;
-uniform int _ka_depth;
-out vec4 fragColor;
-void main() {
-  float r = texelFetch(tex_input, ivec3(int(gl_FragCoord.x), int(gl_FragCoord.y), _ka_depth), 0).r;
-  fragColor = vec4(exp(r), 0.0, 0.0, 0.0);
-}
-`
-      );
-    }
-    ctx.runKernel('exp2d', [{ tensor: x, name: 'tex_input' }], output, []);
+    );
   }
+  ctx.runKernel(kernelName, [{ tensor: x, name: 'tex_input' }], output, [
+    ...shaderGenTensorOutputUniformElementwiseItem(output),
+  ]);
   return output;
+}
+
+export function coreexp(x: WebGLTensor): WebGLTensor {
+  return unaryWrap(x, 'exp', { float32: 'float v = exp(v_s);' });
+}
+
+export function coreabs(x: WebGLTensor): WebGLTensor {
+  return unaryWrap(x, 'abs', {
+    float32: 'float v = abs(v_s);',
+    int32: 'int v = abs(v_s);',
+  });
 }

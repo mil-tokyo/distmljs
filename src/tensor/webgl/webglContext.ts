@@ -11,14 +11,6 @@ void main() {
 }
 `;
 
-export const webglShaderHeader = `#version 300 es
-precision highp float;
-precision highp int;
-precision highp sampler2D;
-precision highp sampler2DArray;
-out vec4 fragColor;
-`;
-
 export interface WebGLUniformItem {
   name: string;
   value: number;

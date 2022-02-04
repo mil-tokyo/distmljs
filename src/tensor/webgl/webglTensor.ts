@@ -1,14 +1,9 @@
 import { Backend } from '../../backend';
-import {
-  DType,
-  DTypeDefault,
-  TypedArrayForDType,
-  TypedArrayTypes,
-} from '../../dtype';
+import { DType, DTypeDefault, TypedArrayTypes } from '../../dtype';
 import { arrayEqual, arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { Tensor } from '../tensor';
-import { add } from './core/binary';
+import { coreadd } from './core/binary';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -19,8 +14,8 @@ import {
   unpackFromInt32Array,
   unpackFromUint8Array,
 } from './core/pack';
-import { exp } from './core/unary';
-import { getNNWebGLContext, webglShaderHeader } from './webglContext';
+import { coreabs, coreexp } from './core/unary';
+import { getNNWebGLContext } from './webglContext';
 
 let webglAllocCount = 0;
 const existingBuffers: Set<WebGLTensorBuffer> = new Set();
@@ -106,6 +101,8 @@ export function getTensorTextureShapeFormatForDType(
 }
 
 export const tensorTextureShapeFormatDefault = tensorTextureShapeFormatR32F;
+
+export type TensorTextureShapeDim = '2D' | '2DArray';
 
 export interface TensorTextureShape2D extends TensorTextureShapeFormat {
   dim: '2D';
@@ -464,6 +461,10 @@ export class WebGLTensor extends Tensor {
     }
   }
 
+  static isWebGLTensor(tensor: unknown): tensor is WebGLTensor {
+    return typeof tensor === 'object' && (tensor as Tensor).backend === 'webgl';
+  }
+
   private calcDefaultTextureShape(
     length: number,
     dtype: DType,
@@ -634,7 +635,7 @@ export class WebGLTensor extends Tensor {
   }
 
   static add(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
-    return add(lhs, rhs);
+    return coreadd(lhs, rhs);
   }
 
   static mul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
@@ -645,7 +646,11 @@ export class WebGLTensor extends Tensor {
     throw new Error();
   }
 
+  static abs(x: WebGLTensor): WebGLTensor {
+    return coreabs(x);
+  }
+
   static exp(x: WebGLTensor): WebGLTensor {
-    return exp(x);
+    return coreexp(x);
   }
 }

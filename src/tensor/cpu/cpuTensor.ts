@@ -59,6 +59,10 @@ export class CPUTensor extends Tensor {
     }
   }
 
+  static isCPUTensor(tensor: unknown): tensor is CPUTensor {
+    return typeof tensor === 'object' && (tensor as Tensor).backend === 'cpu';
+  }
+
   alias(shape?: ArrayLike<number>): CPUTensor {
     return new CPUTensor(shape || this.shape, this.dtype, this.getBuffer());
   }
