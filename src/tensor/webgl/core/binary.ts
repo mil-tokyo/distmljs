@@ -122,3 +122,35 @@ export function coreadd(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
     uint8: 'uint v = v_l + v_r;',
   });
 }
+
+export function coresub(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'sub', {
+    float32: 'float v = v_l - v_r;',
+    int32: 'int v = v_l - v_r;',
+    uint8: 'uint v = v_l - v_r;',
+  });
+}
+
+export function coremul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'mul', {
+    float32: 'float v = v_l * v_r;',
+    int32: 'int v = v_l * v_r;',
+    uint8: 'uint v = v_l * v_r;',
+  });
+}
+
+export function corediv(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'div', {
+    float32: 'float v = v_l / v_r;',
+    int32: 'int v = v_l / v_r;',
+    uint8: 'uint v = v_l / v_r;',
+  });
+}
+
+export function corepow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
+  // implementation: pow(abs(-1.5), 2)
+  return binaryWrap(lhs, rhs, 'pow', {
+    float32: 'float v = pow(abs(v_l), v_r);',
+  });
+}

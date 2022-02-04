@@ -1,9 +1,9 @@
 import { Backend } from '../../backend';
 import { DType, DTypeDefault, TypedArrayTypes } from '../../dtype';
-import { arrayEqual, arrayProd } from '../../util';
+import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { Tensor } from '../tensor';
-import { coreadd } from './core/binary';
+import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -638,12 +638,20 @@ export class WebGLTensor extends Tensor {
     return coreadd(lhs, rhs);
   }
 
+  static sub(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    return coresub(lhs, rhs);
+  }
+
   static mul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
-    // TODO: broadcast, type check
-    if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error('shape not match');
-    }
-    throw new Error();
+    return coremul(lhs, rhs);
+  }
+
+  static div(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    return corediv(lhs, rhs);
+  }
+
+  static pow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    return corepow(lhs, rhs);
   }
 
   static abs(x: WebGLTensor): WebGLTensor {

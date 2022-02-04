@@ -185,14 +185,25 @@ describe('webglTensor', () => {
     });
   });
 
-  // describe('mul', () => {
-  //   it('mul', async () => {
-  //     const lhs = WebGLTensor.fromArray([10, 20], [2]);
-  //     const rhs = WebGLTensor.fromArray([50, 60], [2]);
-  //     const y = WebGLTensor.mul(lhs, rhs);
-  //     assert.deepEqual(y.toArray(), [500, 1200]);
-  //   });
-  // });
+  describe('mul', () => {
+    it('mul', async () => {
+      const lhs = WebGLTensor.fromArray([10, 20], [2]);
+      const rhs = WebGLTensor.fromArray([50, 60], [2]);
+      const y = WebGLTensor.mul(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [500, 1200]);
+    });
+  });
+
+  describe('pow', () => {
+    it('pow', async () => {
+      // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
+      // implementation: pow(abs(-1.5), 2)
+      const lhs = WebGLTensor.fromArray([-1.5, 2.5], [2]);
+      const rhs = WebGLTensor.fromArray([2, 0.5], [2]);
+      const y = WebGLTensor.pow(lhs, rhs);
+      arrayNearlyEqual(await y.toArrayAsync(), [2.25, 1.58113883008]);
+    });
+  });
 
   // describe('dot', () => {
   //   it('dot', () => {
