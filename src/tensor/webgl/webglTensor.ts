@@ -6,6 +6,7 @@ import { calcReshape, calcTransposeShape } from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
+import { gemm } from './core/gemm';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -788,6 +789,26 @@ export class WebGLTensor extends Tensor {
 
   static exp(x: WebGLTensor): WebGLTensor {
     return coreexp(x);
+  }
+
+  /**
+   * 転置込みの行列積を行う暫定的な関数
+   * @param a
+   * @param b
+   * @param transa
+   * @param transb
+   */
+  static gemm(
+    a: WebGLTensor,
+    b: WebGLTensor,
+    transa = false,
+    transb = false
+  ): WebGLTensor {
+    return gemm(a, b, transa, transb);
+  }
+
+  static dot(a: WebGLTensor, b: WebGLTensor): WebGLTensor {
+    return WebGLTensor.gemm(a, b, false, false);
   }
 
   static broadcastTo(
