@@ -14,6 +14,14 @@ import {
   unpackFromInt32Array,
   unpackFromUint8Array,
 } from './core/pack';
+import {
+  getTypeForDType,
+  shaderGenOutput,
+  shaderGenTensorNDGet,
+  shaderGenTensorOutputCoordsWithReturn,
+  shaderGenTensorOutputUniform,
+  webglShaderHeader,
+} from './core/shaderHelper';
 import { coreabs, coreexp } from './core/unary';
 import { getNNWebGLContext } from './webglContext';
 
@@ -63,8 +71,14 @@ export const tensorTextureShapeFormatRGBA16F = {
 
 export const tensorTextureShapeFormatRGBA32I = {
   internalFormat: WebGL2RenderingContext.RGBA32I,
-  format: WebGL2RenderingContext.RGBA,
+  format: WebGL2RenderingContext.RGBA_INTEGER,
   type: WebGL2RenderingContext.INT,
+};
+
+export const tensorTextureShapeFormatRGBA8UI = {
+  internalFormat: WebGL2RenderingContext.RGBA8UI,
+  format: WebGL2RenderingContext.RGBA_INTEGER,
+  type: WebGL2RenderingContext.UNSIGNED_BYTE,
 };
 
 export function getTensorTextureShapeFormatForDType(
@@ -121,7 +135,7 @@ export type TensorTextureShape =
   | TensorTextureShape2D
   | TensorTextureShape2DArray;
 
-class WebGLTensorBuffer {
+export class WebGLTensorBuffer {
   public readonly texture: WebGLTexture;
   public ref: number;
   public target: number;
@@ -139,6 +153,7 @@ class WebGLTensorBuffer {
         this.dimPerPixel = 1;
         break;
       case WebGL2RenderingContext.RGBA:
+      case WebGL2RenderingContext.RGBA_INTEGER:
         this.dimPerPixel = 4;
         break;
       default:
@@ -275,11 +290,105 @@ class WebGLTensorBuffer {
     return buf;
   }
 
+  private packRToRGBA(): WebGLTensorBuffer {
+    if (this.dimPerPixel !== 1) {
+      throw new Error('This buffer is RGBA');
+    }
+
+    const ctx = getNNWebGLContext();
+    const dstPixels = Math.ceil(this.textureLength / 4);
+    const width = ctx.maxTextureSize;
+    const height = Math.ceil(dstPixels / width);
+    if (height > ctx.maxTextureSize) {
+      // 2DArrayへのコピーを実装すれば読み出し可能。未実装
+      throw new Error(`Tensor too large`);
+    }
+
+    let dstShapeFormat: TensorTextureShapeFormat;
+
+    let dtype: DType;
+    switch (this.textureShape.internalFormat) {
+      case WebGL2RenderingContext.R32F:
+        dstShapeFormat = tensorTextureShapeFormatRGBA32F;
+        dtype = 'float32';
+        break;
+      case WebGL2RenderingContext.R16F:
+        dstShapeFormat = tensorTextureShapeFormatRGBA16F;
+        dtype = 'float32';
+        break;
+      case WebGL2RenderingContext.R32I:
+        dstShapeFormat = tensorTextureShapeFormatRGBA32I;
+        dtype = 'int32';
+        break;
+      case WebGL2RenderingContext.R8UI:
+        dstShapeFormat = tensorTextureShapeFormatRGBA8UI;
+        dtype = 'uint8';
+        break;
+      default:
+        throw new Error('X');
+    }
+    const { vec4Type } = getTypeForDType(dtype);
+    const dst = new WebGLTensorBuffer({
+      ...dstShapeFormat,
+      dim: '2D',
+      width,
+      height,
+    });
+    const kernelName = `packRToRGBA_${this.textureShape.dim}_${dtype}`;
+    if (!ctx.hasKernel(kernelName)) {
+      ctx.addKernel(
+        kernelName,
+        webglShaderHeader +
+          `
+${shaderGenTensorOutputUniform(1, dst.textureShape.dim, dtype)}
+${shaderGenTensorNDGet('tex_input', 1, this.textureShape.dim, dtype)}
+uniform int input_pixels;
+void main() {
+  ${shaderGenTensorOutputCoordsWithReturn(1, dst.textureShape.dim)}
+  ${vec4Type} v = ${vec4Type}(0.0, 0.0, 0.0, 0.0);
+  int pos = tex_output_0 * 4;
+  if (pos < input_pixels) {
+    v.r = get_tex_input(pos);
+  }
+  pos++;
+  if (pos < input_pixels) {
+    v.g = get_tex_input(pos);
+  }
+  pos++;
+  if (pos < input_pixels) {
+    v.b = get_tex_input(pos);
+  }
+  pos++;
+  if (pos < input_pixels) {
+    v.a = get_tex_input(pos);
+  }
+  ${shaderGenOutput('v', dtype, true)};
+}
+      `
+      );
+    }
+    ctx.runKernel(kernelName, [{ buffer: this, name: 'tex_input' }], dst, [
+      { name: '_ka_tex_output_shape_0', type: 'int', value: dstPixels },
+      { name: '_ka_tex_output_texture_h', type: 'int', value: height },
+      { name: '_ka_tex_output_texture_w', type: 'int', value: width },
+      { name: '_ka_tex_input_stride_0', type: 'int', value: 1 },
+      { name: 'input_pixels', type: 'int', value: this.textureLength },
+    ]);
+    return dst;
+  }
+
   getDataRaw():
     | { type: 'Float32Array'; buffer: Float32Array }
     | { type: 'Uint16Array'; buffer: Uint16Array }
     | { type: 'Int32Array'; buffer: Int32Array }
     | { type: 'Uint8Array'; buffer: Uint8Array } {
+    const ctx = getNNWebGLContext();
+    if (ctx.canOnlyReadRGBA && this.dimPerPixel === 1) {
+      const packed = this.packRToRGBA();
+      const packedData = packed.getDataRaw();
+      packed.dispose();
+      return packedData;
+    }
     switch (this.textureShape.dim) {
       case '2D': {
         const length =

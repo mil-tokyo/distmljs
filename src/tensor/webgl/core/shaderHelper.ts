@@ -13,7 +13,7 @@ precision highp usampler2D;
 precision highp usampler2DArray;
 `;
 
-function getTypeForDType(dtype: DType, vec4?: boolean) {
+export function getTypeForDType(dtype: DType, vec4?: boolean) {
   let scalarType: string;
   let vec4Type: string;
   let samplerPrefix: string;

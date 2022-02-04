@@ -1,5 +1,9 @@
 import { nonNull } from '../../util';
-import { TensorTextureShape, WebGLTensor } from './webglTensor';
+import {
+  TensorTextureShape,
+  WebGLTensor,
+  WebGLTensorBuffer,
+} from './webglTensor';
 
 // [x y u v] * [upper-left, lower-left, upper-right, lower-right]
 const vertexArray = new Float32Array([-1, +1, -1, -1, +1, +1, +1, -1]);
@@ -40,6 +44,18 @@ function initWebGL() {
   }
   return { gl, maxTextureSize };
 }
+
+export interface WebGLKernelInputTensor {
+  name: string;
+  tensor: WebGLTensor;
+}
+
+export interface WebGLKernelInputBuffer {
+  name: string;
+  buffer: WebGLTensorBuffer;
+}
+
+export type WebGLKernelInput = WebGLKernelInputBuffer | WebGLKernelInputTensor;
 
 export class NNWebGLContext {
   gl: WebGL2RenderingContext;
@@ -88,8 +104,10 @@ export class NNWebGLContext {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
 
     // バグ回避
-    const isMac = navigator.userAgent.includes('Mac');
-    this.canOnlyReadRGBA = isMac;
+    // Mac Chromeで、RチャンネルのみのテクスチャをreadPixelsで読みだそうとするとエラーとなる
+    // GL ERROR :GL_INVALID_OPERATION : glReadPixels: format and type incompatible with the current read framebuffer
+    const ua = navigator.userAgent;
+    this.canOnlyReadRGBA = ua.includes('Macintosh') && ua.includes('Chrome/');
   }
 
   createArrayBuffer(vertexArray: Float32Array): WebGLBuffer {
@@ -202,20 +220,26 @@ export class NNWebGLContext {
 
   runKernel(
     name: string,
-    inputs: { tensor: WebGLTensor; name: string }[],
-    output: WebGLTensor,
+    inputs: WebGLKernelInput[],
+    output: WebGLTensor | WebGLTensorBuffer,
     uniforms: WebGLUniformItem[],
     drawLayer: number | null = null
   ): void {
-    if (output.buffer.textureShape.dim === '2DArray' && drawLayer == null) {
-      for (let d = 0; d < output.buffer.textureShape.depth; d++) {
-        this.runKernelSingleDrawLayer(name, inputs, output, uniforms, d);
+    let outputBuffer: WebGLTensorBuffer;
+    if (output instanceof WebGLTensor) {
+      outputBuffer = output.buffer;
+    } else {
+      outputBuffer = output;
+    }
+    if (outputBuffer.textureShape.dim === '2DArray' && drawLayer == null) {
+      for (let d = 0; d < outputBuffer.textureShape.depth; d++) {
+        this.runKernelSingleDrawLayer(name, inputs, outputBuffer, uniforms, d);
       }
     } else {
       this.runKernelSingleDrawLayer(
         name,
         inputs,
-        output,
+        outputBuffer,
         uniforms,
         drawLayer || 0
       );
@@ -224,8 +248,8 @@ export class NNWebGLContext {
 
   private runKernelSingleDrawLayer(
     name: string,
-    inputs: { tensor: WebGLTensor; name: string }[],
-    output: WebGLTensor,
+    inputs: WebGLKernelInput[],
+    outputBuffer: WebGLTensorBuffer,
     uniforms: WebGLUniformItem[],
     drawLayer: number
   ): void {
@@ -237,9 +261,16 @@ export class NNWebGLContext {
 
     const xyAttribLoc = gl.getAttribLocation(kobj.program, '_xy');
     for (let i = 0; i < inputs.length; i++) {
-      inputs[i].tensor.buffer.bindToReadTexture(i);
+      const ini = inputs[i];
+      let buffer: WebGLTensorBuffer;
+      if ('tensor' in ini) {
+        buffer = ini.tensor.buffer;
+      } else {
+        buffer = ini.buffer;
+      }
+      buffer.bindToReadTexture(i);
     }
-    output.buffer.bindToDrawTexture(drawLayer);
+    outputBuffer.bindToDrawTexture(drawLayer);
 
     gl.useProgram(kobj.program);
 
@@ -280,10 +311,17 @@ export class NNWebGLContext {
     // gl.finish();
 
     for (let i = 0; i < inputs.length; i++) {
-      inputs[i].tensor.buffer.unbindFromReadTexture();
+      const ini = inputs[i];
+      let buffer: WebGLTensorBuffer;
+      if ('tensor' in ini) {
+        buffer = ini.tensor.buffer;
+      } else {
+        buffer = ini.buffer;
+      }
+      buffer.unbindFromReadTexture();
     }
 
-    output.buffer.unbindFromDrawTexture();
+    outputBuffer.unbindFromDrawTexture();
   }
 }
 
