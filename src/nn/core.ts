@@ -1,3 +1,4 @@
+import { Backend } from '../backend';
 import { defaultNNContext } from '../context';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
@@ -313,6 +314,12 @@ export abstract class Layer {
   }
 
   abstract forward(inputs: Variable[]): Promise<Variable[]>;
+
+  async to(backend: Backend): Promise<void> {
+    for (const param of this.parameters()) {
+      param.data = await param.data.to(backend);
+    }
+  }
 }
 
 export abstract class Optimizer {
