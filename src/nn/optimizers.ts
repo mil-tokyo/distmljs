@@ -1,8 +1,8 @@
-import { CPUTensor } from '../tensor/cpu/cpuTensor';
+import { Tensor } from '../tensor';
 import { Optimizer, Parameter } from './core';
 
 export class SGD extends Optimizer {
-  velocities: Map<Parameter, CPUTensor>;
+  velocities: Map<Parameter, Tensor>;
   constructor(
     params: Iterable<Parameter>,
     public lr = 0.01,
@@ -13,17 +13,19 @@ export class SGD extends Optimizer {
   }
 
   async stepOne(parameter: Parameter): Promise<void> {
+    const T = parameter.data.getClass();
     let vel = this.velocities.get(parameter);
     if (!vel) {
-      vel = CPUTensor.zeros(parameter.data.shape);
+      vel = T.zeros(parameter.data.shape);
     }
-    vel = CPUTensor.mul(vel, CPUTensor.s(this.momentum));
-    vel = CPUTensor.add(
-      vel,
-      CPUTensor.mul(parameter.grad!.data as CPUTensor, CPUTensor.s(-this.lr))
+    // TODO: as anyを回避
+    vel = T.mul(vel as any, T.s(this.momentum) as any);
+    vel = T.add(
+      vel as any,
+      T.mul(parameter.grad!.data as any, T.s(-this.lr) as any) as any
     );
 
-    parameter.data = CPUTensor.add(parameter.data as CPUTensor, vel);
+    parameter.data = T.add(parameter.data as any, vel as any);
     this.velocities.set(parameter, vel);
   }
 }
