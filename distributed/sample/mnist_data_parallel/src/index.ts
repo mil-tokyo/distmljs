@@ -123,7 +123,7 @@ async function run() {
 }
 
 window.addEventListener('load', async () => {
-  backend = (new URLSearchParams(window.location.search).get("backend") || "cpu") as K.Backend;
+  backend = (new URLSearchParams(window.location.search).get("backend") || "webgl") as K.Backend;
   writeLog(`backend: ${backend}`);
   if (backend === "webgl") {
     await K.tensor.initializeNNWebGLContext();
