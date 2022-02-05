@@ -155,6 +155,7 @@ async def main():
         for k, v in model.state_dict().items():
             v[:] = torch.from_numpy(weights[k])
         test_result = test(model, test_loader)
+        print(test_result)
         test_results.append(test_result)
     torch.save(model.state_dict(), os.path.join(
         output_dir, "kakiage_trained_model.pt"))

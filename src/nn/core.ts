@@ -1,6 +1,7 @@
+import { Backend } from '../backend';
 import { defaultNNContext } from '../context';
-import { CPUTensor } from '../tensor/cpuTensor';
 import { Tensor } from '../tensor/tensor';
+import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
 
 export class Variable {
@@ -31,7 +32,7 @@ export class Variable {
 
   async backward(retainGrad = false, createGraph = false): Promise<void> {
     if (!this.grad) {
-      const t = CPUTensor.ones(this.data.shape);
+      const t = this.data.getClass().ones(this.data.shape, this.data.dtype);
       this.grad = new Variable(t);
     }
 
@@ -157,12 +158,15 @@ export class BroadcastTo extends NNFunction {
     super();
   }
 
-  async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.broadcastTo(x as CPUTensor, this.shape)];
+  async forward(x: Tensor[]): Promise<Tensor[]> {
+    return genCall(x, {
+      cpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
+      webgl: (c, [t]) => [c.broadcastTo(t, this.shape)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new SumTo(this.inputs![0].data.shape).c(gy)];
+    return [await new SumTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
@@ -171,12 +175,15 @@ export class SumTo extends NNFunction {
     super();
   }
 
-  async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sumTo(x as CPUTensor, this.shape)];
+  async forward(x: Tensor[]): Promise<Tensor[]> {
+    return genCall(x, {
+      cpu: (c, [t]) => [c.sumTo(t, this.shape)],
+      webgl: (c, [t]) => [c.sumTo(t, this.shape)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new BroadcastTo(this.inputs![0].data.shape).c(gy)];
+    return [await new BroadcastTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
@@ -188,23 +195,29 @@ export class Sum extends NNFunction {
     super();
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sum(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [t]) => [c.sum(t)],
+      webgl: (c, [t]) => [c.sum(t)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new BroadcastTo(this.inputs![0].data.shape).c(gy)];
+    return [await new BroadcastTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
 export class Add extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.add(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
     const gyShape = gy.data.shape;
-    const lhsShape = this.inputs![0].data.shape;
-    const rhsShape = this.inputs![1].data.shape;
+    const lhsShape = nonNull(this.inputs)[0].data.shape;
+    const rhsShape = nonNull(this.inputs)[1].data.shape;
     if (arrayEqual(lhsShape, rhsShape)) {
       // TODO: インスタンス共有してよいか確認
       return [gy, gy];
@@ -227,7 +240,10 @@ export class Add extends NNFunction {
 
 export class Mul extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.mul(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -298,6 +314,12 @@ export abstract class Layer {
   }
 
   abstract forward(inputs: Variable[]): Promise<Variable[]>;
+
+  async to(backend: Backend): Promise<void> {
+    for (const param of this.parameters()) {
+      param.data = await param.data.to(backend);
+    }
+  }
 }
 
 export abstract class Optimizer {

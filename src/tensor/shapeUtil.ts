@@ -1,7 +1,7 @@
 /* ブロードキャスト等の形状操作ユーティリティ
  */
 
-import { arange } from '../util';
+import { arange, arrayProd } from '../util';
 
 export function getBroadcastStride(
   fromShape: ReadonlyArray<number>,
@@ -158,4 +158,83 @@ export function getReductionByBroadcastShape(
     reductionShape,
     reductionStrides,
   };
+}
+
+export function calcReshape(
+  xShape: ReadonlyArray<number>,
+  shape: ReadonlyArray<number> | number,
+  allowZero: boolean
+): number[] {
+  const xSize = arrayProd(xShape);
+  let shapeArray: ReadonlyArray<number>;
+  if (typeof shape === 'number') {
+    shapeArray = [shape];
+  } else {
+    shapeArray = shape;
+  }
+  let nonMinusProd = 1;
+  let minusAxis: number | null = null;
+  const newShape: number[] = [];
+  for (let dim = 0; dim < shapeArray.length; dim++) {
+    let s = shapeArray[dim];
+    if (s < 0) {
+      if (minusAxis !== null) {
+        throw new Error('Multiple -1 value in shape');
+      }
+      minusAxis = dim;
+    } else {
+      if (s === 0) {
+        if (!allowZero) {
+          // ONNXのReshapeオペレータの機能
+          // copy original value from x.shape
+          if (xShape.length < dim) {
+            throw new Error('No corresponding input shape axis for zero');
+          }
+          s = xShape[dim];
+        }
+      }
+      nonMinusProd *= s;
+    }
+    newShape.push(s);
+  }
+  if (minusAxis !== null) {
+    if (nonMinusProd === 0) {
+      throw new Error('Cannot determine size for -1: zero division');
+    }
+    if (xSize % nonMinusProd !== 0) {
+      throw new Error('Cannot determine size for -1: non-integer result');
+    }
+    const minusAxisSize = xSize / nonMinusProd;
+    newShape[minusAxis] = minusAxisSize;
+  } else {
+    if (nonMinusProd !== xSize) {
+      throw new Error('Size does not match');
+    }
+  }
+  return newShape;
+}
+
+export function calcTransposeShape(
+  xShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  axes?: ReadonlyArray<number> | null
+): { newShape: number[]; srcStrides: number[] } {
+  let axesChecked: ReadonlyArray<number>;
+  if (axes) {
+    if (axes.length !== xShape.length) {
+      throw new Error('length of axes does not match with x');
+    }
+    // ほか、すべての軸が1つずつ使われているかのチェックをすべき
+    axesChecked = axes;
+  } else {
+    axesChecked = arange(xShape.length - 1, -1, -1); // 逆順[x.ndim-1, x.ndim-2, ..., 2, 1, 0]
+  }
+  const newShape: number[] = [];
+  const srcStrides: number[] = [];
+  for (let dim = 0; dim < axesChecked.length; dim++) {
+    const ax = axesChecked[dim];
+    newShape.push(xShape[ax]);
+    srcStrides.push(xStrides[ax]);
+  }
+  return { newShape, srcStrides };
 }

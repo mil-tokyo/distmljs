@@ -1,20 +1,14 @@
-import { Backend } from '../backend';
+import { Backend } from '../../backend';
 import {
   DType,
   DTypeDefault,
   TypedArrayForDType,
   TypedArrayTypes,
-} from '../dtype';
-import { arange, arrayEqual } from '../util';
-import {
-  coreadd,
-  corediv,
-  coremul,
-  corepow,
-  coresub,
-} from './cpuTensorCore/binary';
-import { broadcastTo, stridedCopy } from './cpuTensorCore/copy';
-import { sum, sumTo } from './cpuTensorCore/reduction';
+} from '../../dtype';
+import { arrayEqual } from '../../util';
+import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import { broadcastTo, stridedCopy } from './core/copy';
+import { sum, sumTo } from './core/reduction';
 import {
   coreabs,
   coreacos,
@@ -37,10 +31,14 @@ import {
   coretan,
   coretanh,
   unaryWrap,
-} from './cpuTensorCore/unary';
-import { getMultiBroadcastShape } from './shapeUtil';
-import { Tensor } from './tensor';
-import { WebGLTensor } from './webgl/webglTensor';
+} from './core/unary';
+import {
+  calcReshape,
+  calcTransposeShape,
+  getMultiBroadcastShape,
+} from '../shapeUtil';
+import { Tensor } from '../tensor';
+import { WebGLTensor } from '../webgl/webglTensor';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -50,7 +48,7 @@ class CPUTensorBuffer {
 }
 
 export class CPUTensor extends Tensor {
-  buffer: CPUTensorBuffer | null;
+  buffer: CPUTensorBuffer;
 
   private constructor(
     shape: ArrayLike<number>,
@@ -65,17 +63,26 @@ export class CPUTensor extends Tensor {
     }
   }
 
+  static isCPUTensor(tensor: unknown): tensor is CPUTensor {
+    return typeof tensor === 'object' && (tensor as Tensor).backend === 'cpu';
+  }
+
+  getClass(): typeof CPUTensor {
+    return CPUTensor;
+  }
+
   alias(shape?: ArrayLike<number>): CPUTensor {
     return new CPUTensor(shape || this.shape, this.dtype, this.getBuffer());
   }
 
   to(backend: 'cpu'): Promise<CPUTensor>;
+  to(backend: Backend): Promise<Tensor>;
   async to(backend: Backend): Promise<Tensor> {
     switch (backend) {
       case 'cpu':
         return this.alias();
       case 'webgl':
-        return WebGLTensor.fromArray(this.toArray(), this.shape);
+        return WebGLTensor.fromArray(this.toArray(), this.shape, this.dtype);
       default:
         throw new Error(`Unknown backend ${backend}`);
     }
@@ -103,11 +110,15 @@ export class CPUTensor extends Tensor {
     dtype?: DType
   ): CPUTensor {
     const t = new CPUTensor(shape || [data.length], dtype);
-    if (data.length !== t.size) {
+    t.setArray(data);
+    return t;
+  }
+
+  setArray(data: ArrayLike<number>): void {
+    if (data.length !== this.size) {
       throw new Error('length mismatch');
     }
-    t.buffer?.data.set(data);
-    return t;
+    this.buffer.data.set(data);
   }
 
   /**
@@ -122,9 +133,24 @@ export class CPUTensor extends Tensor {
     return t;
   }
 
+  toTypedArray(): TypedArrayTypes {
+    const buffer = this.getBuffer();
+    return buffer.data.slice();
+  }
+
   toArray(): number[] {
     const buffer = this.getBuffer();
     return Array.from(buffer.data);
+  }
+
+  async toArrayAsync(): Promise<number[]> {
+    // GPUテンソルと同じインターフェースを提供する目的
+    return this.toArray();
+  }
+
+  async toTypedArrayAsync(): Promise<TypedArrayTypes> {
+    // GPUテンソルと同じインターフェースを提供する目的
+    return this.toTypedArray();
   }
 
   getBuffer(): CPUTensorBuffer {
@@ -161,7 +187,7 @@ export class CPUTensor extends Tensor {
     if (!this.buffer) {
       throw new Error('Double-dispose of CPUTensor');
     }
-    this.buffer = null;
+    (this as { buffer: CPUTensorBuffer | null }).buffer = null;
   }
 
   static abs(x: CPUTensor): CPUTensor {
@@ -442,7 +468,6 @@ export class CPUTensor extends Tensor {
   }
 
   static nllLoss(x: CPUTensor, label: CPUTensor): CPUTensor {
-    // TODO: labelはint32
     const [batch, cs] = x.shape;
     if (x.shape.length !== 2) {
       throw new Error('nllLoss needs 2d input');
@@ -504,76 +529,18 @@ export class CPUTensor extends Tensor {
     shape: ReadonlyArray<number> | number,
     allowZero = true
   ): CPUTensor {
-    let shapeArray: ReadonlyArray<number>;
-    if (typeof shape === 'number') {
-      shapeArray = [shape];
-    } else {
-      shapeArray = shape;
-    }
-    let nonMinusProd = 1;
-    let minusAxis: number | null = null;
-    const newShape: number[] = [];
-    for (let dim = 0; dim < shapeArray.length; dim++) {
-      let s = shapeArray[dim];
-      if (s < 0) {
-        if (minusAxis !== null) {
-          throw new Error('Multiple -1 value in shape');
-        }
-        minusAxis = dim;
-      } else {
-        if (s === 0) {
-          if (!allowZero) {
-            // ONNXのReshapeオペレータの機能
-            // copy original value from x.shape
-            if (x.shape.length < dim) {
-              throw new Error('No corresponding input shape axis for zero');
-            }
-            s = x.shape[dim];
-          }
-        }
-        nonMinusProd *= s;
-      }
-      newShape.push(s);
-    }
-    if (minusAxis !== null) {
-      if (nonMinusProd === 0) {
-        throw new Error('Cannot determine size for -1: zero division');
-      }
-      if (x.size % nonMinusProd !== 0) {
-        throw new Error('Cannot determine size for -1: non-integer result');
-      }
-      const minusAxisSize = x.size / nonMinusProd;
-      newShape[minusAxis] = minusAxisSize;
-    } else {
-      if (nonMinusProd !== x.size) {
-        throw new Error('Size does not match');
-      }
-    }
-
-    return x.alias(newShape);
+    return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
   static transpose(
     x: CPUTensor,
     axes?: ReadonlyArray<number> | null
   ): CPUTensor {
-    let axesChecked: ReadonlyArray<number>;
-    if (axes) {
-      if (axes.length !== x.ndim) {
-        throw new Error('length of axes does not match with x');
-      }
-      // ほか、すべての軸が1つずつ使われているかのチェックをすべき
-      axesChecked = axes;
-    } else {
-      axesChecked = arange(x.ndim - 1, -1, -1); // 逆順[x.ndim-1, x.ndim-2, ..., 2, 1, 0]
-    }
-    const newShape: number[] = [];
-    const srcStrides: number[] = [];
-    for (let dim = 0; dim < axesChecked.length; dim++) {
-      const ax = axesChecked[dim];
-      newShape.push(x.shape[ax]);
-      srcStrides.push(x.strides[ax]);
-    }
+    const { newShape, srcStrides } = calcTransposeShape(
+      x.shape,
+      x.strides,
+      axes
+    );
     return stridedCopy(x, newShape, srcStrides);
   }
 }

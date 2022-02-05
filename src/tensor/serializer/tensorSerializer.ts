@@ -1,6 +1,6 @@
 import { DType, TypedArrayTypes } from '../../dtype';
 import { arrayProd, arraySum } from '../../util';
-import { CPUTensor } from '../cpuTensor';
+import { CPUTensor } from '../cpu/cpuTensor';
 import { decodeTensorRaw } from './tensorDecoder/decodeTensorRaw';
 
 const signatureFile = 843990103, // "WDN2"

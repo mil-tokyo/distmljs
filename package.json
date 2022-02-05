@@ -6,11 +6,14 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "build:watch": "tsc -w",
     "eslint": "eslint . --ext .ts",
     "eslint:fix": "eslint . --ext .ts --fix",
     "serve": "http-server -c-1",
     "webpack": "webpack",
-    "webpack:test": "webpack --config webpack-test.config.js"
+    "webpack:watch": "webpack --watch",
+    "webpack:test": "webpack --config webpack-test.config.js",
+    "webpack:test:watch": "webpack --config webpack-test.config.js --watch"
   },
   "repository": {
     "type": "git",

@@ -1,7 +1,7 @@
 import { defaultNNContext } from '../context';
-import { CPUTensor } from '../tensor/cpuTensor';
 import { Tensor } from '../tensor/tensor';
-import { arange, arrayEqual } from '../util';
+import { genCall } from '../tensor/tensorTypeUtil';
+import { arange, arrayEqual, nonNull } from '../util';
 import {
   Add,
   BroadcastTo,
@@ -36,13 +36,16 @@ export async function sum(
 
 export class Sub extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sub(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
     const gyShape = gy.data.shape;
-    const lhsShape = this.inputs![0].data.shape;
-    const rhsShape = this.inputs![1].data.shape;
+    const lhsShape = nonNull(this.inputs)[0].data.shape;
+    const rhsShape = nonNull(this.inputs)[1].data.shape;
     if (arrayEqual(lhsShape, rhsShape)) {
       // TODO: インスタンス共有してよいか確認
       return [gy, await neg(gy)];
@@ -65,7 +68,10 @@ export class Sub extends NNFunction {
 
 export class Div extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.div(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
+    });
   }
 
   // TODO: backward
@@ -89,7 +95,10 @@ export async function div(lhs: Variable, rhs: Variable): Promise<Variable> {
 
 export class Exp extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.exp(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.exp(x)],
+      webgl: (c, [x]) => [c.exp(x)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -108,7 +117,10 @@ export async function exp(x: Variable): Promise<Variable> {
 
 export class Neg extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.neg(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.neg(x)],
+      webgl: (c, [x]) => [c.neg(x)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -123,17 +135,23 @@ export async function neg(x: Variable): Promise<Variable> {
 
 export class ReLUBackprop extends NNFunction {
   async forward([x, gx]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.reluBackprop(x as CPUTensor, gx as CPUTensor)];
+    return genCall([x, gx], {
+      cpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
+      webgl: (c, [x, gx]) => [c.reluBackprop(x, gx)],
+    });
   }
 }
 
 export class ReLU extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.relu(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.relu(x)],
+      webgl: (c, [x]) => [c.relu(x)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new ReLUBackprop().c(this.inputs![0], gy)];
+    return [await new ReLUBackprop().c(nonNull(this.inputs)[0], gy)];
   }
 }
 
@@ -143,7 +161,10 @@ export async function relu(x: Variable): Promise<Variable> {
 
 export class Sigmoid extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sigmoid(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.sigmoid(x)],
+      webgl: (c, [x]) => [c.sigmoid(x)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -154,10 +175,10 @@ export class Sigmoid extends NNFunction {
     if (!y) {
       throw new Error();
     }
-    const gx = CPUTensor.sigmoidBackprop(
-      y.data as CPUTensor,
-      gy.data as CPUTensor
-    );
+    const [gx] = genCall([y.data, gy.data], {
+      cpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
+      webgl: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
+    });
     return [new Variable(gx)];
   }
 }
@@ -172,9 +193,10 @@ export class MatMul extends NNFunction {
   }
 
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
-    return [
-      CPUTensor.gemm(a as CPUTensor, b as CPUTensor, this.transa, this.transb),
-    ];
+    return genCall([a, b], {
+      cpu: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
+      webgl: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -200,20 +222,23 @@ export async function matmul(
 
 export class SoftmaxCrossEntropyBackward extends NNFunction {
   async forward([softmax, label, gy]: Tensor[]): Promise<Tensor[]> {
-    return [
-      CPUTensor.softmaxCrossEntropyBackward(
-        softmax as CPUTensor,
-        label as CPUTensor,
-        gy as CPUTensor
-      ),
-    ];
+    return genCall([softmax, label, gy], {
+      cpu: (c, [softmax, label, gy]) => [
+        c.softmaxCrossEntropyBackward(softmax, label, gy),
+      ],
+      webgl: (c, [softmax, label, gy]) => [
+        c.softmaxCrossEntropyBackward(softmax, label, gy),
+      ],
+    });
   }
 }
 
 export class Softmax extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    const softmax = CPUTensor.softmax(x as CPUTensor);
-    return [softmax];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.softmax(x)],
+      webgl: (c, [x]) => [c.softmax(x)],
+    });
   }
 
   // TODO: backward (学習時は、SoftmaxCrossEntropyを推奨)
@@ -228,12 +253,18 @@ export class SoftmaxCrossEntropy extends NNFunction {
   softmax?: Tensor;
 
   async forward([x, label]: Tensor[]): Promise<Tensor[]> {
-    const softmax = CPUTensor.softmax(x as CPUTensor);
+    const [softmax] = genCall([x], {
+      cpu: (c, [x]) => [c.softmax(x)],
+      webgl: (c, [x]) => [c.softmax(x)],
+    });
     if (defaultNNContext.get('enableBackprop')) {
       this.softmax = softmax;
     }
-    const ce = CPUTensor.nllLoss(softmax, label as CPUTensor);
-    return [ce];
+    const ce = genCall([softmax, label], {
+      cpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
+      webgl: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
+    });
+    return ce;
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -241,7 +272,7 @@ export class SoftmaxCrossEntropy extends NNFunction {
     if (!softmax) {
       throw new Error('softmax result not stored');
     }
-    const label = this.inputs![1];
+    const label = nonNull(this.inputs)[1];
 
     return [
       await new SoftmaxCrossEntropyBackward().c(
@@ -262,7 +293,10 @@ export async function softmaxCrossEntropy(
 
 export class MSELoss extends NNFunction {
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.mseLoss(a as CPUTensor, b as CPUTensor)];
+    return genCall([a, b], {
+      cpu: (c, [a, b]) => [c.mseLoss(a, b)],
+      webgl: (c, [a, b]) => [c.mseLoss(a, b)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -271,11 +305,10 @@ export class MSELoss extends NNFunction {
     }
     const [a, b] = this.inputs;
     // TODO: backprop可能にする
-    const [ga, gb] = CPUTensor.mseLossBackprop(
-      a.data as CPUTensor,
-      b.data as CPUTensor,
-      gy.data as CPUTensor
-    );
+    const [ga, gb] = genCall([a.data, b.data, gy.data], {
+      cpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
+      webgl: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
+    });
     return [new Variable(ga), new Variable(gb)];
   }
 }
@@ -286,9 +319,15 @@ export async function mseLoss(a: Variable, b: Variable): Promise<Variable> {
 
 export class Linear extends NNFunction {
   async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
-    let y = CPUTensor.gemm(x as CPUTensor, weight as CPUTensor, false, true);
+    let [y] = genCall([x, weight], {
+      cpu: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+      webgl: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+    });
     if (bias) {
-      y = CPUTensor.add(y, bias as CPUTensor);
+      [y] = genCall([y, bias], {
+        cpu: (c, [y, bias]) => [c.add(y, bias)],
+        webgl: (c, [y, bias]) => [c.add(y, bias)],
+      });
     }
     return [y];
   }
@@ -333,8 +372,10 @@ export class Reshape extends NNFunction {
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     this.xShape = x.shape;
-    const y = CPUTensor.reshape(x as CPUTensor, this.shape, this.allowZero);
-    return [y];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
+      webgl: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -360,8 +401,10 @@ export class Transpose extends NNFunction {
   }
 
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    const y = CPUTensor.transpose(x as CPUTensor, this.axes);
-    return [y];
+    return genCall([x], {
+      cpu: (c, [x]) => [c.transpose(x, this.axes)],
+      webgl: (c, [x]) => [c.transpose(x, this.axes)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {

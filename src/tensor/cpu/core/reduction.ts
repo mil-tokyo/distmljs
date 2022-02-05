@@ -1,6 +1,9 @@
-import { TypedArrayTypes } from '../../dtype';
+import { TypedArrayTypes } from '../../../dtype';
 import { CPUTensor } from '../cpuTensor';
-import { getReductionByAxis, getReductionByBroadcastShape } from '../shapeUtil';
+import {
+  getReductionByAxis,
+  getReductionByBroadcastShape,
+} from '../../shapeUtil';
 
 export function sumReduction00(
   dx: TypedArrayTypes,

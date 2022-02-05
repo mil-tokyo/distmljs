@@ -6,6 +6,7 @@ import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
 
 let ws: WebSocket;
+let backend: K.Backend = "webgl";
 
 function nonNull<T>(v: T | null | undefined): T {
   if (!v) {
@@ -34,7 +35,7 @@ class Net extends K.nn.core.Layer {
 }
 
 function writeLog(message: string) {
-  //document.getElementById("messages")!.innerText += message + "\n";
+  document.getElementById("messages")!.innerText += message + "\n";
 }
 
 const writeState = throttle((message: string) => {
@@ -62,7 +63,7 @@ async function recvBlob(itemId: string): Promise<Uint8Array> {
   return new Uint8Array(resp);
 }
 
-const model = new Net(784, 32, 10);
+let model: Net;
 
 let totalBatches = 0;
 
@@ -71,21 +72,23 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
     await recvBlob(msg.weight)
   );
   for (const { name, parameter } of model.parametersWithName()) {
-    parameter.data = nonNull(weights.get(name));
+    parameter.data = await nonNull(weights.get(name)).to(backend);
     parameter.cleargrad();
   }
   const dataset = new TensorDeserializer().deserialize(
     await recvBlob(msg.dataset)
   );
-  const y = await model.c(new K.nn.Variable(nonNull(dataset.get('image'))));
-  const label = new K.nn.Variable(nonNull(dataset.get('label')));
-  const loss = await K.nn.functions.softmaxCrossEntropy(y, label);
-  const lossValue = (loss.data as T).get(0);
+  const image = await nonNull(dataset.get('image')).to(backend);
+  const label = await nonNull(dataset.get('label')).to(backend);
+  const y = await model.c(new K.nn.Variable(image));
+  const labelV = new K.nn.Variable(label);
+  const loss = await K.nn.functions.softmaxCrossEntropy(y, labelV);
+  const lossValue = (await loss.data.to("cpu")).get(0);
   console.log(`loss: ${lossValue}`);
   await loss.backward();
   const grads = new Map<string, T>();
   for (const { name, parameter } of model.parametersWithName()) {
-    grads.set(name, nonNull(parameter.grad).data as T);
+    grads.set(name, await nonNull(parameter.grad).data.to("cpu"));
   }
   await sendBlob(msg.grad, new TensorSerializer().serialize(grads));
   totalBatches += 1;
@@ -95,6 +98,8 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
 }
 
 async function run() {
+  model = new Net(784, 32, 10);
+  await model.to(backend);
   writeState('Connecting');
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
@@ -109,11 +114,19 @@ async function run() {
   };
   ws.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
-    await compute(msg);
+    await K.tidy(async () => {
+      await compute(msg);
+      return [];
+    });
     ws.send(JSON.stringify({}));
   };
 }
 
-window.addEventListener('load', () => {
-  run();
+window.addEventListener('load', async () => {
+  backend = (new URLSearchParams(window.location.search).get("backend") || "cpu") as K.Backend;
+  writeLog(`backend: ${backend}`);
+  if (backend === "webgl") {
+    await K.tensor.initializeNNWebGLContext();
+  }
+  await run();
 });

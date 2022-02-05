@@ -6,9 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css" />
+    <style>
+      #target label {
+        margin-right: 8px;
+      }
+    </style>
   </head>
   <body>
-    KAKIAGE
+    <h1>Kakiage Test</h1>
+    <div id="target">
+      Target selection:
+      <form id="target-list"></form>
+    </div>
     <div id="mocha"></div>
     <script src="https://unpkg.com/mocha/mocha.js"></script>
     <script src="./kakiage-test.js"></script>
