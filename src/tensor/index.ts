@@ -6,3 +6,4 @@ export {
   TensorSerializer,
   TensorDeserializer,
 } from './serializer/tensorSerializer';
+export { slice, Slice, Ellipsis, ellipsis, newaxis } from './slice';

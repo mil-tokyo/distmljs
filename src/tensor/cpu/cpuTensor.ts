@@ -39,6 +39,8 @@ import {
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { WebGLTensor } from '../webgl/webglTensor';
+import { Ellipsis, Slice } from '..';
+import { gets, sets } from './core/indexing';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -46,6 +48,8 @@ class CPUTensorBuffer {
     this.data = new TypedArrayForDType[dtype](this.length);
   }
 }
+
+export type IndexingArg = number | Slice | Ellipsis | null;
 
 export class CPUTensor extends Tensor {
   buffer: CPUTensorBuffer;
@@ -181,6 +185,29 @@ export class CPUTensor extends Tensor {
     }
 
     buffer.data[idx] = value;
+  }
+
+  /**
+   * Get slice of tensor. Currently supports basic indexing (as in numpy manual) only.
+   * @param idxs index
+   * @returns
+   */
+  gets(...idxs: IndexingArg[]): CPUTensor {
+    return gets(this, idxs);
+  }
+
+  /**
+   * Set value into a slice of tensor
+   * @param tensor
+   * @param value
+   * @param idxs
+   */
+  sets(
+    tensor: CPUTensor | number,
+    value: CPUTensor,
+    ...idxs: IndexingArg[]
+  ): void {
+    sets(tensor, value, idxs);
   }
 
   dispose() {
