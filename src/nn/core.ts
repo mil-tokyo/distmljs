@@ -1,5 +1,4 @@
 import { defaultNNContext } from '../context';
-import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
@@ -166,7 +165,7 @@ export class BroadcastTo extends NNFunction {
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new SumTo(this.inputs![0].data.shape).c(gy)];
+    return [await new SumTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
@@ -183,7 +182,7 @@ export class SumTo extends NNFunction {
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new BroadcastTo(this.inputs![0].data.shape).c(gy)];
+    return [await new BroadcastTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
@@ -202,7 +201,7 @@ export class Sum extends NNFunction {
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    return [await new BroadcastTo(this.inputs![0].data.shape).c(gy)];
+    return [await new BroadcastTo(nonNull(this.inputs)[0].data.shape).c(gy)];
   }
 }
 
@@ -216,8 +215,8 @@ export class Add extends NNFunction {
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
     const gyShape = gy.data.shape;
-    const lhsShape = this.inputs![0].data.shape;
-    const rhsShape = this.inputs![1].data.shape;
+    const lhsShape = nonNull(this.inputs)[0].data.shape;
+    const rhsShape = nonNull(this.inputs)[1].data.shape;
     if (arrayEqual(lhsShape, rhsShape)) {
       // TODO: インスタンス共有してよいか確認
       return [gy, gy];

@@ -30,6 +30,7 @@ export abstract class Tensor {
   abstract to(backend: 'cpu'): Promise<CPUTensor>;
   abstract to(backend: Backend): Promise<Tensor>;
   abstract getClass(): typeof CPUTensor | typeof WebGLTensor;
+  abstract toArrayAsync(): Promise<number[]>;
 
   abstract dispose(): void;
 }

@@ -467,7 +467,6 @@ export class CPUTensor extends Tensor {
   }
 
   static nllLoss(x: CPUTensor, label: CPUTensor): CPUTensor {
-    // TODO: labelはint32
     const [batch, cs] = x.shape;
     if (x.shape.length !== 2) {
       throw new Error('nllLoss needs 2d input');

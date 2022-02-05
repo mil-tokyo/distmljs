@@ -427,3 +427,17 @@ ${ioType} get_${name}() {
 `;
   }
 }
+
+export function assertFloat32R(
+  tensors: WebGLTensor[],
+  functionName?: string
+): void {
+  for (const tensor of tensors) {
+    if (tensor.dtype !== 'float32') {
+      throw new Error(`${functionName}: input tensor must be float32`);
+    }
+    if (tensor.buffer.dimPerPixel !== 1) {
+      throw new Error(`${functionName}: dimPerPixel must be 1`);
+    }
+  }
+}

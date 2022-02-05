@@ -4,9 +4,24 @@ import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { calcReshape, calcTransposeShape } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import {
+  coreadd,
+  corediv,
+  coremul,
+  corepow,
+  corereluBackprop,
+  coresigmoidBackprop,
+  coresub,
+} from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
+import {
+  mseLoss,
+  mseLossBackprop,
+  nllLoss,
+  softmax,
+  softmaxCrossEntropyBackward,
+} from './core/loss';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -26,7 +41,28 @@ import {
   shaderGenTensorOutputUniform,
   webglShaderHeader,
 } from './core/shaderHelper';
-import { coreabs, coreexp } from './core/unary';
+import {
+  coreabs,
+  coreacos,
+  coreacosh,
+  coreasin,
+  coreasinh,
+  coreatan,
+  coreatanh,
+  corecos,
+  corecosh,
+  coreexp,
+  corelog,
+  coreneg,
+  corerelu,
+  coresigmoid,
+  coresin,
+  coresinh,
+  coresqrt,
+  coresquare,
+  coretan,
+  coretanh,
+} from './core/unary';
 import { getNNWebGLContext } from './webglContext';
 
 let webglAllocCount = 0;
@@ -787,8 +823,80 @@ export class WebGLTensor extends Tensor {
     return coreabs(x);
   }
 
+  static acos(x: WebGLTensor): WebGLTensor {
+    return coreacos(x);
+  }
+
+  static acosh(x: WebGLTensor): WebGLTensor {
+    return coreacosh(x);
+  }
+
+  static asin(x: WebGLTensor): WebGLTensor {
+    return coreasin(x);
+  }
+
+  static asinh(x: WebGLTensor): WebGLTensor {
+    return coreasinh(x);
+  }
+
+  static atan(x: WebGLTensor): WebGLTensor {
+    return coreatan(x);
+  }
+
+  static atanh(x: WebGLTensor): WebGLTensor {
+    return coreatanh(x);
+  }
+
+  static cos(x: WebGLTensor): WebGLTensor {
+    return corecos(x);
+  }
+
+  static cosh(x: WebGLTensor): WebGLTensor {
+    return corecosh(x);
+  }
+
   static exp(x: WebGLTensor): WebGLTensor {
     return coreexp(x);
+  }
+
+  static log(x: WebGLTensor): WebGLTensor {
+    return corelog(x);
+  }
+
+  static neg(x: WebGLTensor): WebGLTensor {
+    return coreneg(x);
+  }
+
+  static relu(x: WebGLTensor): WebGLTensor {
+    return corerelu(x);
+  }
+
+  static sigmoid(x: WebGLTensor): WebGLTensor {
+    return coresigmoid(x);
+  }
+
+  static sin(x: WebGLTensor): WebGLTensor {
+    return coresin(x);
+  }
+
+  static sinh(x: WebGLTensor): WebGLTensor {
+    return coresinh(x);
+  }
+
+  static sqrt(x: WebGLTensor): WebGLTensor {
+    return coresqrt(x);
+  }
+
+  static square(x: WebGLTensor): WebGLTensor {
+    return coresquare(x);
+  }
+
+  static tan(x: WebGLTensor): WebGLTensor {
+    return coretan(x);
+  }
+
+  static tanh(x: WebGLTensor): WebGLTensor {
+    return coretanh(x);
   }
 
   /**
@@ -848,5 +956,41 @@ export class WebGLTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  static mseLossBackprop(
+    ad: WebGLTensor,
+    bd: WebGLTensor,
+    gyd: WebGLTensor
+  ): WebGLTensor[] {
+    return mseLossBackprop(ad, bd, gyd);
+  }
+
+  static mseLoss(a: WebGLTensor, b: WebGLTensor): WebGLTensor {
+    return mseLoss(a, b);
+  }
+
+  static nllLoss(softmax: WebGLTensor, label: WebGLTensor): WebGLTensor {
+    return nllLoss(softmax, label);
+  }
+
+  static softmax(x: WebGLTensor): WebGLTensor {
+    return softmax(x);
+  }
+
+  static softmaxCrossEntropyBackward(
+    softmax: WebGLTensor,
+    label: WebGLTensor,
+    gy: WebGLTensor
+  ): WebGLTensor {
+    return softmaxCrossEntropyBackward(softmax, label, gy);
+  }
+
+  static reluBackprop(yd: WebGLTensor, gyd: WebGLTensor): WebGLTensor {
+    return corereluBackprop(yd, gyd);
+  }
+
+  static sigmoidBackprop(yd: WebGLTensor, gyd: WebGLTensor): WebGLTensor {
+    return coresigmoidBackprop(yd, gyd);
   }
 }

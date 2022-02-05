@@ -47,6 +47,9 @@ export function genCall(
     webgl: (c: typeof WebGLTensor, tensors: WebGLTensor[]) => WebGLTensor[];
   }
 ): Tensor[] {
+  // TODO: どのバックエンドでも1つ関数を書けばいいような型チェック手段
+  // genCall(tensors, (c,t) => [c.add(t[0])])
+  // のようにしたい(型チェックを無視すればできるのだが)
   if (isAllCPUTensor(tensors)) {
     return fs.cpu(CPUTensor, tensors);
   } else if (isAllWebGLTensor(tensors)) {

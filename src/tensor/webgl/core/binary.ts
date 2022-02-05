@@ -130,3 +130,21 @@ export function corepow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
     float32: 'float v = pow(abs(v_l), v_r);',
   });
 }
+
+export function coresigmoidBackprop(
+  lhs: WebGLTensor,
+  rhs: WebGLTensor
+): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'sigmoidBackprop', {
+    float32: 'float v = (1.0 - v_l) * v_l * v_r;',
+  });
+}
+
+export function corereluBackprop(
+  lhs: WebGLTensor,
+  rhs: WebGLTensor
+): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'reluBackprop', {
+    float32: 'float v = v_l > 0.0 ? v_r : 0.0;',
+  });
+}
