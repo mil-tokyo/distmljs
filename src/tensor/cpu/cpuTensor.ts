@@ -171,16 +171,16 @@ export class CPUTensor extends Tensor {
     return buffer.data[idx];
   }
 
-  set(...idxsAndValue: number[]): void {
+  set(value: number, ...idxs: number[]): void {
     // TODO: negative index
     const buffer = this.getBuffer();
     let idx = 0;
-    const nd = Math.min(this.ndim, idxsAndValue.length - 1);
+    const nd = Math.min(this.ndim, idxs.length);
     for (let i = 0; i < nd; i++) {
-      idx += this.strides[i] * (idxsAndValue[i] | 0);
+      idx += this.strides[i] * (idxs[i] | 0);
     }
 
-    buffer.data[idx] = idxsAndValue[idxsAndValue.length - 1];
+    buffer.data[idx] = value;
   }
 
   dispose() {
