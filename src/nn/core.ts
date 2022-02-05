@@ -1,6 +1,7 @@
 import { defaultNNContext } from '../context';
 import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Tensor } from '../tensor/tensor';
+import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
 
 export class Variable {
@@ -31,7 +32,7 @@ export class Variable {
 
   async backward(retainGrad = false, createGraph = false): Promise<void> {
     if (!this.grad) {
-      const t = CPUTensor.ones(this.data.shape);
+      const t = this.data.getClass().ones(this.data.shape, this.data.dtype);
       this.grad = new Variable(t);
     }
 
@@ -157,8 +158,11 @@ export class BroadcastTo extends NNFunction {
     super();
   }
 
-  async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.broadcastTo(x as CPUTensor, this.shape)];
+  async forward(x: Tensor[]): Promise<Tensor[]> {
+    return genCall(x, {
+      cpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
+      webgl: (c, [t]) => [c.broadcastTo(t, this.shape)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -171,8 +175,11 @@ export class SumTo extends NNFunction {
     super();
   }
 
-  async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sumTo(x as CPUTensor, this.shape)];
+  async forward(x: Tensor[]): Promise<Tensor[]> {
+    return genCall(x, {
+      cpu: (c, [t]) => [c.sumTo(t, this.shape)],
+      webgl: (c, [t]) => [c.sumTo(t, this.shape)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -188,7 +195,10 @@ export class Sum extends NNFunction {
     super();
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.sum(x as CPUTensor)];
+    return genCall([x], {
+      cpu: (c, [t]) => [c.sum(t)],
+      webgl: (c, [t]) => [c.sum(t)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -198,7 +208,10 @@ export class Sum extends NNFunction {
 
 export class Add extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.add(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -227,7 +240,10 @@ export class Add extends NNFunction {
 
 export class Mul extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
-    return [CPUTensor.mul(lhs as CPUTensor, rhs as CPUTensor)];
+    return genCall([lhs, rhs], {
+      cpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+      webgl: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+    });
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
