@@ -66,7 +66,8 @@ import {
 import { getNNWebGLContext } from './webglContext';
 
 let webglAllocCount = 0;
-const existingBuffers: Set<WebGLTensorBuffer> = new Set();
+export const existingBuffers: Set<WebGLTensorBuffer> = new Set();
+
 export interface TensorTextureShapeFormat {
   internalFormat: number;
   format: number;
@@ -717,6 +718,7 @@ export class WebGLTensor extends Tensor {
   }
 
   to(backend: 'cpu'): Promise<CPUTensor>;
+  to(backend: Backend): Promise<Tensor>;
   async to(backend: Backend): Promise<Tensor> {
     switch (backend) {
       case 'cpu':

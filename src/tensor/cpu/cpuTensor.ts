@@ -76,12 +76,13 @@ export class CPUTensor extends Tensor {
   }
 
   to(backend: 'cpu'): Promise<CPUTensor>;
+  to(backend: Backend): Promise<Tensor>;
   async to(backend: Backend): Promise<Tensor> {
     switch (backend) {
       case 'cpu':
         return this.alias();
       case 'webgl':
-        return WebGLTensor.fromArray(this.toArray(), this.shape);
+        return WebGLTensor.fromArray(this.toArray(), this.shape, this.dtype);
       default:
         throw new Error(`Unknown backend ${backend}`);
     }
