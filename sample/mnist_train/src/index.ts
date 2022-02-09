@@ -1,5 +1,4 @@
 import * as K from 'kakiage';
-import T = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
 import FetchDataset = K.dataset.datasets.FetchDataset;
 import DataLoader = K.dataset.DataLoader;
@@ -40,7 +39,7 @@ function wait() {
   });
 }
 
-async function train() {
+async function train(backend: K.Backend) {
   const trainDataset = new FetchDataset(
     './dataset/mnist_preprocessed_flatten_train.bin'
   );
@@ -55,51 +54,59 @@ async function train() {
   const hidden = 32;
   const lr = 0.01;
   const model = new MLPModel(784, hidden, 10);
+  await model.to(backend);
   const optimizer = new K.nn.optimizers.SGD(model.parameters(), lr);
 
+  print(`Start training on backend ${backend}`);
   for (let epoch = 0; epoch < 3; epoch++) {
     print(`epoch ${epoch}`);
     let trainIter = 0;
     for await (const [images, labels] of trainLoader) {
-      const y = await model.c(new K.nn.Variable(images));
-      const loss = await K.nn.functions.softmaxCrossEntropy(
-        y,
-        new K.nn.Variable(labels)
-      );
-      const lossScalar = (loss.data as T).get(0);
-      if (trainIter % 100 === 0) {
-        print(`loss: ${lossScalar}`, true);
-        await wait();
-      }
-      optimizer.zeroGrad();
-      await loss.backward();
-      await optimizer.step();
-      trainIter++;
+      await K.tidy(async () => {
+        const y = await model.c(new K.nn.Variable(await images.to(backend)));
+        const loss = await K.nn.functions.softmaxCrossEntropy(
+          y,
+          new K.nn.Variable(await labels.to(backend))
+        );
+        if (trainIter % 100 === 0) {
+          const lossScalar = (await loss.data.to('cpu')).get(0);
+          print(`loss: ${lossScalar}`, true);
+          await wait();
+        }
+        optimizer.zeroGrad();
+        await loss.backward();
+        await optimizer.step();
+        trainIter++;
+        return [model, optimizer];
+      });
     }
 
     let nTestSamples = 0;
     let nCorrect = 0;
     for await (const [images, labels] of testLoader) {
-      // TODO: no grad
-      const y = await model.c(new K.nn.Variable(images));
-      // TOOD: accuracy utility
-      const pred = y.data as T;
-      for (let i = 0; i < pred.shape[0]; i++) {
-        let maxLogit = -Infinity;
-        let maxLabel = 0;
-        for (let j = 0; j < pred.shape[1]; j++) {
-          const logit = pred.get(i, j);
-          if (logit > maxLogit) {
-            maxLogit = logit;
-            maxLabel = j;
+      await K.tidy(async () => {
+        // TODO: no grad
+        const y = await model.c(new K.nn.Variable(await images.to(backend)));
+        // TOOD: accuracy utility
+        const pred = await y.data.to('cpu');
+        for (let i = 0; i < pred.shape[0]; i++) {
+          let maxLogit = -Infinity;
+          let maxLabel = 0;
+          for (let j = 0; j < pred.shape[1]; j++) {
+            const logit = pred.get(i, j);
+            if (logit > maxLogit) {
+              maxLogit = logit;
+              maxLabel = j;
+            }
+          }
+
+          nTestSamples++;
+          if (maxLabel === labels.get(i)) {
+            nCorrect++;
           }
         }
-
-        nTestSamples++;
-        if (maxLabel === labels.get(i)) {
-          nCorrect++;
-        }
-      }
+        return [model];
+      });
     }
     const accuracy = nCorrect / nTestSamples;
     print(`Test accuracy: ${accuracy}, ${nTestSamples}, ${nCorrect}`, true);
@@ -109,6 +116,14 @@ async function train() {
 
 window.addEventListener('load', () => {
   document.getElementById('start-training')!.onclick = async () => {
-    await train();
+    const backend = (
+      document.querySelector(
+        'input[name="backend"]:checked'
+      )! as HTMLInputElement
+    ).value as K.Backend;
+    if (backend === 'webgl') {
+      await K.tensor.initializeNNWebGLContext();
+    }
+    await train(backend);
   };
 });

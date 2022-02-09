@@ -342,4 +342,6 @@ export abstract class Optimizer {
       await this.stepOne(p);
     }
   }
+
+  abstract getKeepTensors(): Tensor[];
 }

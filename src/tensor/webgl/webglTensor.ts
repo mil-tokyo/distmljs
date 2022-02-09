@@ -230,6 +230,9 @@ export class WebGLTensorBuffer {
   }
 
   bindToReadTexture(unit: number): void {
+    if (this.texture == null) {
+      throw new Error('This texture is already deleted');
+    }
     if (this.isBoundToDrawFrameBuffer)
       throw Error(
         'This buffer is already registered as draw buffer. ' +
@@ -258,6 +261,9 @@ export class WebGLTensorBuffer {
   }
 
   bindToDrawTexture(layer = 0): void {
+    if (this.texture == null) {
+      throw new Error('This texture is already deleted');
+    }
     if (this.readTextureUnitIndices.length > 0)
       throw Error(
         'This buffer is already registered as read buffer. ' +

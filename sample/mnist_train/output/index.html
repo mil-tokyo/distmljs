@@ -8,7 +8,14 @@
     <script src="index.js"></script>
   </head>
   <body>
-    <button type="button" id="start-training">Start training</button>
+    <div>
+      <button type="button" id="start-training">Start training</button>
+      Backend:
+      <label><input type="radio" name="backend" value="cpu" />CPU</label>
+      <label
+        ><input type="radio" name="backend" value="webgl" checked />WebGL</label
+      >
+    </div>
     <div id="result"></div>
   </body>
 </html>
