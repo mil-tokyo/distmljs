@@ -7,12 +7,16 @@ export function getBroadcastStride(
   fromShape: ReadonlyArray<number>,
   toShape: ReadonlyArray<number>
 ): number[] {
+  // fromShapeがtoShapeより長い場合、fromShapeの先頭の余分な要素がすべて1ならOKで、先頭要素を削除
   // fromShapeがtoShapeより短ければ、先頭に長さ1の次元を付与
   // fromShapeの各次元がtoShapeと一致するか確認。長さ1ならそこはbroadcast対象でstride=0となる。
   // toShapeのインデックスと内積して、fromShapeに対応するテンソルの要素のインデックスが得られるstrideを返す
   const expandedFromShape = [...fromShape];
-  if (expandedFromShape.length > toShape.length) {
-    throw new Error('fromShape is longer than toShape');
+  while (expandedFromShape.length > toShape.length) {
+    const p = expandedFromShape.shift();
+    if (p !== 1) {
+      throw new Error('fromShape is longer than toShape and length is not 1');
+    }
   }
   while (expandedFromShape.length < toShape.length) {
     expandedFromShape.unshift(1);
