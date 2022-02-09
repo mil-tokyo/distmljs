@@ -96,6 +96,15 @@ export function coreatanh(x: WebGLTensor): WebGLTensor {
   return unaryWrap(x, 'atanh', { float32: 'float v = atanh(v_s);' });
 }
 
+export function corecopy(x: WebGLTensor): WebGLTensor {
+  return unaryWrap(x, 'copy', {
+    float32: 'float v = v_s;',
+    int32: 'int v = v_s;',
+    uint8: 'uint v = v_s;',
+    bool: 'uint v = v_s;',
+  });
+}
+
 export function corecos(x: WebGLTensor): WebGLTensor {
   return unaryWrap(x, 'cos', { float32: 'float v = cos(v_s);' });
 }

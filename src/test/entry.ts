@@ -11,7 +11,7 @@ XXX: テスト対象グループ名、YYY: テスト対象クラス名
 */
 import './tensor/index';
 import './nn/index';
-import { initializeNNWebGLContext } from '../tensor';
+import { initializeNNWebGLContext, initializeNNWebGPUContext } from '../tensor';
 import {
   AllTestTargets,
   saveTestFlagAndReload,
@@ -59,6 +59,15 @@ window.addEventListener('load', async () => {
     } catch (error) {
       alert(
         `Failed to initialize WebGL. Uncheck webgl in target selection. ${error}`
+      );
+    }
+  }
+  if (testFlag.webgpu) {
+    try {
+      await initializeNNWebGPUContext();
+    } catch (error) {
+      alert(
+        `Failed to initialize WebGPU. Uncheck webgpu in target selection. ${error}`
       );
     }
   }
