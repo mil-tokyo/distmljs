@@ -1,9 +1,10 @@
 import { Ellipsis, slice, Slice } from '../..';
-import { TypedArrayTypes } from '../../../dtype';
+import { TypedArrayConstructor, TypedArrayTypes } from '../../../dtype';
+import { getBroadcastStride } from '../../shapeUtil';
 import { CPUTensor, IndexingArg } from '../cpuTensor';
 
 // TODO: copy.tsと統合
-function broadcastCopy0(
+function getCopy0(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -15,7 +16,7 @@ function broadcastCopy0(
   dy[0] = dx[srcOffset];
 }
 
-function broadcastCopy1(
+function getCopy1(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   toShape: ReadonlyArray<number>,
@@ -30,7 +31,7 @@ function broadcastCopy1(
   }
 }
 
-function broadcastCopy2(
+function getCopy2(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   toShape: ReadonlyArray<number>,
@@ -47,7 +48,7 @@ function broadcastCopy2(
   }
 }
 
-function broadcastCopy3(
+function getCopy3(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   toShape: ReadonlyArray<number>,
@@ -66,7 +67,7 @@ function broadcastCopy3(
   }
 }
 
-function broadcastCopy4(
+function getCopy4(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   toShape: ReadonlyArray<number>,
@@ -87,7 +88,7 @@ function broadcastCopy4(
   }
 }
 
-function broadcastCopyND(
+function getCopyND(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
   toShape: ReadonlyArray<number>,
@@ -96,23 +97,143 @@ function broadcastCopyND(
 ) {
   switch (toShape.length) {
     case 0:
-      broadcastCopy0(dx, dy, toShape, xStrides, srcOffset);
+      getCopy0(dx, dy, toShape, xStrides, srcOffset);
       break;
     case 1:
-      broadcastCopy1(dx, dy, toShape, xStrides, srcOffset);
+      getCopy1(dx, dy, toShape, xStrides, srcOffset);
       break;
     case 2:
-      broadcastCopy2(dx, dy, toShape, xStrides, srcOffset);
+      getCopy2(dx, dy, toShape, xStrides, srcOffset);
       break;
     case 3:
-      broadcastCopy3(dx, dy, toShape, xStrides, srcOffset);
+      getCopy3(dx, dy, toShape, xStrides, srcOffset);
       break;
     case 4:
-      broadcastCopy4(dx, dy, toShape, xStrides, srcOffset);
+      getCopy4(dx, dy, toShape, xStrides, srcOffset);
       break;
     default:
       throw new Error(
-        `broadcastCopyND to dimension ${toShape.length} is not yet supported.`
+        `getCopyND to dimension ${toShape.length} is not yet supported.`
+      );
+  }
+}
+
+function setCopy0(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+): void {
+  dy[dstOffset] = dx[0];
+}
+
+function setCopy1(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+): void {
+  const [ts0] = srcShape;
+  const [xt0] = xStrides;
+  const [yt0] = yStrides;
+  for (let i0 = 0; i0 < ts0; i0++) {
+    dy[i0 * yt0 + dstOffset] = dx[i0 * xt0];
+  }
+}
+
+function setCopy2(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+): void {
+  const [ts0, ts1] = srcShape;
+  const [xt0, xt1] = xStrides;
+  const [yt0, yt1] = yStrides;
+  for (let i0 = 0; i0 < ts0; i0++) {
+    for (let i1 = 0; i1 < ts1; i1++) {
+      dy[i0 * yt0 + i1 * yt1 + dstOffset] = dx[i0 * xt0 + i1 * xt1];
+    }
+  }
+}
+
+function setCopy3(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+): void {
+  const [ts0, ts1, ts2] = srcShape;
+  const [xt0, xt1, xt2] = xStrides;
+  const [yt0, yt1, yt2] = yStrides;
+  for (let i0 = 0; i0 < ts0; i0++) {
+    for (let i1 = 0; i1 < ts1; i1++) {
+      for (let i2 = 0; i2 < ts2; i2++) {
+        dy[i0 * yt0 + i1 * yt1 + i2 * yt2 + dstOffset] =
+          dx[i0 * xt0 + i1 * xt1 + i2 * xt2];
+      }
+    }
+  }
+}
+
+function setCopy4(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+): void {
+  const [ts0, ts1, ts2, ts3] = srcShape;
+  const [xt0, xt1, xt2, xt3] = xStrides;
+  const [yt0, yt1, yt2, yt3] = yStrides;
+  for (let i0 = 0; i0 < ts0; i0++) {
+    for (let i1 = 0; i1 < ts1; i1++) {
+      for (let i2 = 0; i2 < ts2; i2++) {
+        for (let i3 = 0; i3 < ts3; i3++) {
+          dy[i0 * yt0 + i1 * yt1 + i2 * yt2 + i3 * yt3 + dstOffset] =
+            dx[i0 * xt0 + i1 * xt1 + i2 * xt2 + i3 * xt3];
+        }
+      }
+    }
+  }
+}
+
+function setCopyND(
+  dx: TypedArrayTypes,
+  dy: TypedArrayTypes,
+  srcShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yStrides: ReadonlyArray<number>,
+  dstOffset: number
+) {
+  switch (srcShape.length) {
+    case 0:
+      setCopy0(dx, dy, srcShape, xStrides, yStrides, dstOffset);
+      break;
+    case 1:
+      setCopy1(dx, dy, srcShape, xStrides, yStrides, dstOffset);
+      break;
+    case 2:
+      setCopy2(dx, dy, srcShape, xStrides, yStrides, dstOffset);
+      break;
+    case 3:
+      setCopy3(dx, dy, srcShape, xStrides, yStrides, dstOffset);
+      break;
+    case 4:
+      setCopy4(dx, dy, srcShape, xStrides, yStrides, dstOffset);
+      break;
+    default:
+      throw new Error(
+        `setCopyND to dimension ${srcShape.length} is not yet supported.`
       );
   }
 }
@@ -121,6 +242,31 @@ export function gets(tensor: CPUTensor, idxs: IndexingArg[]): CPUTensor {
   const tShape = tensor.shape;
   const tStrides = tensor.strides;
   const tNdim = tensor.ndim;
+  const {
+    vShape,
+    stepStrides,
+    stepOffsetSum,
+  }: { vShape: number[]; stepStrides: number[]; stepOffsetSum: number } =
+    calcStrides(idxs, tNdim, tShape, tStrides);
+
+  const y = CPUTensor.zeros(vShape, tensor.dtype);
+  getCopyND(
+    tensor.buffer.data,
+    y.buffer.data,
+    vShape,
+    stepStrides,
+    stepOffsetSum
+  );
+
+  return y;
+}
+
+function calcStrides(
+  idxs: IndexingArg[],
+  tNdim: number,
+  tShape: readonly number[],
+  tStrides: readonly number[]
+) {
   const idxsWoEllipsis = ellipsisToSlice(idxs, tNdim);
   const idxsWoNewAxis: (number | Slice)[] = [];
   const newAxisDims: number[] = [];
@@ -252,17 +398,7 @@ export function gets(tensor: CPUTensor, idxs: IndexingArg[]): CPUTensor {
     vShape.splice(axis, 1);
     stepStrides.splice(axis, 1);
   }
-
-  const y = CPUTensor.zeros(vShape, tensor.dtype);
-  broadcastCopyND(
-    tensor.buffer.data,
-    y.buffer.data,
-    vShape,
-    stepStrides,
-    stepOffsetSum
-  );
-
-  return y;
+  return { vShape, stepStrides, stepOffsetSum };
 }
 
 function ellipsisToSlice(
@@ -313,10 +449,40 @@ function ellipsisToSlice(
 }
 
 export function sets(
-  tensor: CPUTensor | number,
-  value: CPUTensor,
+  tensor: CPUTensor,
+  value: CPUTensor | number,
   idxs: IndexingArg[]
 ): void {
-  // TODO
-  throw new Error('Not implemented');
+  const tShape = tensor.shape;
+  const tStrides = tensor.strides;
+  const tNdim = tensor.ndim;
+  const {
+    vShape,
+    stepStrides,
+    stepOffsetSum,
+  }: { vShape: number[]; stepStrides: number[]; stepOffsetSum: number } =
+    calcStrides(idxs, tNdim, tShape, tStrides);
+
+  let srcBuffer: TypedArrayTypes;
+  let srcStrides: number[];
+  if (value instanceof CPUTensor) {
+    srcBuffer = value.buffer.data;
+    srcStrides = getBroadcastStride(value.shape, vShape);
+  } else if (typeof value === 'number') {
+    srcBuffer = new (tensor.buffer.data.constructor as TypedArrayConstructor)(
+      1
+    );
+    srcBuffer[0] = value;
+    srcStrides = new Array(vShape.length).fill(0);
+  } else {
+    throw new Error('sets: value must be CPUTensor or number.');
+  }
+  setCopyND(
+    srcBuffer,
+    tensor.buffer.data,
+    vShape,
+    srcStrides,
+    stepStrides,
+    stepOffsetSum
+  );
 }

@@ -198,16 +198,11 @@ export class CPUTensor extends Tensor {
 
   /**
    * Set value into a slice of tensor
-   * @param tensor
    * @param value
    * @param idxs
    */
-  sets(
-    tensor: CPUTensor | number,
-    value: CPUTensor,
-    ...idxs: IndexingArg[]
-  ): void {
-    sets(tensor, value, idxs);
+  sets(value: CPUTensor | number, ...idxs: IndexingArg[]): void {
+    sets(this, value, idxs);
   }
 
   dispose() {
