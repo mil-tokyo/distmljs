@@ -106,3 +106,4 @@ dist
 # Project specific
 /test/kakiage-test.js
 /webpack
+pytorch_data
