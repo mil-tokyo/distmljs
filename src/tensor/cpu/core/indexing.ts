@@ -281,6 +281,8 @@ function ellipsisToSlice(
       hasEllipsis = true;
     } else if (idx instanceof Slice || typeof idx === 'number') {
       sliceCount++;
+    } else if (idx != null) {
+      throw new Error('index must be any of number, Slice, Ellipsis, null.');
     }
   }
   const ndimToFill = tNdim - sliceCount;
