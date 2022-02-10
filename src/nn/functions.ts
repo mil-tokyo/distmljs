@@ -452,3 +452,37 @@ export async function transpose(
 ): Promise<Variable> {
   return new Transpose(axes).c(x);
 }
+
+export class Flatten extends NNFunction {
+  xShape?: ReadonlyArray<number>;
+  constructor() {
+    super();
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    this.xShape = x.shape;
+    const batch = x.shape[0] || 1;
+    return genCall([x], {
+      cpu: (c, [x]) => [c.reshape(x, [batch, -1])],
+      webgl: (c, [x]) => [c.reshape(x, [batch, -1])],
+      webgpu: (c, [x]) => [c.reshape(x, [batch, -1])],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    if (!this.inputs || !this.xShape) {
+      throw new Error();
+    }
+    const gx = await new Reshape(this.xShape, true).c(gy);
+    return [gx];
+  }
+}
+
+/**
+ * Flattens variable into 2D (batch, -1). Note: CPUTensor.flatten flattens into 1D.
+ * @param x
+ * @returns
+ */
+export async function flatten(x: Variable): Promise<Variable> {
+  return new Flatten().c(x);
+}

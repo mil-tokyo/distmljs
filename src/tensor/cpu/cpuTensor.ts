@@ -574,4 +574,22 @@ export class CPUTensor extends Tensor {
     );
     return stridedCopy(x, newShape, srcStrides);
   }
+
+  /**
+   * Flatten to 1D array. Always returns copy.
+   * @param x
+   * @returns
+   */
+  static flatten(x: CPUTensor): CPUTensor {
+    return CPUTensor.reshape(x, [-1]).copy();
+  }
+
+  /**
+   * Flatten to 1D array. Always returns an alias to original tensor.
+   * @param x
+   * @returns
+   */
+  static ravel(x: CPUTensor): CPUTensor {
+    return CPUTensor.reshape(x, [-1]);
+  }
 }

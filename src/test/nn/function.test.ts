@@ -2,6 +2,7 @@
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import {
+  flatten,
   linear,
   matmul,
   mseLoss,
@@ -191,6 +192,19 @@ for (const { backend, ctor } of [
         const s = await sum(y);
         await s.backward();
         assert.deepEqual(await ta(x.grad!.data), [0, 2, 4, 6, 1, 3, 5, 7]);
+      });
+    });
+
+    describe('flatten', () => {
+      it('forward, backward', async () => {
+        const x = new Variable(ctor.fromArray(arange(24), [2, 3, 4]));
+        const xr = await flatten(x);
+        assert.deepEqual(xr.data.shape, [2, 12]);
+        const weight = new Variable(ctor.fromArray(arange(100, 124), [2, 12]));
+        const y = await mul(xr, weight);
+        const s = await sum(y);
+        await s.backward();
+        assert.deepEqual(await ta(x.grad!.data), arange(100, 124));
       });
     });
   });
