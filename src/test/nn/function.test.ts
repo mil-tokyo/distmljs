@@ -6,6 +6,7 @@ import {
   linear,
   matmul,
   max_pool2d,
+  max_pool2d_with_indices,
   mseLoss,
   mul,
   relu,
@@ -215,7 +216,7 @@ for (const { backend, ctor } of [
         return;
       }
       it('forward, backward', async () => {
-        let y: Variable;
+        let y: Variable, t: Variable;
         const x = new Variable(
           ctor.fromArray(
             [
@@ -302,6 +303,44 @@ for (const { backend, ctor } of [
             83.0, 86.0, 97.0, 88.0, 88.0, 77.0, 81.0, 83.0, 88.0, 52.0, 94.0,
             91.0, 91.0, 59.0, 99.0, 99.0, 21.0, 84.0, 99.0, 99.0, 83.0, 84.0,
             80.0, 92.0, 83.0, 72.0,
+          ]
+        );
+
+        [y, t] = await max_pool2d_with_indices(x, {
+          kernelSize: 3,
+          returnIndices: true,
+        });
+        assert.deepEqual(
+          await ta(y.data),
+          [
+            49.0, 60.0, 90.0, 85.0, 87.0, 98.0, 56.0, 97.0, 97.0, 88.0, 94.0,
+            91.0, 99.0, 92.0, 77.0, 92.0,
+          ]
+        );
+        assert.deepEqual(
+          await ta(t.data),
+          [0, 19, 26, 36, 17, 20, 42, 27, 9, 4, 40, 44, 18, 3, 40, 35]
+        );
+
+        [y, t] = await max_pool2d_with_indices(x, {
+          kernelSize: 3,
+          padding: 1,
+          returnIndices: 'spatial',
+        });
+        assert.deepEqual(
+          await ta(y.data),
+          [
+            49.0, 37.0, 98.0, 88.0, 90.0, 98.0, 6.0, 65.0, -7.0, 54.0, 86.0,
+            95.0, 87.0, 98.0, 80.0, 13.0, 82.0, 86.0, 97.0, 88.0, 77.0, 81.0,
+            83.0, 88.0, 94.0, 91.0, 89.0, 13.0, 92.0, 41.0, 58.0, 99.0, 84.0,
+            77.0, 80.0, 72.0,
+          ]
+        );
+        assert.deepEqual(
+          await ta(t.data),
+          [
+            0, 3, 15, 24, 26, 22, 49, 44, 45, 8, 10, 7, 17, 20, 31, 49, 52, 55,
+            9, 4, 7, 16, 19, 37, 40, 44, 53, 1, 3, 15, 17, 18, 23, 40, 50, 46,
           ]
         );
       });

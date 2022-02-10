@@ -509,7 +509,8 @@ export interface MaxPool2dParamsReturnIndicesTrue {
   stride?: number;
   padding?: number;
   dilation?: number;
-  returnIndices: true;
+  // indexのモード。true='spatial'。spatialの場合は2D平面内でのインデックス(PyTorchと同様)、flattenの場合は4Dテンソル全体におけるインデックスが返る(ONNXと同様)。
+  returnIndices: true | 'spatial' | 'flatten';
   ceilMode?: boolean;
 }
 
@@ -522,7 +523,7 @@ export class MaxPool2d extends NNFunction {
   stride: number;
   padding: number;
   dilation: number;
-  returnIndices: boolean;
+  returnIndices: boolean | 'spatial' | 'flatten';
   ceilMode: boolean;
 
   constructor(params: MaxPool2dParams) {
