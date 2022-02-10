@@ -1,14 +1,33 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Backend } from '../../backend';
-import { Variable } from '../../nn/core';
-import { sum } from '../../nn/functions';
+import { Layer, Variable } from '../../nn/core';
+import { relu, sum } from '../../nn/functions';
 import { Linear } from '../../nn/layers';
 import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
 import { testFlag } from '../testFlag';
+
+class Model extends Layer {
+  l1: Linear;
+  l2: Linear;
+
+  constructor(inFeatures: number, hidden: number, outFeatures: number) {
+    super();
+    this.l1 = new Linear(inFeatures, hidden);
+    this.l2 = new Linear(hidden, outFeatures);
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    let y = inputs[0];
+    y = await this.l1.c(y);
+    y = await relu(y);
+    y = await this.l2.c(y);
+    return [y];
+  }
+}
 
 for (const { backend, ctor } of [
   { backend: 'cpu' as Backend, ctor: CPUTensor },
@@ -45,6 +64,23 @@ for (const { backend, ctor } of [
           [4, 6, 8, 10, 4, 6, 8, 10]
         );
         assert.deepEqual(await ta(linear.bias!.grad!.data), [2, 2]);
+      });
+
+      it('training / eval mode', async () => {
+        const model = new Model(3, 2, 4);
+        // default is train
+        assert.isTrue(model.training);
+        assert.isTrue(model.l1.training);
+        assert.isTrue(model.l2.training);
+        model.eval();
+        assert.isFalse(model.training);
+        // should recursively apply
+        assert.isFalse(model.l1.training);
+        assert.isFalse(model.l2.training);
+        model.train();
+        assert.isTrue(model.training);
+        assert.isTrue(model.l1.training);
+        assert.isTrue(model.l2.training);
       });
     });
   });

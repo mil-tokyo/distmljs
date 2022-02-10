@@ -263,6 +263,8 @@ export class Mul extends NNFunction {
 }
 
 export abstract class Layer {
+  training = true; // default value is same as PyTorch
+
   *parameters(recursive = true): Generator<Parameter> {
     for (const [, value] of Object.entries(this)) {
       if (value instanceof Parameter) {
@@ -324,6 +326,27 @@ export abstract class Layer {
     for (const param of this.parameters()) {
       param.data = await param.data.to(backend);
     }
+  }
+
+  /**
+   * Sets the model's training mode
+   * @param mode true (default): training mode, false: evaluation mode
+   */
+  train(mode = true): void {
+    this.training = mode;
+    // apply recursively
+    for (const value of Object.values(this)) {
+      if (value instanceof Layer) {
+        value.train(mode);
+      }
+    }
+  }
+
+  /**
+   * Sets the model mode to eval
+   */
+  eval(): void {
+    this.train(false);
   }
 }
 
