@@ -9,6 +9,15 @@ import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { Tensor } from '../tensor';
 import {
+  coreadd,
+  corediv,
+  coremul,
+  corepow,
+  corereluBackprop,
+  coresigmoidBackprop,
+  coresub,
+} from './core/binary';
+import {
   coreabs,
   coreacos,
   coreacosh,
@@ -422,5 +431,33 @@ export class WebGPUTensor extends Tensor {
 
   static tanh(x: WebGPUTensor): WebGPUTensor {
     return coretanh(x);
+  }
+
+  static add(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return coreadd(lhs, rhs);
+  }
+
+  static sub(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return coresub(lhs, rhs);
+  }
+
+  static mul(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return coremul(lhs, rhs);
+  }
+
+  static div(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return corediv(lhs, rhs);
+  }
+
+  static pow(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return corepow(lhs, rhs);
+  }
+
+  static sigmoidBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return coresigmoidBackprop(lhs, rhs);
+  }
+
+  static reluBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    return corereluBackprop(lhs, rhs);
   }
 }

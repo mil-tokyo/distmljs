@@ -85,87 +85,69 @@ describe('webgpuTensor', () => {
     });
   });
 
-  // describe('add', () => {
-  //   it('add', async () => {
-  //     const lhs = WebGPUTensor.fromArray([10, 20], [2]);
-  //     const rhs = WebGPUTensor.fromArray([50, 60], [2]);
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [60, 80]);
-  //   });
+  describe('add', () => {
+    it('add', async () => {
+      const lhs = WebGPUTensor.fromArray([10, 20], [2]);
+      const rhs = WebGPUTensor.fromArray([50, 60], [2]);
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [60, 80]);
+    });
 
-  //   it('add int32', async () => {
-  //     const lhs = WebGPUTensor.fromArray([16843009, 16843010], [2], 'int32');
-  //     const rhs = WebGPUTensor.fromArray([1, -3], [2], 'int32');
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [16843010, 16843007]);
-  //   });
+    it('add int32', async () => {
+      const lhs = WebGPUTensor.fromArray([16843009, 16843010], [2], 'int32');
+      const rhs = WebGPUTensor.fromArray([1, -3], [2], 'int32');
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [16843010, 16843007]);
+    });
 
-  //   it('add uint8', async () => {
-  //     const lhs = WebGPUTensor.fromArray([100, 101], [2], 'uint8');
-  //     const rhs = WebGPUTensor.fromArray([1, 3], [2], 'uint8');
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [101, 104]);
-  //   });
+    it('add uint8', async () => {
+      const lhs = WebGPUTensor.fromArray([100, 101], [2], 'uint8');
+      const rhs = WebGPUTensor.fromArray([1, 3], [2], 'uint8');
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [101, 104]);
+    });
 
-  //   it('broadcast 0d to 1d', async () => {
-  //     const lhs = WebGPUTensor.fromArray([10, 20], [2]);
-  //     const rhs = WebGPUTensor.fromArray([100], []);
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [110, 120]);
-  //   });
+    it('broadcast 0d to 1d', async () => {
+      const lhs = WebGPUTensor.fromArray([10, 20], [2]);
+      const rhs = WebGPUTensor.fromArray([100], []);
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [110, 120]);
+    });
 
-  //   it('broadcast 1d[1,2] to 2d', async () => {
-  //     const lhs = WebGPUTensor.fromArray([10, 20, 30, 40], [2, 2]);
-  //     const rhs = WebGPUTensor.fromArray([100, 200], [1, 2]);
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [110, 220, 130, 240]);
-  //   });
+    it('broadcast 1d[1,2] to 2d', async () => {
+      const lhs = WebGPUTensor.fromArray([10, 20, 30, 40], [2, 2]);
+      const rhs = WebGPUTensor.fromArray([100, 200], [1, 2]);
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [110, 220, 130, 240]);
+    });
 
-  //   it('broadcast 1d[2,1] to 2d', async () => {
-  //     const lhs = WebGPUTensor.fromArray([10, 20, 30, 40], [2, 2]);
-  //     const rhs = WebGPUTensor.fromArray([100, 200], [2, 1]);
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [110, 120, 230, 240]);
-  //   });
+    it('broadcast 1d[2,1] to 2d', async () => {
+      const lhs = WebGPUTensor.fromArray([10, 20, 30, 40], [2, 2]);
+      const rhs = WebGPUTensor.fromArray([100, 200], [2, 1]);
+      const y = WebGPUTensor.add(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [110, 120, 230, 240]);
+    });
+  });
 
-  //   it('broadcast 1d[4,1] to 2d 2darray', async () => {
-  //     const lhs = WebGPUTensor.empty([4, 2], 'float32', undefined, {
-  //       ...getTensorTextureShapeFormatForDType('float32'),
-  //       dim: '2DArray',
-  //       width: 2,
-  //       height: 2,
-  //       depth: 2,
-  //     });
-  //     lhs.setArray([10, 20, 30, 40, 50, 60, 70, 80]);
-  //     const rhs = WebGPUTensor.fromArray([100, 200, 300, 400], [4, 1]);
-  //     const y = WebGPUTensor.add(lhs, rhs);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [110, 120, 230, 240, 350, 360, 470, 480]
-  //     );
-  //     // TODO: test when output is 2DArray (mock WebGPUTensor.empty is needed)
-  //   });
-  // });
+  describe('mul', () => {
+    it('mul', async () => {
+      const lhs = WebGPUTensor.fromArray([10, 20], [2]);
+      const rhs = WebGPUTensor.fromArray([50, 60], [2]);
+      const y = WebGPUTensor.mul(lhs, rhs);
+      assert.deepEqual(await y.toArrayAsync(), [500, 1200]);
+    });
+  });
 
-  // describe('mul', () => {
-  //   it('mul', async () => {
-  //     const lhs = WebGPUTensor.fromArray([10, 20], [2]);
-  //     const rhs = WebGPUTensor.fromArray([50, 60], [2]);
-  //     const y = WebGPUTensor.mul(lhs, rhs);
-  //     assert.deepEqual(await y.toArrayAsync(), [500, 1200]);
-  //   });
-  // });
-
-  // describe('pow', () => {
-  //   it('pow', async () => {
-  //     // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
-  //     // implementation: pow(abs(-1.5), 2)
-  //     const lhs = WebGPUTensor.fromArray([-1.5, 2.5], [2]);
-  //     const rhs = WebGPUTensor.fromArray([2, 0.5], [2]);
-  //     const y = WebGPUTensor.pow(lhs, rhs);
-  //     arrayNearlyEqual(await y.toArrayAsync(), [2.25, 1.58113883008]);
-  //   });
-  // });
+  describe('pow', () => {
+    it('pow', async () => {
+      // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
+      // implementation: pow(abs(-1.5), 2)
+      const lhs = WebGPUTensor.fromArray([-1.5, 2.5], [2]);
+      const rhs = WebGPUTensor.fromArray([2, 0.5], [2]);
+      const y = WebGPUTensor.pow(lhs, rhs);
+      arrayNearlyEqual(await y.toArrayAsync(), [2.25, 1.58113883008]);
+    });
+  });
 
   // describe('dot', () => {
   //   it('dot', async () => {

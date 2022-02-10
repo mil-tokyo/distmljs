@@ -1,4 +1,3 @@
-import { DType } from '../../../dtype';
 import { webgpuShaders } from '../shaders';
 import { getNNWebGPUContext } from '../webgpuContext';
 import { WebGPUTensor } from '../webgpuTensor';
