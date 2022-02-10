@@ -7,6 +7,11 @@ import {
 } from '../../dtype';
 import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
+import {
+  calcReshape,
+  calcTransposeShape,
+  getBroadcastStride,
+} from '../shapeUtil';
 import { Tensor } from '../tensor';
 import {
   coreadd,
@@ -17,6 +22,7 @@ import {
   coresigmoidBackprop,
   coresub,
 } from './core/binary';
+import { stridedCopy } from './core/copy';
 import {
   coreabs,
   coreacos,
@@ -459,5 +465,33 @@ export class WebGPUTensor extends Tensor {
 
   static reluBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     return corereluBackprop(lhs, rhs);
+  }
+
+  static broadcastTo(
+    x: WebGPUTensor,
+    shape: ReadonlyArray<number>
+  ): WebGPUTensor {
+    const xStride = getBroadcastStride(x.shape, shape);
+    return stridedCopy(x, shape, xStride);
+  }
+
+  static reshape(
+    x: WebGPUTensor,
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGPUTensor {
+    return x.alias(calcReshape(x.shape, shape, allowZero));
+  }
+
+  static transpose(
+    x: WebGPUTensor,
+    axes?: ReadonlyArray<number> | null
+  ): WebGPUTensor {
+    const { newShape, srcStrides } = calcTransposeShape(
+      x.shape,
+      x.strides,
+      axes
+    );
+    return stridedCopy(x, newShape, srcStrides);
   }
 }

@@ -220,47 +220,47 @@ describe('webgpuTensor', () => {
   //   });
   // });
 
-  // describe('broadcast', () => {
-  //   it('2d to 4d', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.broadcastTo(x, [2, 4, 2, 3]);
-  //     assert.deepEqual(y.shape, [2, 4, 2, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4,
-  //         5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3,
-  //         4, 5,
-  //       ]
-  //     );
-  //   });
-  //   it('3d to 4d', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 1, 3]);
-  //     const y = WebGPUTensor.broadcastTo(x, [4, 2, 2, 3]);
-  //     assert.deepEqual(y.shape, [4, 2, 2, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4, 5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4,
-  //         5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4, 5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3,
-  //         4, 5,
-  //       ]
-  //     );
-  //   });
-  //   it('0d to 0d', async () => {
-  //     const x = WebGPUTensor.fromArray([3], []);
-  //     const y = WebGPUTensor.broadcastTo(x, []);
-  //     assert.deepEqual(y.shape, []);
-  //     assert.deepEqual(await y.toArrayAsync(), [3]);
-  //   });
-  //   it('0d to 2d', async () => {
-  //     const x = WebGPUTensor.fromArray([3], []);
-  //     const y = WebGPUTensor.broadcastTo(x, [2, 3]);
-  //     assert.deepEqual(y.shape, [2, 3]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3, 3, 3, 3, 3, 3]);
-  //   });
-  //   // TODO: add cases
-  // });
+  describe('broadcast', () => {
+    it('2d to 4d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.broadcastTo(x, [2, 4, 2, 3]);
+      assert.deepEqual(y.shape, [2, 4, 2, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4,
+          5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3,
+          4, 5,
+        ]
+      );
+    });
+    it('3d to 4d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 1, 3]);
+      const y = WebGPUTensor.broadcastTo(x, [4, 2, 2, 3]);
+      assert.deepEqual(y.shape, [4, 2, 2, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4, 5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4,
+          5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3, 4, 5, 0, 1, 2, 0, 1, 2, 3, 4, 5, 3,
+          4, 5,
+        ]
+      );
+    });
+    it('0d to 0d', async () => {
+      const x = WebGPUTensor.fromArray([3], []);
+      const y = WebGPUTensor.broadcastTo(x, []);
+      assert.deepEqual(y.shape, []);
+      assert.deepEqual(await y.toArrayAsync(), [3]);
+    });
+    it('0d to 2d', async () => {
+      const x = WebGPUTensor.fromArray([3], []);
+      const y = WebGPUTensor.broadcastTo(x, [2, 3]);
+      assert.deepEqual(y.shape, [2, 3]);
+      assert.deepEqual(await y.toArrayAsync(), [3, 3, 3, 3, 3, 3]);
+    });
+    // TODO: add cases
+  });
 
   // describe('sum', () => {
   //   it('2dto1d axis0', async () => {
@@ -467,143 +467,143 @@ describe('webgpuTensor', () => {
   //   });
   // });
 
-  // describe('transpose', () => {
-  //   it('2d', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [3, 2]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 3, 1, 4, 2, 5]);
-  //   });
-  //   it('1d', async () => {
-  //     // do nothing
-  //     const x = WebGPUTensor.fromArray([0, 1], [2]);
-  //     const y = WebGPUTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [2]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 1]);
-  //   });
-  //   it('3d', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.transpose(x);
-  //     assert.deepEqual(y.shape, [4, 3, 2]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15,
-  //         7, 19, 11, 23,
-  //       ]
-  //     );
-  //   });
-  //   it('3d 2,0,1', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.transpose(x, [2, 0, 1]);
-  //     assert.deepEqual(y.shape, [4, 2, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7,
-  //         11, 15, 19, 23,
-  //       ]
-  //     );
-  //   });
-  //   it('3d 0,2,1', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.transpose(x, [0, 2, 1]);
-  //     assert.deepEqual(y.shape, [2, 4, 3]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [
-  //         0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11, 12, 16, 20, 13, 17, 21, 14, 18,
-  //         22, 15, 19, 23,
-  //       ]
-  //     );
-  //   });
-  // });
+  describe('transpose', () => {
+    it('2d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.transpose(x);
+      assert.deepEqual(y.shape, [3, 2]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 3, 1, 4, 2, 5]);
+    });
+    it('1d', async () => {
+      // do nothing
+      const x = WebGPUTensor.fromArray([0, 1], [2]);
+      const y = WebGPUTensor.transpose(x);
+      assert.deepEqual(y.shape, [2]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1]);
+    });
+    it('3d', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.transpose(x);
+      assert.deepEqual(y.shape, [4, 3, 2]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15,
+          7, 19, 11, 23,
+        ]
+      );
+    });
+    it('3d 2,0,1', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.transpose(x, [2, 0, 1]);
+      assert.deepEqual(y.shape, [4, 2, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7,
+          11, 15, 19, 23,
+        ]
+      );
+    });
+    it('3d 0,2,1', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.transpose(x, [0, 2, 1]);
+      assert.deepEqual(y.shape, [2, 4, 3]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [
+          0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11, 12, 16, 20, 13, 17, 21, 14, 18,
+          22, 15, 19, 23,
+        ]
+      );
+    });
+  });
 
-  // describe('reshape', () => {
-  //   it('2d-2d', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.reshape(x, [1, 6]);
-  //     assert.deepEqual(y.shape, [1, 6]);
-  //     assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
-  //   });
-  //   it('0d-2d', async () => {
-  //     const x = WebGPUTensor.fromArray([3], []);
-  //     const y = WebGPUTensor.reshape(x, [1, 1]);
-  //     assert.deepEqual(y.shape, [1, 1]);
-  //     assert.deepEqual(await y.toArrayAsync(), [3]);
-  //   });
-  //   it('2d-1d', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.reshape(x, 6);
-  //     assert.deepEqual(y.shape, [6]);
-  //   });
-  //   it('2d-1d -1', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.reshape(x, -1);
-  //     assert.deepEqual(y.shape, [6]);
-  //   });
-  //   it('2d-2d -1', async () => {
-  //     const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const y = WebGPUTensor.reshape(x, [3, -1]);
-  //     assert.deepEqual(y.shape, [3, 2]);
-  //   });
-  //   it('3d-2d -1', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.reshape(x, [4, -1]);
-  //     assert.deepEqual(y.shape, [4, 6]);
-  //   });
-  //   it('3d-3d 0', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.reshape(x, [0, 2, 6], false);
-  //     // allowZero=falseで0を指定すると、元のshapeの対応次元からサイズをコピー
-  //     assert.deepEqual(y.shape, [2, 2, 6]);
-  //   });
-  //   it('3d-3d 0,-1', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     const y = WebGPUTensor.reshape(x, [0, 2, -1], false);
-  //     assert.deepEqual(y.shape, [2, 2, 6]);
-  //   });
-  //   it('3d-3d size0', async () => {
-  //     const x = WebGPUTensor.fromArray([], [2, 0, 4]);
-  //     // allowZero=true (default)だと0指定は長さ0として扱う
-  //     const y = WebGPUTensor.reshape(x, [0, 1]);
-  //     assert.deepEqual(y.shape, [0, 1]);
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [4]);
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [2, 3, 5]);
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [5, -1]); //割り切れない
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [-1, -1]); //マイナス複数
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray([], [0, 2, 3]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [0, -1]); //サイズ0に対してマイナスは不定となるためダメ
-  //     });
-  //   });
-  //   it('3d-3d error', async () => {
-  //     const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-  //     assert.throw(() => {
-  //       WebGPUTensor.reshape(x, [0, 3, 4]);
-  //     });
-  //   });
-  // });
+  describe('reshape', () => {
+    it('2d-2d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.reshape(x, [1, 6]).copy();
+      assert.deepEqual(y.shape, [1, 6]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+    it('0d-2d', async () => {
+      const x = WebGPUTensor.fromArray([3], []);
+      const y = WebGPUTensor.reshape(x, [1, 1]).copy();
+      assert.deepEqual(y.shape, [1, 1]);
+      assert.deepEqual(await y.toArrayAsync(), [3]);
+    });
+    it('2d-1d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.reshape(x, 6).copy();
+      assert.deepEqual(y.shape, [6]);
+    });
+    it('2d-1d -1', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.reshape(x, -1).copy();
+      assert.deepEqual(y.shape, [6]);
+    });
+    it('2d-2d -1', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.reshape(x, [3, -1]).copy();
+      assert.deepEqual(y.shape, [3, 2]);
+    });
+    it('3d-2d -1', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.reshape(x, [4, -1]).copy();
+      assert.deepEqual(y.shape, [4, 6]);
+    });
+    it('3d-3d 0', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.reshape(x, [0, 2, 6], false).copy();
+      // allowZero=falseで0を指定すると、元のshapeの対応次元からサイズをコピー
+      assert.deepEqual(y.shape, [2, 2, 6]);
+    });
+    it('3d-3d 0,-1', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      const y = WebGPUTensor.reshape(x, [0, 2, -1], false).copy();
+      assert.deepEqual(y.shape, [2, 2, 6]);
+    });
+    it('3d-3d size0', async () => {
+      const x = WebGPUTensor.fromArray([], [2, 0, 4]);
+      // allowZero=true (default)だと0指定は長さ0として扱う
+      const y = WebGPUTensor.reshape(x, [0, 1]).copy();
+      assert.deepEqual(y.shape, [0, 1]);
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [4]);
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [2, 3, 5]);
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [5, -1]); //割り切れない
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [-1, -1]); //マイナス複数
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray([], [0, 2, 3]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [0, -1]); //サイズ0に対してマイナスは不定となるためダメ
+      });
+    });
+    it('3d-3d error', async () => {
+      const x = WebGPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+      assert.throw(() => {
+        WebGPUTensor.reshape(x, [0, 3, 4]);
+      });
+    });
+  });
 });
