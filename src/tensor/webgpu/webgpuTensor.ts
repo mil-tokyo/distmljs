@@ -74,7 +74,10 @@ export class WebGPUTensorBuffer {
 
   private mappedForWriteFromCPU: boolean;
 
-  constructor(public readonly bufferShape: WebGPUBufferShape) {
+  constructor(
+    public readonly bufferShape: WebGPUBufferShape,
+    public readonly forMetaBuffer = false
+  ) {
     const ctx = getNNWebGPUContext();
     this.ref = 1;
     let usage = GPUBufferUsage.STORAGE;
@@ -87,8 +90,11 @@ export class WebGPUTensorBuffer {
       usage,
     });
     this.mappedForWriteFromCPU = bufferShape.forWriteFromCPU;
-    webgpuAllocCount++;
-    existingBuffers.add(this);
+    // meta bufferは別に管理する
+    if (!this.forMetaBuffer) {
+      webgpuAllocCount++;
+      existingBuffers.add(this);
+    }
   }
 
   setDataRaw(data: TypedArrayTypesForWebGPUBuffer): void {
@@ -159,9 +165,11 @@ export class WebGPUTensorBuffer {
   }
 
   dispose() {
-    webgpuAllocCount--;
     this.gpuBuffer.destroy();
-    existingBuffers.delete(this);
+    if (!this.forMetaBuffer) {
+      webgpuAllocCount--;
+      existingBuffers.delete(this);
+    }
     (this as { gpuBuffer: GPUBuffer | null }).gpuBuffer = null;
   }
 }

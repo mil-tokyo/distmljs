@@ -6,13 +6,12 @@ const metaBufferPool: WebGPUMetaBuffer[] = [];
 export class WebGPUMetaBuffer {
   constructor(
     public buffer: WebGPUTensorBuffer,
-    private cpuBuffer: Uint8Array,
+    private cpuBuffer: Uint32Array,
     private cpuBufferHash: number
   ) {}
 
   private static buildCPUBuffer(content: WebGPUMetaBufferContent) {
-    const byteLength = content.elements.length * 4,
-      cpuBuffer = new Uint8Array(byteLength),
+    const cpuBuffer = new Uint32Array(content.elements.length),
       cpuBufferView = new DataView(cpuBuffer.buffer);
     let ofs = 0;
     for (const element of content.elements) {
@@ -35,7 +34,7 @@ export class WebGPUMetaBuffer {
     return cpuBuffer;
   }
 
-  private static calcBufferHash(cpuBuffer: Uint8Array): number {
+  private static calcBufferHash(cpuBuffer: Uint32Array): number {
     let v = 0;
     for (let i = 0; i < cpuBuffer.length; i++) {
       v += cpuBuffer[i];
@@ -44,7 +43,7 @@ export class WebGPUMetaBuffer {
   }
 
   private static findPooled(
-    cpuBuffer: Uint8Array,
+    cpuBuffer: Uint32Array,
     cpuBufferHash: number
   ): WebGPUMetaBuffer | null {
     const pooled = metaBufferPool;
@@ -76,15 +75,17 @@ export class WebGPUMetaBuffer {
       // 全く同じ内容がプールにあればそれを使い、なければバッファ作成とGPUへの転送
       found = WebGPUMetaBuffer.findPooled(cpuBuffer, cpuBufferHash);
     if (found) {
-      console.log('use pooled meta buffer');
       return found;
     }
-    const buf = new WebGPUTensorBuffer({
-      byteLength: cpuBuffer.byteLength,
-      forWriteFromCPU: true,
-      forReadToCPU: false,
-    });
-    buf.setDataRaw(new Int32Array(cpuBuffer.buffer));
+    const buf = new WebGPUTensorBuffer(
+      {
+        byteLength: cpuBuffer.byteLength,
+        forWriteFromCPU: true,
+        forReadToCPU: false,
+      },
+      true
+    );
+    buf.setDataRaw(new Uint32Array(cpuBuffer.buffer));
     return new WebGPUMetaBuffer(buf, cpuBuffer, cpuBufferHash);
   }
 
