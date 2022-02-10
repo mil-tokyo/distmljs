@@ -1,6 +1,14 @@
 import { defaultNNContext } from '../context';
+import {
+  max_pool2d_cpu,
+  max_pool2d_with_indices_cpu,
+} from '../tensor/cpu/nnfunction/max_pool2d';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
+import {
+  max_pool2d_webgl,
+  max_pool2d_with_indices_webgl,
+} from '../tensor/webgl/nnfunction/max_pool2d';
 import { arange, arrayEqual, nonNull } from '../util';
 import {
   Add,
@@ -485,4 +493,119 @@ export class Flatten extends NNFunction {
  */
 export async function flatten(x: Variable): Promise<Variable> {
   return new Flatten().c(x);
+}
+
+export interface MaxPool2dParamsReturnIndicesFalse {
+  kernelSize: number;
+  stride?: number;
+  padding?: number;
+  dilation?: number;
+  returnIndices?: false;
+  ceilMode?: boolean;
+}
+
+export interface MaxPool2dParamsReturnIndicesTrue {
+  kernelSize: number;
+  stride?: number;
+  padding?: number;
+  dilation?: number;
+  returnIndices: true;
+  ceilMode?: boolean;
+}
+
+export type MaxPool2dParams =
+  | MaxPool2dParamsReturnIndicesTrue
+  | MaxPool2dParamsReturnIndicesFalse;
+
+export class MaxPool2d extends NNFunction {
+  kernelSize: number; // TODO: support [number, number] to specify different size for height and width
+  stride: number;
+  padding: number;
+  dilation: number;
+  returnIndices: boolean;
+  ceilMode: boolean;
+
+  constructor(params: MaxPool2dParams) {
+    super();
+    const {
+      kernelSize,
+      stride,
+      padding = 0,
+      dilation = 1,
+      returnIndices = false,
+      ceilMode = false,
+    } = params;
+    this.kernelSize = kernelSize;
+    this.stride = stride || kernelSize;
+    this.padding = padding;
+    this.dilation = dilation;
+    this.returnIndices = returnIndices;
+    this.ceilMode = ceilMode;
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    if (this.returnIndices) {
+      return genCall([x], {
+        cpu: (c, [x]) =>
+          max_pool2d_with_indices_cpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: true,
+            ceilMode: this.ceilMode,
+          }),
+        webgl: (c, [x]) =>
+          max_pool2d_with_indices_webgl(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: true,
+            ceilMode: this.ceilMode,
+          }),
+      });
+    } else {
+      return genCall([x], {
+        cpu: (c, [x]) => [
+          max_pool2d_cpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
+        webgl: (c, [x]) => [
+          max_pool2d_webgl(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
+      });
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    throw new Error('not implemented');
+  }
+}
+
+export async function max_pool2d(
+  x: Variable,
+  params: MaxPool2dParamsReturnIndicesFalse
+): Promise<Variable> {
+  return new MaxPool2d(params).c(x);
+}
+
+export async function max_pool2d_with_indices(
+  x: Variable,
+  params: MaxPool2dParamsReturnIndicesTrue
+): Promise<Variable[]> {
+  return new MaxPool2d(params).call(x);
 }
