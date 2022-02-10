@@ -24,6 +24,7 @@ import {
 } from './core/binary';
 import { stridedCopy } from './core/copy';
 import { sum, sumTo } from './core/reduction';
+import { gemm } from './core/standard';
 import {
   coreabs,
   coreacos,
@@ -466,6 +467,26 @@ export class WebGPUTensor extends Tensor {
 
   static reluBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     return corereluBackprop(lhs, rhs);
+  }
+
+  /**
+   * 転置込みの行列積を行う暫定的な関数
+   * @param a
+   * @param b
+   * @param transa
+   * @param transb
+   */
+  static gemm(
+    a: WebGPUTensor,
+    b: WebGPUTensor,
+    transa = false,
+    transb = false
+  ): WebGPUTensor {
+    return gemm(a, b, transa, transb);
+  }
+
+  static dot(a: WebGPUTensor, b: WebGPUTensor): WebGPUTensor {
+    return WebGPUTensor.gemm(a, b, false, false);
   }
 
   static broadcastTo(

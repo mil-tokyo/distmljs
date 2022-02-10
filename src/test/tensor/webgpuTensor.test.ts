@@ -149,76 +149,76 @@ describe('webgpuTensor', () => {
     });
   });
 
-  // describe('dot', () => {
-  //   it('dot', async () => {
-  //     const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const rhs = WebGPUTensor.fromArray(
-  //       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  //       [3, 4]
-  //     );
-  //     const y = WebGPUTensor.gemm(lhs, rhs);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [50, 53, 56, 59, 176, 188, 200, 212]
-  //     );
-  //   });
-  // });
+  describe('dot', () => {
+    it('dot', async () => {
+      const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const rhs = WebGPUTensor.fromArray(
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        [3, 4]
+      );
+      const y = WebGPUTensor.gemm(lhs, rhs);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [50, 53, 56, 59, 176, 188, 200, 212]
+      );
+    });
+  });
 
-  // describe('gemm', () => {
-  //   it('gemm_n_n', async () => {
-  //     const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const rhs = WebGPUTensor.fromArray(
-  //       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  //       [3, 4]
-  //     );
-  //     const y = WebGPUTensor.gemm(lhs, rhs);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [50, 53, 56, 59, 176, 188, 200, 212]
-  //     );
-  //   });
-  //   it('gemm_n_t', async () => {
-  //     const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
-  //     const rhs = WebGPUTensor.fromArray(
-  //       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  //       [4, 3]
-  //     );
-  //     const y = WebGPUTensor.gemm(lhs, rhs, false, true);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [35, 44, 53, 62, 134, 170, 206, 242]
-  //     );
-  //   });
-  //   it('gemm_t_n', async () => {
-  //     const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [3, 2]);
-  //     const rhs = WebGPUTensor.fromArray(
-  //       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  //       [3, 4]
-  //     );
-  //     const y = WebGPUTensor.gemm(lhs, rhs, true, false);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [100, 106, 112, 118, 142, 151, 160, 169]
-  //     );
-  //   });
-  //   it('gemm_t_t', async () => {
-  //     const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [3, 2]);
-  //     const rhs = WebGPUTensor.fromArray(
-  //       [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-  //       [4, 3]
-  //     );
-  //     const y = WebGPUTensor.gemm(lhs, rhs, true, true);
-  //     assert.deepEqual(y.shape, [2, 4]);
-  //     assert.deepEqual(
-  //       await y.toArrayAsync(),
-  //       [70, 88, 106, 124, 103, 130, 157, 184]
-  //     );
-  //   });
-  // });
+  describe('gemm', () => {
+    it('gemm_n_n', async () => {
+      const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const rhs = WebGPUTensor.fromArray(
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        [3, 4]
+      );
+      const y = WebGPUTensor.gemm(lhs, rhs);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [50, 53, 56, 59, 176, 188, 200, 212]
+      );
+    });
+    it('gemm_n_t', async () => {
+      const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const rhs = WebGPUTensor.fromArray(
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        [4, 3]
+      );
+      const y = WebGPUTensor.gemm(lhs, rhs, false, true);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [35, 44, 53, 62, 134, 170, 206, 242]
+      );
+    });
+    it('gemm_t_n', async () => {
+      const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [3, 2]);
+      const rhs = WebGPUTensor.fromArray(
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        [3, 4]
+      );
+      const y = WebGPUTensor.gemm(lhs, rhs, true, false);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [100, 106, 112, 118, 142, 151, 160, 169]
+      );
+    });
+    it('gemm_t_t', async () => {
+      const lhs = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [3, 2]);
+      const rhs = WebGPUTensor.fromArray(
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        [4, 3]
+      );
+      const y = WebGPUTensor.gemm(lhs, rhs, true, true);
+      assert.deepEqual(y.shape, [2, 4]);
+      assert.deepEqual(
+        await y.toArrayAsync(),
+        [70, 88, 106, 124, 103, 130, 157, 184]
+      );
+    });
+  });
 
   describe('broadcast', () => {
     it('2d to 4d', async () => {
