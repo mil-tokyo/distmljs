@@ -162,6 +162,7 @@ export class BroadcastTo extends NNFunction {
     return genCall(x, {
       cpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
       webgl: (c, [t]) => [c.broadcastTo(t, this.shape)],
+      webgpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
     });
   }
 
@@ -179,6 +180,7 @@ export class SumTo extends NNFunction {
     return genCall(x, {
       cpu: (c, [t]) => [c.sumTo(t, this.shape)],
       webgl: (c, [t]) => [c.sumTo(t, this.shape)],
+      webgpu: (c, [t]) => [c.sumTo(t, this.shape)],
     });
   }
 
@@ -198,6 +200,7 @@ export class Sum extends NNFunction {
     return genCall([x], {
       cpu: (c, [t]) => [c.sum(t)],
       webgl: (c, [t]) => [c.sum(t)],
+      webgpu: (c, [t]) => [c.sum(t)],
     });
   }
 
@@ -211,6 +214,7 @@ export class Add extends NNFunction {
     return genCall([lhs, rhs], {
       cpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
       webgl: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+      webgpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
     });
   }
 
@@ -243,6 +247,7 @@ export class Mul extends NNFunction {
     return genCall([lhs, rhs], {
       cpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
       webgl: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+      webgpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
     });
   }
 

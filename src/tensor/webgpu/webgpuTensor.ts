@@ -23,6 +23,13 @@ import {
   coresub,
 } from './core/binary';
 import { stridedCopy } from './core/copy';
+import {
+  mseLoss,
+  mseLossBackprop,
+  nllLoss,
+  softmax,
+  softmaxCrossEntropyBackward,
+} from './core/loss';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
 import {
@@ -195,8 +202,8 @@ export class WebGPUTensor extends Tensor {
     );
   }
 
-  getClass(): typeof CPUTensor {
-    return CPUTensor;
+  getClass(): typeof WebGPUTensor {
+    return WebGPUTensor;
   }
 
   alias(shape?: ArrayLike<number>): WebGPUTensor {
@@ -527,5 +534,33 @@ export class WebGPUTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  static mseLossBackprop(
+    ad: WebGPUTensor,
+    bd: WebGPUTensor,
+    gyd: WebGPUTensor
+  ): [WebGPUTensor, WebGPUTensor] {
+    return mseLossBackprop(ad, bd, gyd);
+  }
+
+  static mseLoss(a: WebGPUTensor, b: WebGPUTensor): WebGPUTensor {
+    return mseLoss(a, b);
+  }
+
+  static nllLoss(softmax: WebGPUTensor, label: WebGPUTensor): WebGPUTensor {
+    return nllLoss(softmax, label);
+  }
+
+  static softmax(x: WebGPUTensor): WebGPUTensor {
+    return softmax(x);
+  }
+
+  static softmaxCrossEntropyBackward(
+    softmax: WebGPUTensor,
+    label: WebGPUTensor,
+    gy: WebGPUTensor
+  ): WebGPUTensor {
+    return softmaxCrossEntropyBackward(softmax, label, gy);
   }
 }
