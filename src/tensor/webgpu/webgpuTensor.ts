@@ -23,6 +23,7 @@ import {
   coresub,
 } from './core/binary';
 import { stridedCopy } from './core/copy';
+import { sum, sumTo } from './core/reduction';
 import {
   coreabs,
   coreacos,
@@ -473,6 +474,18 @@ export class WebGPUTensor extends Tensor {
   ): WebGPUTensor {
     const xStride = getBroadcastStride(x.shape, shape);
     return stridedCopy(x, shape, xStride);
+  }
+
+  static sum(
+    x: WebGPUTensor,
+    axis?: number | number[] | null,
+    keepdims?: boolean
+  ): WebGPUTensor {
+    return sum(x, axis, keepdims);
+  }
+
+  static sumTo(x: WebGPUTensor, shape: ReadonlyArray<number>): WebGPUTensor {
+    return sumTo(x, shape);
   }
 
   static reshape(
