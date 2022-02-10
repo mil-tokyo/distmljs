@@ -5,7 +5,7 @@ import { Variable } from '../../nn/core';
 import { sum } from '../../nn/functions';
 import { Linear } from '../../nn/layers';
 import { SGD } from '../../nn/optimizers';
-import { Tensor } from '../../tensor';
+import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { testFlag } from '../testFlag';
@@ -14,8 +14,12 @@ import { arrayNearlyEqual } from '../testUtil';
 for (const { backend, ctor } of [
   { backend: 'cpu' as Backend, ctor: CPUTensor },
   { backend: 'webgl' as Backend, ctor: WebGLTensor },
+  { backend: 'webgpu' as Backend, ctor: WebGPUTensor },
 ]) {
   if (backend === 'webgl' && !testFlag.webgl) {
+    continue;
+  }
+  if (backend === 'webgpu' && !testFlag.webgpu) {
     continue;
   }
   const ta = async (tensor: unknown): Promise<number[]> => {

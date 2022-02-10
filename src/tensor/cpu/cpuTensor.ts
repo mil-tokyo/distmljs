@@ -41,6 +41,7 @@ import { Tensor } from '../tensor';
 import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
+import { WebGPUTensor } from '../webgpu/webgpuTensor';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -87,6 +88,8 @@ export class CPUTensor extends Tensor {
         return this.alias();
       case 'webgl':
         return WebGLTensor.fromArray(this.toArray(), this.shape, this.dtype);
+      case 'webgpu':
+        return WebGPUTensor.fromArray(this.toArray(), this.shape, this.dtype);
       default:
         throw new Error(`Unknown backend ${backend}`);
     }
@@ -210,6 +213,12 @@ export class CPUTensor extends Tensor {
       throw new Error('Double-dispose of CPUTensor');
     }
     (this as { buffer: CPUTensorBuffer | null }).buffer = null;
+  }
+
+  copy(): CPUTensor {
+    const dst = new CPUTensor(this.shape, this.dtype);
+    dst.buffer.data.set(this.buffer.data);
+    return dst;
   }
 
   static abs(x: CPUTensor): CPUTensor {

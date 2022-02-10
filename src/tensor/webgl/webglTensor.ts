@@ -49,6 +49,7 @@ import {
   coreasinh,
   coreatan,
   coreatanh,
+  corecopy,
   corecos,
   corecosh,
   coreexp,
@@ -805,6 +806,10 @@ export class WebGLTensor extends Tensor {
       this.buffer.dispose();
     }
     (this as { buffer: WebGLTensorBuffer | null }).buffer = null;
+  }
+
+  copy(): WebGLTensor {
+    return corecopy(this);
   }
 
   static add(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {

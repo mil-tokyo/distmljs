@@ -10,6 +10,33 @@ node 14.x が必要。
 npm install
 ```
 
+# ビルド
+
+## WebGPU シェーダ
+
+この処理は、WebGPU シェーダ関係の編集を行った場合のみ必要。
+
+```
+python tools/generate_webgputensor_glsl_unary_op.py
+node tools/compile_webgpu_shader.js
+```
+
+## JavaScript (CommonJS)
+
+Webpack でビルドするプログラムから読み込まれる CommonJS 形式。`dist`ディレクトリ内に生成される。
+
+```
+npm run build
+```
+
+## JavaScript (Webpack)
+
+HTML から`<script>`タグで直接読み込まれる単一ファイル形式。`webpack/kakiage.js`に生成される。
+
+```
+npm run webpack
+```
+
 # テスト
 
 Kakiage は、WebGL 等、node.js では動作せず、かつ Web ブラウザ間で実装差がある要素の単体テストを行う必要がある。

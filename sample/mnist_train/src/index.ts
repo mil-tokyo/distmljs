@@ -121,8 +121,16 @@ window.addEventListener('load', () => {
         'input[name="backend"]:checked'
       )! as HTMLInputElement
     ).value as K.Backend;
-    if (backend === 'webgl') {
-      await K.tensor.initializeNNWebGLContext();
+    try {
+      if (backend === 'webgl') {
+        await K.tensor.initializeNNWebGLContext();
+      }
+      if (backend === 'webgpu') {
+        await K.tensor.initializeNNWebGPUContext();
+      }
+    } catch (error) {
+      alert(`Failed to initialize backend ${backend}. ${error}`);
+      return;
     }
     await train(backend);
   };

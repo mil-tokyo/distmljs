@@ -1,7 +1,8 @@
 import { CPUTensor } from './cpu/cpuTensor';
 import { Backend } from '../backend';
 import { DType } from '../dtype';
-import { WebGLTensor } from '.';
+import { WebGLTensor } from './webgl/webglTensor';
+import { WebGPUTensor } from './webgpu/webgpuTensor';
 
 export abstract class Tensor {
   readonly backend: Backend;
@@ -29,8 +30,12 @@ export abstract class Tensor {
   abstract alias(shape?: ArrayLike<number>): Tensor;
   abstract to(backend: 'cpu'): Promise<CPUTensor>;
   abstract to(backend: Backend): Promise<Tensor>;
-  abstract getClass(): typeof CPUTensor | typeof WebGLTensor;
+  abstract getClass():
+    | typeof CPUTensor
+    | typeof WebGLTensor
+    | typeof WebGPUTensor;
   abstract toArrayAsync(): Promise<number[]>;
+  abstract copy(): Tensor;
 
   abstract dispose(): void;
 }

@@ -39,6 +39,7 @@ export class Sub extends NNFunction {
     return genCall([lhs, rhs], {
       cpu: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
       webgl: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
+      webgpu: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
     });
   }
 
@@ -71,6 +72,7 @@ export class Div extends NNFunction {
     return genCall([lhs, rhs], {
       cpu: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
       webgl: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
+      webgpu: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
     });
   }
 
@@ -98,6 +100,7 @@ export class Exp extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.exp(x)],
       webgl: (c, [x]) => [c.exp(x)],
+      webgpu: (c, [x]) => [c.exp(x)],
     });
   }
 
@@ -120,6 +123,7 @@ export class Neg extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.neg(x)],
       webgl: (c, [x]) => [c.neg(x)],
+      webgpu: (c, [x]) => [c.neg(x)],
     });
   }
 
@@ -138,6 +142,7 @@ export class ReLUBackprop extends NNFunction {
     return genCall([x, gx], {
       cpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
       webgl: (c, [x, gx]) => [c.reluBackprop(x, gx)],
+      webgpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
     });
   }
 }
@@ -147,6 +152,7 @@ export class ReLU extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.relu(x)],
       webgl: (c, [x]) => [c.relu(x)],
+      webgpu: (c, [x]) => [c.relu(x)],
     });
   }
 
@@ -164,6 +170,7 @@ export class Sigmoid extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.sigmoid(x)],
       webgl: (c, [x]) => [c.sigmoid(x)],
+      webgpu: (c, [x]) => [c.sigmoid(x)],
     });
   }
 
@@ -178,6 +185,7 @@ export class Sigmoid extends NNFunction {
     const [gx] = genCall([y.data, gy.data], {
       cpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
       webgl: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
+      webgpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
     });
     return [new Variable(gx)];
   }
@@ -196,6 +204,7 @@ export class MatMul extends NNFunction {
     return genCall([a, b], {
       cpu: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
       webgl: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
+      webgpu: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
     });
   }
 
@@ -229,6 +238,9 @@ export class SoftmaxCrossEntropyBackward extends NNFunction {
       webgl: (c, [softmax, label, gy]) => [
         c.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
+      webgpu: (c, [softmax, label, gy]) => [
+        c.softmaxCrossEntropyBackward(softmax, label, gy),
+      ],
     });
   }
 }
@@ -238,6 +250,7 @@ export class Softmax extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.softmax(x)],
       webgl: (c, [x]) => [c.softmax(x)],
+      webgpu: (c, [x]) => [c.softmax(x)],
     });
   }
 
@@ -256,6 +269,7 @@ export class SoftmaxCrossEntropy extends NNFunction {
     const [softmax] = genCall([x], {
       cpu: (c, [x]) => [c.softmax(x)],
       webgl: (c, [x]) => [c.softmax(x)],
+      webgpu: (c, [x]) => [c.softmax(x)],
     });
     if (defaultNNContext.get('enableBackprop')) {
       this.softmax = softmax;
@@ -263,6 +277,7 @@ export class SoftmaxCrossEntropy extends NNFunction {
     const ce = genCall([softmax, label], {
       cpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
       webgl: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
+      webgpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
     });
     return ce;
   }
@@ -296,6 +311,7 @@ export class MSELoss extends NNFunction {
     return genCall([a, b], {
       cpu: (c, [a, b]) => [c.mseLoss(a, b)],
       webgl: (c, [a, b]) => [c.mseLoss(a, b)],
+      webgpu: (c, [a, b]) => [c.mseLoss(a, b)],
     });
   }
 
@@ -308,6 +324,7 @@ export class MSELoss extends NNFunction {
     const [ga, gb] = genCall([a.data, b.data, gy.data], {
       cpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
       webgl: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
+      webgpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
     });
     return [new Variable(ga), new Variable(gb)];
   }
@@ -322,11 +339,13 @@ export class Linear extends NNFunction {
     let [y] = genCall([x, weight], {
       cpu: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
       webgl: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+      webgpu: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
     });
     if (bias) {
       [y] = genCall([y, bias], {
         cpu: (c, [y, bias]) => [c.add(y, bias)],
         webgl: (c, [y, bias]) => [c.add(y, bias)],
+        webgpu: (c, [y, bias]) => [c.add(y, bias)],
       });
     }
     return [y];
@@ -375,6 +394,7 @@ export class Reshape extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
       webgl: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
+      webgpu: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
     });
   }
 
@@ -404,6 +424,7 @@ export class Transpose extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [c.transpose(x, this.axes)],
       webgl: (c, [x]) => [c.transpose(x, this.axes)],
+      webgpu: (c, [x]) => [c.transpose(x, this.axes)],
     });
   }
 

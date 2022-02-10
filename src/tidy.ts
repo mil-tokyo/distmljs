@@ -1,7 +1,14 @@
 import { Variable } from './nn';
 import { Layer, Optimizer } from './nn/core';
 import { Tensor } from './tensor';
-import { existingBuffers, WebGLTensor } from './tensor/webgl/webglTensor';
+import {
+  existingBuffers as existingWebGLBuffers,
+  WebGLTensor,
+} from './tensor/webgl/webglTensor';
+import {
+  existingBuffers as existingWebGPUBuffers,
+  WebGPUTensor,
+} from './tensor/webgpu/webgpuTensor';
 
 type TensorKind = Tensor | Variable | Layer | Optimizer;
 type TidyResult = TensorKind[];
@@ -23,9 +30,11 @@ export async function tidy<T extends TidyResult>(
     fn_ = nameOrFn as () => Promise<T>;
     name = null;
   }
-  const keepWebGLBuffers = new Set(existingBuffers);
+  const keepWebGLBuffers = new Set(existingWebGLBuffers);
+  const keepWebGPUBuffers = new Set(existingWebGPUBuffers);
   const returned = await fn_();
-  const lastWebGLBuffers = new Set(existingBuffers);
+  const lastWebGLBuffers = new Set(existingWebGLBuffers);
+  const lastWebGPUBuffers = new Set(existingWebGPUBuffers);
   // lastBuffers - firstBuffers - returned を開放
   const returnedTensors: Tensor[] = [];
   for (const r of returned) {
@@ -45,17 +54,28 @@ export async function tidy<T extends TidyResult>(
     if (WebGLTensor.isWebGLTensor(r)) {
       keepWebGLBuffers.add(r.buffer);
     }
+    if (WebGPUTensor.isWebGPUTensor(r)) {
+      keepWebGPUBuffers.add(r.buffer);
+    }
   }
   for (const fb of keepWebGLBuffers) {
     lastWebGLBuffers.delete(fb);
   }
-  let ndispose = 0;
+  for (const fb of keepWebGPUBuffers) {
+    lastWebGPUBuffers.delete(fb);
+  }
+  let ndisposegl = 0,
+    ndisposegpu = 0;
   for (const buf of lastWebGLBuffers) {
     buf.dispose();
-    ndispose++;
+    ndisposegl++;
+  }
+  for (const buf of lastWebGPUBuffers) {
+    buf.dispose();
+    ndisposegpu++;
   }
   console.debug(
-    `tidy ${name}: disposed ${ndispose}, ${JSON.stringify(
+    `tidy ${name}: disposed WebGL=${ndisposegl}, WebGPU=${ndisposegpu}, ${JSON.stringify(
       WebGLTensor.getDebugInfo()
     )}`
   );

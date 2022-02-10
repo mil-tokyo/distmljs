@@ -15,7 +15,7 @@ import {
   sum,
   transpose,
 } from '../../nn/functions';
-import { Tensor } from '../../tensor';
+import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
@@ -25,8 +25,12 @@ import { arrayNearlyEqual } from '../testUtil';
 for (const { backend, ctor } of [
   { backend: 'cpu', ctor: CPUTensor },
   { backend: 'webgl', ctor: WebGLTensor },
+  { backend: 'webgpu', ctor: WebGPUTensor },
 ]) {
   if (backend === 'webgl' && !testFlag.webgl) {
+    continue;
+  }
+  if (backend === 'webgpu' && !testFlag.webgpu) {
     continue;
   }
   const ta = async (tensor: unknown): Promise<number[]> => {
@@ -41,8 +45,8 @@ for (const { backend, ctor } of [
         const y = await sub(lhs, rhs);
         assert.deepEqual(await ta(y.data), [-19, -18]);
         await y.backward();
-        assert.deepEqual(await ta(lhs.grad!.data), [1, 1]);
-        assert.deepEqual(await ta(rhs.grad!.data), [-2]);
+        assert.deepEqual(await ta(lhs.grad!.data.copy()), [1, 1]);
+        assert.deepEqual(await ta(rhs.grad!.data.copy()), [-2]);
       });
     });
 

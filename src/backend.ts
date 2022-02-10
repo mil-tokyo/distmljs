@@ -1,1 +1,1 @@
-export type Backend = 'cpu' | 'webgl';
+export type Backend = 'cpu' | 'webgl' | 'webgpu';
