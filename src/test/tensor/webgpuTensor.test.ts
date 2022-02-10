@@ -606,4 +606,24 @@ describe('webgpuTensor', () => {
       });
     });
   });
+
+  describe('ravel', () => {
+    it('from 2d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.ravel(x);
+      assert.isTrue(x.buffer.gpuBuffer === y.buffer.gpuBuffer);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(await y.copy().toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
+
+  describe('flatten', () => {
+    it('from 2d', async () => {
+      const x = WebGPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGPUTensor.flatten(x);
+      assert.isFalse(x.buffer.gpuBuffer === y.buffer.gpuBuffer);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
 });

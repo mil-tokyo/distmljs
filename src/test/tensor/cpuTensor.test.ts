@@ -517,4 +517,30 @@ describe('cpuTensor', () => {
       });
     });
   });
+
+  describe('ravel', () => {
+    it('from 2d', () => {
+      const x = CPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = CPUTensor.ravel(x);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(y.toArray(), [0, 1, 2, 3, 4, 5]);
+      // y is alias, so x will change
+      y.set(10, 4);
+      assert.deepEqual(y.toArray(), [0, 1, 2, 3, 10, 5]);
+      assert.deepEqual(x.toArray(), [0, 1, 2, 3, 10, 5]);
+    });
+  });
+
+  describe('flatten', () => {
+    it('from 2d', () => {
+      const x = CPUTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = CPUTensor.flatten(x);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(y.toArray(), [0, 1, 2, 3, 4, 5]);
+      // y is copy, so x will not change
+      y.set(10, 4);
+      assert.deepEqual(y.toArray(), [0, 1, 2, 3, 10, 5]);
+      assert.deepEqual(x.toArray(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
 });

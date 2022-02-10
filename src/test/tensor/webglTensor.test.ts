@@ -674,4 +674,24 @@ describe('webglTensor', () => {
       });
     });
   });
+
+  describe('ravel', () => {
+    it('from 2d', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.ravel(x);
+      assert.isTrue(x.buffer.texture === y.buffer.texture);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
+
+  describe('flatten', () => {
+    it('from 2d', async () => {
+      const x = WebGLTensor.fromArray([0, 1, 2, 3, 4, 5], [2, 3]);
+      const y = WebGLTensor.flatten(x);
+      assert.isFalse(x.buffer.texture === y.buffer.texture);
+      assert.deepEqual(y.shape, [6]);
+      assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
 });

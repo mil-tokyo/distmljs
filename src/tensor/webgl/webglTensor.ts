@@ -1006,4 +1006,22 @@ export class WebGLTensor extends Tensor {
   static sigmoidBackprop(yd: WebGLTensor, gyd: WebGLTensor): WebGLTensor {
     return coresigmoidBackprop(yd, gyd);
   }
+
+  /**
+   * Flatten to 1D array. Always returns copy.
+   * @param x
+   * @returns
+   */
+  static flatten(x: WebGLTensor): WebGLTensor {
+    return WebGLTensor.reshape(x, [-1]).copy();
+  }
+
+  /**
+   * Flatten to 1D array. Always returns an alias to original tensor.
+   * @param x
+   * @returns
+   */
+  static ravel(x: WebGLTensor): WebGLTensor {
+    return WebGLTensor.reshape(x, [-1]);
+  }
 }
