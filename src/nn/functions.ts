@@ -1,11 +1,13 @@
 import { defaultNNContext } from '../context';
 import {
+  max_pool2d_backprop_cpu,
   max_pool2d_cpu,
   max_pool2d_with_indices_cpu,
 } from '../tensor/cpu/nnfunction/max_pool2d';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import {
+  max_pool2d_backprop_webgl,
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
 } from '../tensor/webgl/nnfunction/max_pool2d';
@@ -525,6 +527,8 @@ export class MaxPool2d extends NNFunction {
   dilation: number;
   returnIndices: boolean | 'spatial' | 'flatten';
   ceilMode: boolean;
+  idx?: Tensor;
+  xShape?: ReadonlyArray<number>;
 
   constructor(params: MaxPool2dParams) {
     super();
@@ -545,15 +549,16 @@ export class MaxPool2d extends NNFunction {
   }
 
   async forward([x]: Tensor[]): Promise<Tensor[]> {
-    if (this.returnIndices) {
-      return genCall([x], {
+    if (this.returnIndices || defaultNNContext.get('enableBackprop')) {
+      const rit = this.returnIndices || true;
+      const [max, idx] = genCall([x], {
         cpu: (c, [x]) =>
           max_pool2d_with_indices_cpu(x, {
             kernelSize: this.kernelSize,
             stride: this.stride,
             padding: this.padding,
             dilation: this.dilation,
-            returnIndices: true,
+            returnIndices: rit,
             ceilMode: this.ceilMode,
           }),
         webgl: (c, [x]) =>
@@ -562,10 +567,19 @@ export class MaxPool2d extends NNFunction {
             stride: this.stride,
             padding: this.padding,
             dilation: this.dilation,
-            returnIndices: true,
+            returnIndices: rit,
             ceilMode: this.ceilMode,
           }),
       });
+      if (defaultNNContext.get('enableBackprop')) {
+        this.xShape = x.shape;
+        this.idx = idx;
+      }
+      if (this.returnIndices) {
+        return [max, idx];
+      } else {
+        return [max];
+      }
     } else {
       return genCall([x], {
         cpu: (c, [x]) => [
@@ -593,7 +607,30 @@ export class MaxPool2d extends NNFunction {
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
-    throw new Error('not implemented');
+    // TODO: backprop可能にする
+    const [gxd] = genCall([nonNull(this.idx), gy.data], {
+      cpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_cpu(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+      webgl: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgl(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+    });
+    return [new Variable(gxd)];
   }
 }
 

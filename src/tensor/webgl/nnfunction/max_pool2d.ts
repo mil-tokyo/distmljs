@@ -229,3 +229,82 @@ void main() {
   }
   return [output, outputIdx];
 }
+
+export function max_pool2d_backprop_webgl(
+  indices: WebGLTensor,
+  gy: WebGLTensor,
+  xShape: ReadonlyArray<number>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  params: {
+    kernelSize: number;
+    stride: number;
+    padding: number;
+    dilation: number;
+    ceilMode: boolean;
+    returnIndices: true | 'spatial' | 'flatten';
+  }
+): WebGLTensor {
+  if (params.returnIndices === 'flatten') {
+    throw new Error('returnIndices==flatten is not yet impelemented');
+  }
+  assertFloat32R([gy], 'max_pool2d_backprop');
+  const [batch, ch, inShape0, inShape1] = xShape;
+  const inSpLen = inShape0 * inShape1;
+  const [, , outShape0, outShape1] = indices.shape;
+  const outSpLen = outShape0 * outShape1;
+  const ctx = getNNWebGLContext();
+  const gx = WebGLTensor.empty(xShape);
+  const kernelName = `max_pool2d_backprop_${outSpLen}`;
+  // インデックスは2D平面をflattenした状態の値のため、batch,ch,spatialの3Dで扱う
+  // 計算量的には非効率。kernelSizeから探索範囲を絞ったほうが効率的。
+  if (!ctx.hasKernel(kernelName)) {
+    ctx.addKernel(
+      kernelName,
+      webglShaderHeader +
+        `
+#define OSL ${outSpLen}
+${shaderGenTensorOutputUniform(3, gx.buffer.textureShape.dim)}
+${shaderGenTensorNDGet('tex_gy', 3, gy.buffer.textureShape.dim)}
+${shaderGenTensorNDGet(
+  'tex_idx',
+  3,
+  indices.buffer.textureShape.dim,
+  indices.dtype
+)}
+void main() {
+  ${shaderGenTensorOutputCoordsWithReturn(3, gx.buffer.textureShape.dim)}
+  float v = 0.0;
+  for (int i = 0; i < OSL; i++) {
+    int idx = get_tex_idx(tex_output_0, tex_output_1, i);
+    if (idx == tex_output_2) {
+      v += get_tex_gy(tex_output_0, tex_output_1, i);
+    }
+  }
+  ${shaderGenOutput('v')};
+}
+`
+    );
+  }
+  ctx.runKernel(
+    kernelName,
+    [
+      { tensor: gy, name: 'tex_gy' },
+      { tensor: indices, name: 'tex_idx' },
+    ],
+    gx,
+    [
+      ...shaderGenTensorOutputUniformItem(gx, [batch, ch, inSpLen]),
+      ...shaderGenTensorNDGetUniformItem('tex_gy', gy, [
+        gy.strides[0],
+        gy.strides[1],
+        1,
+      ]),
+      ...shaderGenTensorNDGetUniformItem('tex_idx', indices, [
+        indices.strides[0],
+        indices.strides[1],
+        1,
+      ]),
+    ]
+  );
+  return gx;
+}

@@ -114,3 +114,42 @@ export function max_pool2d_with_indices_cpu(
   }
   return [output, oIdx];
 }
+
+export function max_pool2d_backprop_cpu(
+  indices: CPUTensor,
+  gy: CPUTensor,
+  xShape: ReadonlyArray<number>,
+  params: {
+    kernelSize: number;
+    stride: number;
+    padding: number;
+    dilation: number;
+    ceilMode: boolean;
+    returnIndices: true | 'spatial' | 'flatten';
+  }
+): CPUTensor {
+  if (params.returnIndices === 'flatten') {
+    throw new Error('returnIndices==flatten is not yet impelemented');
+  }
+  const gx = CPUTensor.zeros(xShape);
+  const dGx = gx.getBuffer().data;
+  const dI = indices.getBuffer().data;
+  const dGy = gy.getBuffer().data;
+
+  const [batch, ch, inShape0, inShape1] = xShape;
+  const inSpLen = inShape0 * inShape1;
+  const [, , outShape0, outShape1] = indices.shape;
+  const outSpLen = outShape0 * outShape1;
+  for (let b = 0; b < batch; b++) {
+    for (let c = 0; c < ch; c++) {
+      for (let os = 0; os < outSpLen; os++) {
+        const spIdx = dI[(b * ch + c) * outSpLen + os];
+        const gyv = dGy[(b * ch + c) * outSpLen + os];
+        // stride < kernelSize の場合、x.gradの同じ要素に複数の勾配が足し合わさる場合がある
+        // そのため = ではなく += を使用
+        dGx[(b * ch + c) * inSpLen + spIdx] += gyv;
+      }
+    }
+  }
+  return gx;
+}
