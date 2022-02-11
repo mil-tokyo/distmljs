@@ -4,10 +4,10 @@ import { CPUTensor } from '../cpuTensor';
 export function max_pool2d_cpu(
   x: CPUTensor,
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     returnIndices: false;
     ceilMode: boolean;
   }
@@ -57,10 +57,10 @@ export function max_pool2d_cpu(
 export function max_pool2d_with_indices_cpu(
   x: CPUTensor,
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     returnIndices: true | 'spatial' | 'flatten';
     ceilMode: boolean;
   }
@@ -120,10 +120,10 @@ export function max_pool2d_backprop_cpu(
   gy: CPUTensor,
   xShape: ReadonlyArray<number>,
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     ceilMode: boolean;
     returnIndices: true | 'spatial' | 'flatten';
   }

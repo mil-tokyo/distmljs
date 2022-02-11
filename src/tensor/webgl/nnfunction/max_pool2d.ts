@@ -15,10 +15,10 @@ import { WebGLTensor } from '../webglTensor';
 export function max_pool2d_webgl(
   x: WebGLTensor,
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     returnIndices: false;
     ceilMode: boolean;
   }
@@ -92,10 +92,10 @@ void main() {
 export function max_pool2d_with_indices_webgl(
   x: WebGLTensor,
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     returnIndices: true | 'spatial' | 'flatten';
     ceilMode: boolean;
   }
@@ -236,10 +236,10 @@ export function max_pool2d_backprop_webgl(
   xShape: ReadonlyArray<number>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   params: {
-    kernelSize: number;
-    stride: number;
-    padding: number;
-    dilation: number;
+    kernelSize: number | number[];
+    stride: number | number[];
+    padding: number | number[];
+    dilation: number | number[];
     ceilMode: boolean;
     returnIndices: true | 'spatial' | 'flatten';
   }

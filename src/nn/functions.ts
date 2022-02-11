@@ -1,11 +1,19 @@
 import { defaultNNContext } from '../context';
 import {
+  avg_pool2d_backprop_cpu,
+  avg_pool2d_cpu,
+} from '../tensor/cpu/nnfunction/avg_pool2d';
+import {
   max_pool2d_backprop_cpu,
   max_pool2d_cpu,
   max_pool2d_with_indices_cpu,
 } from '../tensor/cpu/nnfunction/max_pool2d';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
+import {
+  avg_pool2d_backprop_webgl,
+  avg_pool2d_webgl,
+} from '../tensor/webgl/nnfunction/avg_pool2d';
 import {
   max_pool2d_backprop_webgl,
   max_pool2d_webgl,
@@ -646,4 +654,252 @@ export async function max_pool2d_with_indices(
   params: MaxPool2dParamsReturnIndicesTrue
 ): Promise<Variable[]> {
   return new MaxPool2d(params).call(x);
+}
+
+export class AdaptiveMaxPool2d extends NNFunction {
+  outputSize: number[];
+  returnIndices: boolean | 'spatial' | 'flatten';
+  idx?: Tensor;
+  xShape?: ReadonlyArray<number>;
+
+  constructor(
+    outputSize: number | number[],
+    returnIndices: boolean | 'spatial' | 'flatten' = false
+  ) {
+    super();
+    if (typeof outputSize === 'number') {
+      this.outputSize = [outputSize, outputSize];
+    } else {
+      this.outputSize = outputSize;
+    }
+    if (
+      this.outputSize.length !== 2 ||
+      this.outputSize[0] !== 1 ||
+      this.outputSize[1] !== 1
+    ) {
+      throw new Error(
+        'AdaptiveMaxPool2d: currently supports only outputSize===1.'
+      );
+      // TODO: support other size (needs check PyTorch's implementation of size computation)
+    }
+    this.returnIndices = returnIndices;
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const kernelSize = [x.shape[2], x.shape[3]]; // for 1x1 output
+    if (this.returnIndices || defaultNNContext.get('enableBackprop')) {
+      const rit = this.returnIndices || true;
+      const params = {
+        kernelSize,
+        stride: kernelSize,
+        padding: 0,
+        dilation: 1,
+        returnIndices: rit,
+        ceilMode: false,
+      };
+      const [max, idx] = genCall([x], {
+        cpu: (c, [x]) => max_pool2d_with_indices_cpu(x, params),
+        webgl: (c, [x]) => max_pool2d_with_indices_webgl(x, params),
+      });
+      if (defaultNNContext.get('enableBackprop')) {
+        this.xShape = x.shape;
+        this.idx = idx;
+      }
+      if (this.returnIndices) {
+        return [max, idx];
+      } else {
+        return [max];
+      }
+    } else {
+      const params = {
+        kernelSize,
+        stride: kernelSize,
+        padding: 0,
+        dilation: 1,
+        returnIndices: false as const,
+        ceilMode: false,
+      };
+      return genCall([x], {
+        cpu: (c, [x]) => [max_pool2d_cpu(x, params)],
+        webgl: (c, [x]) => [max_pool2d_webgl(x, params)],
+      });
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: backprop可能にする
+    const xShape = nonNull(this.xShape);
+    const kernelSize = [xShape[2], xShape[3]]; // for 1x1 output
+    const params = {
+      kernelSize,
+      stride: kernelSize,
+      padding: 0,
+      dilation: 1,
+      returnIndices: this.returnIndices || true,
+      ceilMode: false,
+    };
+    const [gxd] = genCall([nonNull(this.idx), gy.data], {
+      cpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_cpu(idx, gyd, xShape, params),
+      ],
+      webgl: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgl(idx, gyd, xShape, params),
+      ],
+    });
+    return [new Variable(gxd)];
+  }
+}
+
+export async function adaptive_max_pool2d(
+  x: Variable,
+  outputSize: number | number[],
+  returnIndices: boolean | 'spatial' | 'flatten' = false
+): Promise<Variable> {
+  return new AdaptiveMaxPool2d(outputSize, returnIndices).c(x);
+}
+
+export interface AvgPool2dParams {
+  kernelSize: number | number[];
+  stride?: number | number[];
+  padding?: number | number[];
+  ceilMode?: boolean;
+  countIncludePad?: boolean;
+  divisorOverride?: number;
+}
+
+export class AvgPool2d extends NNFunction {
+  kernelSize: number | number[];
+  stride: number | number[];
+  padding: number | number[];
+  ceilMode: boolean;
+  countIncludePad: boolean;
+  divisorOverride?: number;
+  xShape?: ReadonlyArray<number>;
+
+  constructor(params: AvgPool2dParams) {
+    super();
+    const {
+      kernelSize,
+      stride,
+      padding = 0,
+      ceilMode = false,
+      countIncludePad = true,
+      divisorOverride = undefined,
+    } = params;
+    this.kernelSize = kernelSize;
+    this.stride = stride || kernelSize;
+    this.padding = padding;
+    this.ceilMode = ceilMode;
+    this.countIncludePad = countIncludePad;
+    this.divisorOverride = divisorOverride;
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const params = {
+      kernelSize: this.kernelSize,
+      stride: this.stride,
+      padding: this.padding,
+      ceilMode: this.ceilMode,
+      countIncludePad: this.countIncludePad,
+      divisorOverride: this.divisorOverride,
+    };
+    this.xShape = x.shape;
+    return genCall([x], {
+      cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
+      webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: backprop可能にする
+    const params = {
+      kernelSize: this.kernelSize,
+      stride: this.stride,
+      padding: this.padding,
+      ceilMode: this.ceilMode,
+      countIncludePad: this.countIncludePad,
+      divisorOverride: this.divisorOverride,
+    };
+    const [gxd] = genCall([gy.data], {
+      cpu: (c, [gyd]) => [
+        avg_pool2d_backprop_cpu(gyd, nonNull(this.xShape), params),
+      ],
+      webgl: (c, [gyd]) => [
+        avg_pool2d_backprop_webgl(gyd, nonNull(this.xShape), params),
+      ],
+    });
+    return [new Variable(gxd)];
+  }
+}
+
+export async function avg_pool2d(
+  x: Variable,
+  params: AvgPool2dParams
+): Promise<Variable> {
+  return new AvgPool2d(params).c(x);
+}
+
+export class AdaptiveAvgPool2d extends NNFunction {
+  outputSize: number[];
+  xShape?: ReadonlyArray<number>;
+
+  constructor(outputSize: number | number[]) {
+    super();
+    if (typeof outputSize === 'number') {
+      this.outputSize = [outputSize, outputSize];
+    } else {
+      this.outputSize = outputSize;
+    }
+    if (
+      this.outputSize.length !== 2 ||
+      this.outputSize[0] !== 1 ||
+      this.outputSize[1] !== 1
+    ) {
+      throw new Error(
+        'AdaptiveMaxPool2d: currently supports only outputSize===1.'
+      );
+      // TODO: support other size (needs check PyTorch's implementation of size computation)
+    }
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const kernelSize = [x.shape[2], x.shape[3]]; // for 1x1 output
+    const params = {
+      kernelSize,
+      stride: kernelSize,
+      padding: 0,
+      countIncludePad: true,
+      ceilMode: false,
+    };
+    this.xShape = x.shape;
+    return genCall([x], {
+      cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
+      webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: backprop可能にする
+    const xShape = nonNull(this.xShape);
+    const kernelSize = [xShape[2], xShape[3]]; // for 1x1 output
+    const params = {
+      kernelSize,
+      stride: kernelSize,
+      padding: 0,
+      countIncludePad: true,
+      ceilMode: false,
+    };
+    const [gxd] = genCall([gy.data], {
+      cpu: (c, [gyd]) => [avg_pool2d_backprop_cpu(gyd, xShape, params)],
+      webgl: (c, [gyd]) => [avg_pool2d_backprop_webgl(gyd, xShape, params)],
+    });
+    return [new Variable(gxd)];
+  }
+}
+
+export async function adaptive_avg_pool2d(
+  x: Variable,
+  outputSize: number | number[]
+): Promise<Variable> {
+  return new AdaptiveAvgPool2d(outputSize).c(x);
 }
