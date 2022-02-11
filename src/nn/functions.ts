@@ -1,6 +1,16 @@
 import { defaultNNContext } from '../context';
+import {
+  max_pool2d_backprop_cpu,
+  max_pool2d_cpu,
+  max_pool2d_with_indices_cpu,
+} from '../tensor/cpu/nnfunction/max_pool2d';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
+import {
+  max_pool2d_backprop_webgl,
+  max_pool2d_webgl,
+  max_pool2d_with_indices_webgl,
+} from '../tensor/webgl/nnfunction/max_pool2d';
 import { arange, arrayEqual, nonNull } from '../util';
 import {
   Add,
@@ -485,4 +495,155 @@ export class Flatten extends NNFunction {
  */
 export async function flatten(x: Variable): Promise<Variable> {
   return new Flatten().c(x);
+}
+
+export interface MaxPool2dParamsReturnIndicesFalse {
+  kernelSize: number;
+  stride?: number;
+  padding?: number;
+  dilation?: number;
+  returnIndices?: false;
+  ceilMode?: boolean;
+}
+
+export interface MaxPool2dParamsReturnIndicesTrue {
+  kernelSize: number;
+  stride?: number;
+  padding?: number;
+  dilation?: number;
+  // indexのモード。true='spatial'。spatialの場合は2D平面内でのインデックス(PyTorchと同様)、flattenの場合は4Dテンソル全体におけるインデックスが返る(ONNXと同様)。
+  returnIndices: true | 'spatial' | 'flatten';
+  ceilMode?: boolean;
+}
+
+export type MaxPool2dParams =
+  | MaxPool2dParamsReturnIndicesTrue
+  | MaxPool2dParamsReturnIndicesFalse;
+
+export class MaxPool2d extends NNFunction {
+  kernelSize: number; // TODO: support [number, number] to specify different size for height and width
+  stride: number;
+  padding: number;
+  dilation: number;
+  returnIndices: boolean | 'spatial' | 'flatten';
+  ceilMode: boolean;
+  idx?: Tensor;
+  xShape?: ReadonlyArray<number>;
+
+  constructor(params: MaxPool2dParams) {
+    super();
+    const {
+      kernelSize,
+      stride,
+      padding = 0,
+      dilation = 1,
+      returnIndices = false,
+      ceilMode = false,
+    } = params;
+    this.kernelSize = kernelSize;
+    this.stride = stride || kernelSize;
+    this.padding = padding;
+    this.dilation = dilation;
+    this.returnIndices = returnIndices;
+    this.ceilMode = ceilMode;
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    if (this.returnIndices || defaultNNContext.get('enableBackprop')) {
+      const rit = this.returnIndices || true;
+      const [max, idx] = genCall([x], {
+        cpu: (c, [x]) =>
+          max_pool2d_with_indices_cpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: rit,
+            ceilMode: this.ceilMode,
+          }),
+        webgl: (c, [x]) =>
+          max_pool2d_with_indices_webgl(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: rit,
+            ceilMode: this.ceilMode,
+          }),
+      });
+      if (defaultNNContext.get('enableBackprop')) {
+        this.xShape = x.shape;
+        this.idx = idx;
+      }
+      if (this.returnIndices) {
+        return [max, idx];
+      } else {
+        return [max];
+      }
+    } else {
+      return genCall([x], {
+        cpu: (c, [x]) => [
+          max_pool2d_cpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
+        webgl: (c, [x]) => [
+          max_pool2d_webgl(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
+      });
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: backprop可能にする
+    const [gxd] = genCall([nonNull(this.idx), gy.data], {
+      cpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_cpu(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+      webgl: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgl(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+    });
+    return [new Variable(gxd)];
+  }
+}
+
+export async function max_pool2d(
+  x: Variable,
+  params: MaxPool2dParamsReturnIndicesFalse
+): Promise<Variable> {
+  return new MaxPool2d(params).c(x);
+}
+
+export async function max_pool2d_with_indices(
+  x: Variable,
+  params: MaxPool2dParamsReturnIndicesTrue
+): Promise<Variable[]> {
+  return new MaxPool2d(params).call(x);
 }

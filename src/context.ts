@@ -2,12 +2,10 @@
 
 export interface NNContextValue {
   enableBackprop: boolean;
-  train: boolean;
 }
 
 const NNContextValueDefault: NNContextValue = {
   enableBackprop: true,
-  train: true,
 };
 
 export class NNContext {
