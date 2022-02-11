@@ -84,5 +84,51 @@ export function avg_pool2d_backprop_cpu(
     divisorOverride?: number;
   }
 ): CPUTensor {
-  throw new Error('not implemented');
+  const {
+    batch,
+    kernelShape: [kernelShape0, kernelShape1],
+    pads: [pads0b, pads1b, pads0e, pads1e],
+    strides: [strides0, strides1],
+    inShape: [inShape0, inShape1],
+    outShape: [outShape0, outShape1],
+    ch,
+  } = avgPool2DCalcShape(params, xShape);
+  // currently implements only global average pooling
+  if (
+    kernelShape0 === inShape0 &&
+    kernelShape1 === inShape1 &&
+    pads0b === 0 &&
+    pads0e === 0 &&
+    pads1b === 0 &&
+    pads1e === 0 &&
+    strides0 === kernelShape0 &&
+    strides1 === kernelShape1 &&
+    outShape0 === 1 &&
+    outShape1 === 1
+  ) {
+    // global average pooling
+
+    const gx = CPUTensor.zeros([batch, ch, inShape0, inShape1]);
+    const dGy = gy.getBuffer().data;
+    const dGx = gx.getBuffer().data;
+    const inSpLen = inShape0 * inShape1;
+    const outSpLen = outShape0 * outShape1;
+    const mul = params.divisorOverride
+      ? 1 / params.divisorOverride
+      : 1 / inSpLen;
+    for (let b = 0; b < batch; b++) {
+      for (let c = 0; c < ch; c++) {
+        const val = dGy[(b * ch + c) * outSpLen] * mul;
+        for (let isp = 0; isp < inSpLen; isp++) {
+          dGx[(b * ch + c) * inSpLen + isp] = val;
+        }
+      }
+    }
+
+    return gx;
+  } else {
+    throw new Error(
+      'currently, avg_pool2d_backprop_cpu only implements global average pooling'
+    );
+  }
 }

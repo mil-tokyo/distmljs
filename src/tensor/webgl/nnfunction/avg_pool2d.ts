@@ -1,4 +1,4 @@
-import { avgPool2DCalcShape, maxPool2DCalcShape } from '../../nnFunctionUtil';
+import { avgPool2DCalcShape } from '../../nnFunctionUtil';
 import {
   assertFloat32R,
   shaderGenOutput,
@@ -132,5 +132,75 @@ export function avg_pool2d_backprop_webgl(
     divisorOverride?: number;
   }
 ): WebGLTensor {
-  throw new Error('not implemented');
+  const {
+    batch,
+    kernelShape: [kernelShape0, kernelShape1],
+    pads: [pads0b, pads1b, pads0e, pads1e],
+    strides: [strides0, strides1],
+    inShape: [inShape0, inShape1],
+    outShape: [outShape0, outShape1],
+    ch,
+  } = avgPool2DCalcShape(params, xShape);
+  // currently implements only global average pooling
+  if (
+    kernelShape0 === inShape0 &&
+    kernelShape1 === inShape1 &&
+    pads0b === 0 &&
+    pads0e === 0 &&
+    pads1b === 0 &&
+    pads1e === 0 &&
+    strides0 === kernelShape0 &&
+    strides1 === kernelShape1 &&
+    outShape0 === 1 &&
+    outShape1 === 1
+  ) {
+    // global average pooling
+    const gx = WebGLTensor.empty([batch, ch, inShape0, inShape1]);
+    const ctx = getNNWebGLContext();
+    const kernelName = `avg_pool2d_backprop_global`;
+    if (!ctx.hasKernel(kernelName)) {
+      ctx.addKernel(
+        kernelName,
+        webglShaderHeader +
+          `
+uniform float AREAMUL;
+${shaderGenTensorOutputUniform(3, gx.buffer.textureShape.dim)}
+${shaderGenTensorNDGet('tex_gy', 2, gy.buffer.textureShape.dim)}
+void main() {
+  ${shaderGenTensorOutputCoordsWithReturn(3, gx.buffer.textureShape.dim)}
+  float v = get_tex_gy(tex_output_0, tex_output_1);
+  v *= AREAMUL;
+  ${shaderGenOutput('v')};
+}
+`
+      );
+    }
+    const inSpLen = inShape0 * inShape1;
+    const shaderParams: WebGLUniformItem[] = [
+      ...shaderGenTensorOutputUniformItem(gx, [batch, ch, inSpLen]),
+      ...shaderGenTensorNDGetUniformItem('tex_gy', gy, [
+        gy.strides[0],
+        gy.strides[1],
+      ]),
+      {
+        name: 'AREAMUL',
+        value: params.divisorOverride
+          ? 1 / params.divisorOverride
+          : 1 / inSpLen,
+        type: 'float',
+      },
+    ];
+    ctx.runKernel(
+      kernelName,
+      [{ tensor: gy, name: 'tex_gy' }],
+      gx,
+      shaderParams
+    );
+
+    return gx;
+  } else {
+    throw new Error(
+      'currently, avg_pool2d_backprop_webgl only implements global average pooling'
+    );
+  }
 }

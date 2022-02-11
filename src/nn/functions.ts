@@ -701,6 +701,7 @@ export class AvgPool2d extends NNFunction {
       countIncludePad: this.countIncludePad,
       divisorOverride: this.divisorOverride,
     };
+    this.xShape = x.shape;
     return genCall([x], {
       cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
       webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
