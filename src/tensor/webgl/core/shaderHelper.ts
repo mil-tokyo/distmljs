@@ -130,6 +130,33 @@ uniform int _ka_${name}_stride_5;
       args = 'int d0, int d1, int d2, int d3, int d4, int d5';
       flat_index = `d0 * _ka_${name}_stride_0 + d1 * _ka_${name}_stride_1 + d2 * _ka_${name}_stride_2 + d3 * _ka_${name}_stride_3 + d4 * _ka_${name}_stride_4 + d5 * _ka_${name}_stride_5`;
       break;
+    case 7:
+      uniforms = `
+  uniform int _ka_${name}_stride_0;
+  uniform int _ka_${name}_stride_1;
+  uniform int _ka_${name}_stride_2;
+  uniform int _ka_${name}_stride_3;
+  uniform int _ka_${name}_stride_4;
+  uniform int _ka_${name}_stride_5;
+  uniform int _ka_${name}_stride_6;
+            `;
+      args = 'int d0, int d1, int d2, int d3, int d4, int d5, int d6';
+      flat_index = `d0 * _ka_${name}_stride_0 + d1 * _ka_${name}_stride_1 + d2 * _ka_${name}_stride_2 + d3 * _ka_${name}_stride_3 + d4 * _ka_${name}_stride_4 + d5 * _ka_${name}_stride_5 + d6 * _ka_${name}_stride_6`;
+      break;
+    case 8:
+      uniforms = `
+  uniform int _ka_${name}_stride_0;
+  uniform int _ka_${name}_stride_1;
+  uniform int _ka_${name}_stride_2;
+  uniform int _ka_${name}_stride_3;
+  uniform int _ka_${name}_stride_4;
+  uniform int _ka_${name}_stride_5;
+  uniform int _ka_${name}_stride_6;
+  uniform int _ka_${name}_stride_7;
+            `;
+      args = 'int d0, int d1, int d2, int d3, int d4, int d5, int d6, int d7';
+      flat_index = `d0 * _ka_${name}_stride_0 + d1 * _ka_${name}_stride_1 + d2 * _ka_${name}_stride_2 + d3 * _ka_${name}_stride_3 + d4 * _ka_${name}_stride_4 + d5 * _ka_${name}_stride_5 + d6 * _ka_${name}_stride_6 + d7 * _ka_${name}_stride_7`;
+      break;
     default:
       throw new Error();
   }
@@ -374,6 +401,48 @@ if (tex_output_0 >= _ka_tex_output_shape_0) {
   return;
 }
       `;
+      break;
+    case 7:
+      source = `
+  int _ka_tmp6 = tex_output_flat / _ka_tex_output_shape_6;
+  int tex_output_6 = tex_output_flat - _ka_tmp6 * _ka_tex_output_shape_6;
+  int _ka_tmp5 = _ka_tmp6 / _ka_tex_output_shape_5;
+  int tex_output_5 = _ka_tmp6 - _ka_tmp5 * _ka_tex_output_shape_5;
+  int _ka_tmp4 = _ka_tmp5 / _ka_tex_output_shape_4;
+  int tex_output_4 = _ka_tmp5 - _ka_tmp4 * _ka_tex_output_shape_4;
+  int _ka_tmp3 = _ka_tmp4 / _ka_tex_output_shape_3;
+  int tex_output_3 = _ka_tmp4 - _ka_tmp3 * _ka_tex_output_shape_3;
+  int _ka_tmp2 = _ka_tmp3 / _ka_tex_output_shape_2;
+  int tex_output_2 = _ka_tmp3 - _ka_tmp2 * _ka_tex_output_shape_2;
+  int _ka_tmp1 = _ka_tmp2 / _ka_tex_output_shape_1;
+  int tex_output_1 = _ka_tmp2 - _ka_tmp1 * _ka_tex_output_shape_1;
+  int tex_output_0 = _ka_tmp1;
+  if (tex_output_0 >= _ka_tex_output_shape_0) {
+    return;
+  }
+        `;
+      break;
+    case 8:
+      source = `
+    int _ka_tmp7 = tex_output_flat / _ka_tex_output_shape_7;
+    int tex_output_7 = tex_output_flat - _ka_tmp7 * _ka_tex_output_shape_7;
+    int _ka_tmp6 = _ka_tmp7 / _ka_tex_output_shape_6;
+    int tex_output_6 = _ka_tmp7 - _ka_tmp6 * _ka_tex_output_shape_6;
+    int _ka_tmp5 = _ka_tmp6 / _ka_tex_output_shape_5;
+    int tex_output_5 = _ka_tmp6 - _ka_tmp5 * _ka_tex_output_shape_5;
+    int _ka_tmp4 = _ka_tmp5 / _ka_tex_output_shape_4;
+    int tex_output_4 = _ka_tmp5 - _ka_tmp4 * _ka_tex_output_shape_4;
+    int _ka_tmp3 = _ka_tmp4 / _ka_tex_output_shape_3;
+    int tex_output_3 = _ka_tmp4 - _ka_tmp3 * _ka_tex_output_shape_3;
+    int _ka_tmp2 = _ka_tmp3 / _ka_tex_output_shape_2;
+    int tex_output_2 = _ka_tmp3 - _ka_tmp2 * _ka_tex_output_shape_2;
+    int _ka_tmp1 = _ka_tmp2 / _ka_tex_output_shape_1;
+    int tex_output_1 = _ka_tmp2 - _ka_tmp1 * _ka_tex_output_shape_1;
+    int tex_output_0 = _ka_tmp1;
+    if (tex_output_0 >= _ka_tex_output_shape_0) {
+      return;
+    }
+          `;
       break;
     default:
       throw new Error();

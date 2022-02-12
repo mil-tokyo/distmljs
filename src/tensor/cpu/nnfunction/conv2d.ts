@@ -295,8 +295,8 @@ function col2im(
 ): void {
   let idx = 0;
   // in/outはconvのforward基準 (convtransposeとは逆)
-  // dI: group, batch, inShape[0], inShape[1], chOutPerGroup, kernelShape[0], kernelShape[1]
-  // dY: batch, group, chOutPerGroup, outShape[0], outShape[1]
+  // dI: group, batch, outShape[0], outShape[1], chInPerGroup, kernelShape[0], kernelShape[1]
+  // dY: batch, group, chInPerGroup, inShape[0], inShape[1]
   for (let b = 0; b < batch; b++) {
     for (let g = 0; g < group; g++) {
       for (let co = 0; co < chInPerGroup; co++) {

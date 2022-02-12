@@ -20,6 +20,11 @@ import {
   avg_pool2d_webgl,
 } from '../tensor/webgl/nnfunction/avg_pool2d';
 import {
+  conv2d_backprop_gb_webgl,
+  conv2d_backprop_gxgw_webgl,
+  conv2d_webgl,
+} from '../tensor/webgl/nnfunction/conv2d';
+import {
   max_pool2d_backprop_webgl,
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
@@ -954,10 +959,14 @@ export class Conv2d extends NNFunction {
     if (bias) {
       return genCall([x, weight, bias], {
         cpu: (c, [x, weight, bias]) => [conv2d_cpu(x, weight, bias, params)],
+        webgl: (c, [x, weight, bias]) => [
+          conv2d_webgl(x, weight, bias, params),
+        ],
       });
     } else {
       return genCall([x, weight], {
         cpu: (c, [x, weight]) => [conv2d_cpu(x, weight, undefined, params)],
+        webgl: (c, [x, weight]) => [conv2d_webgl(x, weight, undefined, params)],
       });
     }
   }
@@ -975,11 +984,15 @@ export class Conv2d extends NNFunction {
       {
         cpu: (c, [gyd, x, weight]) =>
           conv2d_backprop_gxgw_cpu(gyd, x, weight, false, false, params),
+
+        webgl: (c, [gyd, x, weight]) =>
+          conv2d_backprop_gxgw_webgl(gyd, x, weight, false, false, params),
       }
     );
     if (this.hasBias) {
       const [gbd] = genCall([gy.data], {
         cpu: (c, [gyd]) => [conv2d_backprop_gb_cpu(gyd)],
+        webgl: (c, [gyd]) => [conv2d_backprop_gb_webgl(gyd)],
       });
       return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
     } else {

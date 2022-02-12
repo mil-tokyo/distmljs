@@ -26,10 +26,6 @@ for (const { backend, ctor } of [
   };
   describe(`nn/function/conv/${backend}`, () => {
     describe('conv2d', () => {
-      if (backend === 'webgl') {
-        // not implemented
-        return;
-      }
       if (backend === 'webgpu') {
         // not implemented
         return;

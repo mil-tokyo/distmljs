@@ -86,3 +86,93 @@ void main() {
   );
   return output;
 }
+
+// batched gemm (b, m, k) * (b, k, n) -> (b, m, n)
+export function bmm(
+  a: WebGLTensor,
+  b: WebGLTensor,
+  transa: boolean,
+  transb: boolean
+): WebGLTensor {
+  if (a.dtype !== 'float32' || b.dtype !== 'float32') {
+    throw new Error(`bmm: dtype of lhs(${a.dtype}) !== rhs(${b.dtype})`);
+  }
+  const dtype = a.dtype;
+  if (a.buffer.dimPerPixel !== 1 || b.buffer.dimPerPixel !== 1) {
+    // TODO
+    throw new Error();
+  }
+  let batch: number,
+    m: number,
+    n: number,
+    k: number,
+    bk: number,
+    bbatch: number;
+  let stab: number,
+    stam: number,
+    stak: number,
+    stbb: number,
+    stbk: number,
+    stbn: number; //strides
+  if (a.ndim !== 3 || b.ndim !== 3) {
+    throw new Error('must be 3dim');
+  }
+  if (transa) {
+    [batch, k, m] = a.shape;
+    [stab, stak, stam] = a.strides;
+  } else {
+    [batch, m, k] = a.shape;
+    [stab, stam, stak] = a.strides;
+  }
+  if (transb) {
+    [bbatch, n, bk] = b.shape;
+    [stbb, stbn, stbk] = b.strides;
+  } else {
+    [bbatch, bk, n] = b.shape;
+    [stbb, stbk, stbn] = b.strides;
+  }
+  if (k !== bk) {
+    throw new Error('inner product length does not match');
+  }
+  if (batch !== bbatch) {
+    throw new Error('batch length does not match');
+  }
+
+  const output = WebGLTensor.empty([batch, m, n], dtype);
+  const ctx = getNNWebGLContext();
+  const kernelName = `bmm_${dtype}_${k}`;
+  if (!ctx.hasKernel(kernelName)) {
+    ctx.addKernel(
+      kernelName,
+      webglShaderHeader +
+        `
+#define K ${k}
+${shaderGenTensorOutputUniform(3, output.buffer.textureShape.dim, dtype)}
+${shaderGenTensorNDGet('tex_a', 3, a.buffer.textureShape.dim, dtype)}
+${shaderGenTensorNDGet('tex_b', 3, b.buffer.textureShape.dim, dtype)}
+void main() {
+  ${shaderGenTensorOutputCoordsWithReturn(3, output.buffer.textureShape.dim)}
+  float v = 0.0;
+  for (int i = 0; i < K; i++) {
+    v += get_tex_a(tex_output_0, tex_output_1, i) * get_tex_b(tex_output_0, i, tex_output_2);
+  }
+  ${shaderGenOutput('v', dtype)};
+}
+`
+    );
+  }
+  ctx.runKernel(
+    kernelName,
+    [
+      { tensor: a, name: 'tex_a' },
+      { tensor: b, name: 'tex_b' },
+    ],
+    output,
+    [
+      ...shaderGenTensorOutputUniformItem(output, [batch, m, n]),
+      ...shaderGenTensorNDGetUniformItem('tex_a', a, [stab, stam, stak]),
+      ...shaderGenTensorNDGetUniformItem('tex_b', b, [stbb, stbk, stbn]),
+    ]
+  );
+  return output;
+}
