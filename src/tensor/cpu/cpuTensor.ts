@@ -42,6 +42,7 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
+import { gemm } from './core/gemm';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -401,44 +402,7 @@ export class CPUTensor extends Tensor {
     transa = false,
     transb = false
   ): CPUTensor {
-    let m: number, n: number, k: number, bk: number;
-    let stam: number, stak: number, stbk: number, stbn: number; //strides
-    if (a.ndim !== 2 || b.ndim !== 2) {
-      throw new Error('must be 2dim');
-    }
-    if (transa) {
-      [k, m] = a.shape;
-      [stak, stam] = a.strides;
-    } else {
-      [m, k] = a.shape;
-      [stam, stak] = a.strides;
-    }
-    if (transb) {
-      [n, bk] = b.shape;
-      [stbn, stbk] = b.strides;
-    } else {
-      [bk, n] = b.shape;
-      [stbk, stbn] = b.strides;
-    }
-    if (k !== bk) {
-      throw new Error('inner product length does not match');
-    }
-
-    const output = CPUTensor.zeros([m, n]);
-    let i = 0;
-    const da = a.getBuffer().data;
-    const db = b.getBuffer().data;
-    const dy = output.getBuffer().data;
-    for (let row = 0; row < m; row++) {
-      for (let col = 0; col < n; col++) {
-        let sum = 0.0;
-        for (let ip = 0; ip < k; ip++) {
-          sum += da[row * stam + ip * stak] * db[col * stbn + ip * stbk];
-        }
-        dy[i++] = sum;
-      }
-    }
-    return output;
+    return gemm(a, b, transa, transb);
   }
 
   static dot(a: CPUTensor, b: CPUTensor): CPUTensor {
@@ -563,6 +527,10 @@ export class CPUTensor extends Tensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
+  reshape(shape: ReadonlyArray<number> | number, allowZero = true): CPUTensor {
+    return CPUTensor.reshape(this, shape, allowZero);
+  }
+
   static transpose(
     x: CPUTensor,
     axes?: ReadonlyArray<number> | null
@@ -573,6 +541,10 @@ export class CPUTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  transpose(axes?: ReadonlyArray<number> | null): CPUTensor {
+    return CPUTensor.transpose(this, axes);
   }
 
   /**

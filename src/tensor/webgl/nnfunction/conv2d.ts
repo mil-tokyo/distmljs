@@ -35,7 +35,6 @@ export function conv2d_webgl(
     strides,
     inShape,
     outShape,
-    chIn,
     chInPerGroup,
     chOut,
     chOutPerGroup,
@@ -60,18 +59,16 @@ export function conv2d_webgl(
     pads,
     strides,
     inShape,
-    outShape,
-    chIn,
     chInPerGroup
   );
   // im2colData(group, bout, cinkhkw) * weight(group, coutpergroup, cinkhkw) -> matmulData(group, bout, coutpergroup)
-  const im2colDataRs = WebGLTensor.reshape(im2colData, [
+  const im2colDataRs = im2colData.reshape([
     group,
     batch * outShape[0] * outShape[1],
     chInPerGroup * kernelShape[0] * kernelShape[1],
   ]);
   im2colData.dispose();
-  const weightRs = WebGLTensor.reshape(weight, [
+  const weightRs = weight.reshape([
     group,
     chOutPerGroup,
     chInPerGroup * kernelShape[0] * kernelShape[1],
@@ -79,7 +76,7 @@ export function conv2d_webgl(
   const matmulDataRs = bmm(im2colDataRs, weightRs, false, true);
   im2colDataRs.dispose();
   weightRs.dispose();
-  const matmulData = WebGLTensor.reshape(matmulDataRs, [
+  const matmulData = matmulDataRs.reshape([
     group,
     batch,
     outShape[0],
@@ -89,29 +86,19 @@ export function conv2d_webgl(
   matmulDataRs.dispose();
 
   if (bias) {
-    const yRs = WebGLTensor.transpose(matmulData, [1, 0, 4, 2, 3]);
+    const yRs = matmulData.transpose([1, 0, 4, 2, 3]);
     matmulData.dispose();
-    const y = WebGLTensor.reshape(yRs, [
-      batch,
-      chOut,
-      outShape[0],
-      outShape[1],
-    ]);
+    const y = yRs.reshape([batch, chOut, outShape[0], outShape[1]]);
     yRs.dispose();
-    const biasRs = WebGLTensor.reshape(bias, [1, -1, 1, 1]);
+    const biasRs = bias.reshape([1, -1, 1, 1]);
     const ybias = WebGLTensor.add(y, biasRs);
     y.dispose();
     biasRs.dispose();
     return ybias;
   } else {
-    const yRs = WebGLTensor.transpose(matmulData, [1, 0, 4, 2, 3]);
+    const yRs = matmulData.transpose([1, 0, 4, 2, 3]);
     matmulData.dispose();
-    const y = WebGLTensor.reshape(yRs, [
-      batch,
-      chOut,
-      outShape[0],
-      outShape[1],
-    ]);
+    const y = yRs.reshape([batch, chOut, outShape[0], outShape[1]]);
     yRs.dispose();
     return y;
   }
@@ -125,7 +112,7 @@ export function conv2d_backprop_gb_webgl(gy: WebGLTensor): WebGLTensor {
 export function conv2d_backprop_gxgw_webgl(
   gy: WebGLTensor,
   x: WebGLTensor,
-  w: WebGLTensor,
+  weight: WebGLTensor,
   skipGx: true,
   skipGw: false,
   params: Conv2dImplParams
@@ -133,7 +120,7 @@ export function conv2d_backprop_gxgw_webgl(
 export function conv2d_backprop_gxgw_webgl(
   gy: WebGLTensor,
   x: WebGLTensor,
-  w: WebGLTensor,
+  weight: WebGLTensor,
   skipGx: false,
   skipGw: true,
   params: Conv2dImplParams
@@ -141,7 +128,7 @@ export function conv2d_backprop_gxgw_webgl(
 export function conv2d_backprop_gxgw_webgl(
   gy: WebGLTensor,
   x: WebGLTensor,
-  w: WebGLTensor,
+  weight: WebGLTensor,
   skipGx: false,
   skipGw: false,
   params: Conv2dImplParams
@@ -149,7 +136,7 @@ export function conv2d_backprop_gxgw_webgl(
 export function conv2d_backprop_gxgw_webgl(
   gy: WebGLTensor,
   x: WebGLTensor,
-  w: WebGLTensor,
+  weight: WebGLTensor,
   skipGx: boolean,
   skipGw: boolean,
   params: Conv2dImplParams
@@ -167,16 +154,16 @@ export function conv2d_backprop_gxgw_webgl(
     chInPerGroup,
     chOut,
     chOutPerGroup,
-  } = conv2DCalcShape(params, x.shape, w.shape);
+  } = conv2DCalcShape(params, x.shape, weight.shape);
   // TODO im2colが巨大になる場合に分割して実行
-  const gyg = WebGLTensor.reshape(gy, [
+  const gyg = gy.reshape([
     batch,
     group,
     chOutPerGroup,
     outShape[0],
     outShape[1],
   ]);
-  const gyTransposeData = WebGLTensor.transpose(gyg, [1, 0, 3, 4, 2]);
+  const gyTransposeData = gyg.transpose([1, 0, 3, 4, 2]);
   gyg.dispose();
 
   let gw: WebGLTensor | null = null;
@@ -201,19 +188,17 @@ export function conv2d_backprop_gxgw_webgl(
       pads,
       strides,
       inShape,
-      outShape,
-      chIn,
       chInPerGroup
     );
     // dI(group, bout, cinkhkw) * dGyT(group, bout, coutpergroup) -> dgw(group, coutpergroup, cinkhkw)
-    const im2colDataRs = WebGLTensor.reshape(im2colData, [
+    const im2colDataRs = im2colData.reshape([
       group,
       batch * outShape[0] * outShape[1],
       chInPerGroup * kernelShape[0] * kernelShape[1],
     ]);
     im2colData.dispose();
 
-    const gyTRs = WebGLTensor.reshape(gyTransposeData, [
+    const gyTRs = gyTransposeData.reshape([
       group,
       batch * outShape[0] * outShape[1],
       chOutPerGroup,
@@ -222,22 +207,17 @@ export function conv2d_backprop_gxgw_webgl(
     const gwRs = bmm(gyTRs, im2colDataRs, true, false);
     gyTRs.dispose();
     im2colDataRs.dispose();
-    gw = WebGLTensor.reshape(gwRs, [
-      chOut,
-      chInPerGroup,
-      kernelShape[0],
-      kernelShape[1],
-    ]);
+    gw = gwRs.reshape([chOut, chInPerGroup, kernelShape[0], kernelShape[1]]);
     gwRs.dispose();
   }
   if (!skipGx) {
     // dGyT(group, bout, coutpergroup) * dW(group, coutpergroup, cinkhkw) -> dGi(group, bout, cinkhkw)
-    const gyTRs = WebGLTensor.reshape(gyTransposeData, [
+    const gyTRs = gyTransposeData.reshape([
       group,
       batch * outShape[0] * outShape[1],
       chOutPerGroup,
     ]);
-    const weightRs = WebGLTensor.reshape(w, [
+    const weightRs = weight.reshape([
       group,
       chOutPerGroup,
       chInPerGroup * kernelShape[0] * kernelShape[1],
@@ -245,7 +225,7 @@ export function conv2d_backprop_gxgw_webgl(
     const matmul = bmm(gyTRs, weightRs, false, false);
     gyTRs.dispose();
     weightRs.dispose();
-    const matmulRs = WebGLTensor.reshape(matmul, [
+    const matmulRs = matmul.reshape([
       group,
       batch,
       outShape[0],
@@ -262,21 +242,9 @@ export function conv2d_backprop_gxgw_webgl(
       inShape[0],
       inShape[1],
     ]);
-    col2im(
-      matmulRs,
-      gxRs,
-      batch,
-      dilations,
-      group,
-      kernelShape,
-      pads,
-      strides,
-      outShape,
-      inShape,
-      chInPerGroup
-    );
+    col2im(matmulRs, gxRs, dilations, kernelShape, pads, strides, outShape);
     matmulRs.dispose();
-    gx = WebGLTensor.reshape(gxRs, [batch, chIn, inShape[0], inShape[1]]);
+    gx = gxRs.reshape([batch, chIn, inShape[0], inShape[1]]);
     gxRs.dispose();
   }
   gyTransposeData.dispose();
@@ -293,8 +261,6 @@ function im2col(
   pads: number[],
   strides: number[],
   inShape: number[],
-  outShape: number[],
-  chIn: number,
   chInPerGroup: number
 ): void {
   const ctx = getNNWebGLContext();
@@ -356,15 +322,11 @@ void main() {
 function col2im(
   dI: WebGLTensor,
   dY: WebGLTensor,
-  batch: number,
   dilations: number[],
-  group: number,
   kernelShape: number[],
   pads: number[],
   strides: number[],
-  outShape: number[],
-  inShape: number[],
-  chInPerGroup: number
+  outShape: number[]
 ): void {
   // in/outはconvのforward基準 (convtransposeとは逆)
   // dI: group, batch, inShape[0], inShape[1], chOutPerGroup, kernelShape[0], kernelShape[1]

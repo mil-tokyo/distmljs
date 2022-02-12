@@ -532,6 +532,13 @@ export class WebGPUTensor extends Tensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
+  reshape(
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGPUTensor {
+    return WebGPUTensor.reshape(this, shape, allowZero);
+  }
+
   static transpose(
     x: WebGPUTensor,
     axes?: ReadonlyArray<number> | null
@@ -542,6 +549,10 @@ export class WebGPUTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  transpose(axes?: ReadonlyArray<number> | null): WebGPUTensor {
+    return WebGPUTensor.transpose(this, axes);
   }
 
   static mseLossBackprop(
