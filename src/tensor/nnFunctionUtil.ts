@@ -1,14 +1,5 @@
-interface MaxPoolParams {
-  autoPad?: 'NOTSET' | 'SAME_UPPER' | 'SAME_LOWER' | 'VALID'; //for ONNX
-  kernelSize: number | number[];
-  stride: number | number[];
-  padding: number | number[];
-  dilation: number | number[];
-  ceilMode: boolean;
-}
-
 function getDimOrScalar(
-  v: number | number[],
+  v: number | ReadonlyArray<number>,
   ndim: number,
   idx: number,
   top: boolean
@@ -32,6 +23,15 @@ function getDimOrScalar(
       throw new Error('v is not number or number[]');
     }
   }
+}
+
+interface MaxPoolParams {
+  autoPad?: 'NOTSET' | 'SAME_UPPER' | 'SAME_LOWER' | 'VALID'; //for ONNX
+  kernelSize: number | number[];
+  stride: number | number[];
+  padding: number | number[];
+  dilation: number | number[];
+  ceilMode: boolean;
 }
 
 function maxPoolCalcAxisShape(
@@ -204,5 +204,108 @@ export function avgPool2DCalcShape(
     inShape,
     outShape,
     ch,
+  };
+}
+
+interface ConvParams {
+  autoPad?: 'NOTSET' | 'SAME_UPPER' | 'SAME_LOWER' | 'VALID'; //for ONNX
+  stride: number | number[];
+  padding: number | number[];
+  dilation: number | [number, number];
+  groups: number;
+}
+
+function convCalcAxisShape(
+  params: ConvParams,
+  kernelSizeTuple: ReadonlyArray<number>,
+  ndim: number,
+  dimIdx: number,
+  width: number
+) {
+  const kernelSize = getDimOrScalar(kernelSizeTuple, ndim, dimIdx, true);
+  const dilation = getDimOrScalar(params.dilation, ndim, dimIdx, true);
+  let padding0 = getDimOrScalar(params.padding, ndim, dimIdx, true);
+  let padding1 = getDimOrScalar(params.padding, ndim, dimIdx, false);
+  const stride = getDimOrScalar(params.stride, ndim, dimIdx, true);
+
+  let shape: number;
+  // maxpoolと異なり、ceilModeはなく、常にceilMode===falseと同等
+  // それ以外はmaxpoolと同じ計算式
+  if (!params.autoPad || params.autoPad === 'NOTSET') {
+    shape =
+      Math.floor(
+        (width + padding0 + padding1 - dilation * (kernelSize - 1) - 1) / stride
+      ) + 1;
+  } else if (
+    params.autoPad === 'SAME_LOWER' ||
+    params.autoPad === 'SAME_UPPER'
+  ) {
+    // calculate output shape as if padding is zero
+    shape = Math.ceil(width / stride);
+    const sumPad =
+      (shape - 1) * stride + ((kernelSize - 1) * dilation + 1) - width;
+    if (params.autoPad === 'SAME_LOWER') {
+      padding0 = Math.ceil(sumPad / 2);
+      padding1 = Math.floor(sumPad / 2);
+    } else {
+      padding0 = Math.floor(sumPad / 2);
+      padding1 = Math.ceil(sumPad / 2);
+    }
+  } else if (params.autoPad === 'VALID') {
+    shape = Math.ceil((width - dilation * (kernelSize - 1)) / stride);
+    padding0 = padding1 = 0;
+  } else {
+    throw new Error(`Unknown autoPad ${params.autoPad}`);
+  }
+
+  return { shape, padding0, padding1, dilation, stride };
+}
+
+export function conv2DCalcShape(
+  params: ConvParams,
+  dimsX: ReadonlyArray<number>,
+  dimsW: ReadonlyArray<number>
+) {
+  const [batch, chIn] = dimsX;
+  const [chOut, , kernelShape0, kernelShape1] = dimsW;
+  const inShape: number[] = [];
+  const kernelShape = [kernelShape0, kernelShape1];
+  const pads: number[] = [0, 0, 0, 0]; // [ybegin, xbegin, yend, xend]
+  const dilations: number[] = [];
+  const strides: number[] = [];
+  const outShape: number[] = [];
+  for (let dim = 0; dim < 2; dim++) {
+    const width = dimsX[2 + dim];
+    const { shape, padding0, padding1, dilation, stride } = convCalcAxisShape(
+      params,
+      kernelShape,
+      2,
+      dim,
+      width
+    );
+    inShape.push(width);
+    pads[dim] = padding0;
+    pads[dim + 2] = padding1;
+    dilations.push(dilation);
+    strides.push(stride);
+    outShape.push(shape);
+  }
+  const group = params.groups;
+  const chInPerGroup = chIn / group;
+  const chOutPerGroup = chOut / group;
+
+  return {
+    batch,
+    dilations,
+    group,
+    kernelShape,
+    pads,
+    strides,
+    inShape,
+    outShape,
+    chIn,
+    chInPerGroup,
+    chOut,
+    chOutPerGroup,
   };
 }

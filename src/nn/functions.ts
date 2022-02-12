@@ -4,6 +4,11 @@ import {
   avg_pool2d_cpu,
 } from '../tensor/cpu/nnfunction/avg_pool2d';
 import {
+  conv2d_backprop_gb_cpu,
+  conv2d_backprop_gxgw_cpu,
+  conv2d_cpu,
+} from '../tensor/cpu/nnfunction/conv2d';
+import {
   max_pool2d_backprop_cpu,
   max_pool2d_cpu,
   max_pool2d_with_indices_cpu,
@@ -902,4 +907,110 @@ export async function adaptive_avg_pool2d(
   outputSize: number | number[]
 ): Promise<Variable> {
   return new AdaptiveAvgPool2d(outputSize).c(x);
+}
+
+export interface Conv2dParams {
+  stride?: number | [number, number];
+  padding?: number | [number, number] | [number, number, number, number];
+  dilation?: number | [number, number];
+  groups?: number;
+}
+
+export class Conv2d extends NNFunction {
+  stride: number | [number, number];
+  padding: number | [number, number] | [number, number, number, number]; //TODO: support 'same' and 'valid'
+  dilation: number | [number, number];
+  groups: number;
+  xShape?: ReadonlyArray<number>;
+  wShape?: ReadonlyArray<number>;
+  x?: Tensor;
+  weight?: Tensor;
+  hasBias?: boolean;
+
+  constructor(params: Conv2dParams) {
+    super();
+    const { stride = 1, padding = 0, dilation = 1, groups = 1 } = params;
+    this.stride = stride;
+    this.padding = padding;
+    this.dilation = dilation;
+    this.groups = groups;
+  }
+
+  async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
+    if (defaultNNContext.get('enableBackprop')) {
+      this.xShape = x.shape;
+      this.wShape = weight.shape;
+      this.x = x;
+      this.weight = weight;
+      this.hasBias = !!bias;
+    }
+    const params = {
+      stride: this.stride,
+      padding: this.padding,
+      dilation: this.dilation,
+      groups: this.groups,
+    };
+
+    if (bias) {
+      return genCall([x, weight, bias], {
+        cpu: (c, [x, weight, bias]) => [conv2d_cpu(x, weight, bias, params)],
+      });
+    } else {
+      return genCall([x, weight], {
+        cpu: (c, [x, weight]) => [conv2d_cpu(x, weight, undefined, params)],
+      });
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: convtransposeを実装し、conv2d_backprop_gx_cpuの実装を共用するとともにbackprop可能にする
+    const params = {
+      stride: this.stride,
+      padding: this.padding,
+      dilation: this.dilation,
+      groups: this.groups,
+    };
+    const [gxd, gwd] = genCall(
+      [gy.data, nonNull(this.x), nonNull(this.weight)],
+      {
+        cpu: (c, [gyd, x, weight]) =>
+          conv2d_backprop_gxgw_cpu(gyd, x, weight, false, false, params),
+      }
+    );
+    if (this.hasBias) {
+      const [gbd] = genCall([gy.data], {
+        cpu: (c, [gyd]) => [conv2d_backprop_gb_cpu(gyd)],
+      });
+      return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
+    } else {
+      return [new Variable(gxd), new Variable(gwd)];
+    }
+  }
+}
+
+export function conv2d(
+  x: Variable,
+  weight: Variable,
+  params?: Conv2dParams
+): Promise<Variable>;
+export function conv2d(
+  x: Variable,
+  weight: Variable,
+  bias: Variable | undefined,
+  params?: Conv2dParams
+): Promise<Variable>;
+export async function conv2d(
+  x: Variable,
+  weight: Variable,
+  biasOrParams?: Conv2dParams | Variable,
+  params?: Conv2dParams
+): Promise<Variable> {
+  if (biasOrParams instanceof Variable) {
+    return new Conv2d(params || {}).c(x, weight, biasOrParams);
+  } else if (biasOrParams) {
+    return new Conv2d(biasOrParams || {}).c(x, weight);
+  } else {
+    // x, weight, undefined, params
+    return new Conv2d(params || {}).c(x, weight);
+  }
 }
