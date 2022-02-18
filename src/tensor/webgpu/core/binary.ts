@@ -79,14 +79,14 @@ export function corepow(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'pow');
 }
 
-export function coresigmoidBackprop(
+export function sigmoidBackprop(
   lhs: WebGPUTensor,
   rhs: WebGPUTensor
 ): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'sigmoidBackprop');
 }
 
-export function corereluBackprop(
+export function reluBackprop(
   lhs: WebGPUTensor,
   rhs: WebGPUTensor
 ): WebGPUTensor {

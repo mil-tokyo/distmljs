@@ -131,7 +131,7 @@ export function corepow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   });
 }
 
-export function coresigmoidBackprop(
+export function sigmoidBackprop(
   lhs: WebGLTensor,
   rhs: WebGLTensor
 ): WebGLTensor {
@@ -140,10 +140,7 @@ export function coresigmoidBackprop(
   });
 }
 
-export function corereluBackprop(
-  lhs: WebGLTensor,
-  rhs: WebGLTensor
-): WebGLTensor {
+export function reluBackprop(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   return binaryWrap(lhs, rhs, 'reluBackprop', {
     float32: 'float v = v_l > 0.0 ? v_r : 0.0;',
   });
