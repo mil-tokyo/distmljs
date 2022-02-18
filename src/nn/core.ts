@@ -57,7 +57,11 @@ export class Variable {
       if (!f?.outputs) {
         throw new Error();
       }
-      const gys: Variable[] = f.outputs.map((wv) => nonNull(wv.deref()?.grad));
+      // TODO: nonNullチェック（batchnormのrunning_mean出力に勾配がないがbackwardを通すためチェックを外している）
+      // differentialでない出力があるfunction全般における勾配の扱いを整理する必要あり
+      const gys: Variable[] = f.outputs.map(
+        (wv) => wv.deref()?.grad as Variable
+      );
 
       await defaultNNContext.withValue(
         'enableBackprop',
@@ -110,7 +114,15 @@ export class Variable {
   }
 }
 
-export class Parameter extends Variable {}
+export class Parameter extends Variable {
+  constructor(
+    public data: Tensor,
+    public name?: string,
+    public optimizable = true
+  ) {
+    super(data, name);
+  }
+}
 
 export abstract class NNFunction {
   generation?: number;
@@ -265,10 +277,12 @@ export class Mul extends NNFunction {
 export abstract class Layer {
   training = true; // default value is same as PyTorch
 
-  *parameters(recursive = true): Generator<Parameter> {
+  *parameters(recursive = true, optimizableOnly = true): Generator<Parameter> {
     for (const [, value] of Object.entries(this)) {
       if (value instanceof Parameter) {
-        yield value;
+        if (!optimizableOnly || value.optimizable) {
+          yield value;
+        }
       } else if (recursive && value instanceof Layer) {
         for (const subParam of value.parameters()) {
           yield subParam;
@@ -278,11 +292,14 @@ export abstract class Layer {
   }
 
   *parametersWithName(
-    recursive = true
+    recursive = true,
+    optimizableOnly = true
   ): Generator<{ name: string; parameter: Parameter }> {
     for (const [name, value] of Object.entries(this)) {
       if (value instanceof Parameter) {
-        yield { name, parameter: value };
+        if (!optimizableOnly || value.optimizable) {
+          yield { name, parameter: value };
+        }
       } else if (recursive && value instanceof Layer) {
         for (const subParam of value.parametersWithName()) {
           yield {
