@@ -53,6 +53,13 @@ export interface Conv2dLayerParams extends Conv2dParams {
 
 export class Conv2d extends Layer {
   readonly kernelSize: [number, number];
+  readonly stride: number | [number, number];
+  readonly padding:
+    | number
+    | [number, number]
+    | [number, number, number, number];
+  readonly dilation: number | [number, number];
+  readonly groups: number;
   weight: Variable;
   bias?: Variable;
 
@@ -60,9 +67,20 @@ export class Conv2d extends Layer {
     public readonly inChannels: number,
     public readonly outChannels: number,
     kernelSize: number | [number, number],
-    public readonly params: Conv2dLayerParams
+    params: Conv2dLayerParams
   ) {
     super();
+    const {
+      stride = 1,
+      padding = 0,
+      dilation = 1,
+      groups = 1,
+      bias = true,
+    } = params;
+    this.stride = stride;
+    this.padding = padding;
+    this.dilation = dilation;
+    this.groups = groups;
     const random = Random.getDefault(); // TODO 指定可能にする
     // TODO: 分布を選択可能にする
     // uniform from [-sqrt(k), sqrt(k)] where k = 1 / in_features
@@ -84,7 +102,7 @@ export class Conv2d extends Layer {
       }
       this.kernelSize = [...kernelSize];
     }
-    const chInPerGroup = this.inChannels / (params.groups || 1);
+    const chInPerGroup = this.inChannels / groups;
     this.weight = new Parameter(
       CPUTensor.fromArray(
         rndscaled(
@@ -95,7 +113,7 @@ export class Conv2d extends Layer {
       ),
       'weight'
     );
-    if (params.bias) {
+    if (bias) {
       this.bias = new Parameter(
         CPUTensor.fromArray(rndscaled(outChannels, inChannels), [outChannels]),
         'bias'
@@ -104,6 +122,13 @@ export class Conv2d extends Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    return [await conv2d(inputs[0], this.weight, this.bias, this.params)];
+    return [
+      await conv2d(inputs[0], this.weight, this.bias, {
+        stride: this.stride,
+        padding: this.padding,
+        dilation: this.dilation,
+        groups: this.groups,
+      }),
+    ];
   }
 }
