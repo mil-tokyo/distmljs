@@ -13,6 +13,9 @@ import {
   max_pool2d_cpu,
   max_pool2d_with_indices_cpu,
 } from '../tensor/cpu/nnfunction/max_pool2d';
+import * as cpuCore from '../tensor/cpu/core';
+import * as webglCore from '../tensor/webgl/core';
+import * as webgpuCore from '../tensor/webgpu/core';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import {
@@ -168,9 +171,9 @@ export async function neg(x: Variable): Promise<Variable> {
 export class ReLUBackprop extends NNFunction {
   async forward([x, gx]: Tensor[]): Promise<Tensor[]> {
     return genCall([x, gx], {
-      cpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
-      webgl: (c, [x, gx]) => [c.reluBackprop(x, gx)],
-      webgpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
+      cpu: (c, [x, gx]) => [cpuCore.reluBackprop(x, gx)],
+      webgl: (c, [x, gx]) => [webglCore.reluBackprop(x, gx)],
+      webgpu: (c, [x, gx]) => [webgpuCore.reluBackprop(x, gx)],
     });
   }
 }
@@ -211,9 +214,9 @@ export class Sigmoid extends NNFunction {
       throw new Error();
     }
     const [gx] = genCall([y.data, gy.data], {
-      cpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
-      webgl: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
-      webgpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
+      cpu: (c, [yd, gyd]) => [cpuCore.sigmoidBackprop(yd, gyd)],
+      webgl: (c, [yd, gyd]) => [webglCore.sigmoidBackprop(yd, gyd)],
+      webgpu: (c, [yd, gyd]) => [webgpuCore.sigmoidBackprop(yd, gyd)],
     });
     return [new Variable(gx)];
   }
@@ -261,13 +264,13 @@ export class SoftmaxCrossEntropyBackward extends NNFunction {
   async forward([softmax, label, gy]: Tensor[]): Promise<Tensor[]> {
     return genCall([softmax, label, gy], {
       cpu: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        cpuCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
       webgl: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        webglCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
       webgpu: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        webgpuCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
     });
   }
@@ -276,9 +279,9 @@ export class SoftmaxCrossEntropyBackward extends NNFunction {
 export class Softmax extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.softmax(x)],
-      webgl: (c, [x]) => [c.softmax(x)],
-      webgpu: (c, [x]) => [c.softmax(x)],
+      cpu: (c, [x]) => [cpuCore.softmax(x)],
+      webgl: (c, [x]) => [webglCore.softmax(x)],
+      webgpu: (c, [x]) => [webgpuCore.softmax(x)],
     });
   }
 
@@ -295,17 +298,17 @@ export class SoftmaxCrossEntropy extends NNFunction {
 
   async forward([x, label]: Tensor[]): Promise<Tensor[]> {
     const [softmax] = genCall([x], {
-      cpu: (c, [x]) => [c.softmax(x)],
-      webgl: (c, [x]) => [c.softmax(x)],
-      webgpu: (c, [x]) => [c.softmax(x)],
+      cpu: (c, [x]) => [cpuCore.softmax(x)],
+      webgl: (c, [x]) => [webglCore.softmax(x)],
+      webgpu: (c, [x]) => [webgpuCore.softmax(x)],
     });
     if (defaultNNContext.get('enableBackprop')) {
       this.softmax = softmax;
     }
     const ce = genCall([softmax, label], {
-      cpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
-      webgl: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
-      webgpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
+      cpu: (c, [softmax, label]) => [cpuCore.nllLoss(softmax, label)],
+      webgl: (c, [softmax, label]) => [webglCore.nllLoss(softmax, label)],
+      webgpu: (c, [softmax, label]) => [webgpuCore.nllLoss(softmax, label)],
     });
     return ce;
   }
@@ -337,9 +340,9 @@ export async function softmaxCrossEntropy(
 export class MSELoss extends NNFunction {
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
     return genCall([a, b], {
-      cpu: (c, [a, b]) => [c.mseLoss(a, b)],
-      webgl: (c, [a, b]) => [c.mseLoss(a, b)],
-      webgpu: (c, [a, b]) => [c.mseLoss(a, b)],
+      cpu: (c, [a, b]) => [cpuCore.mseLoss(a, b)],
+      webgl: (c, [a, b]) => [webglCore.mseLoss(a, b)],
+      webgpu: (c, [a, b]) => [webgpuCore.mseLoss(a, b)],
     });
   }
 
@@ -350,9 +353,9 @@ export class MSELoss extends NNFunction {
     const [a, b] = this.inputs;
     // TODO: backprop可能にする
     const [ga, gb] = genCall([a.data, b.data, gy.data], {
-      cpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
-      webgl: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
-      webgpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
+      cpu: (c, [ad, bd, gyd]) => cpuCore.mseLossBackprop(ad, bd, gyd),
+      webgl: (c, [ad, bd, gyd]) => webglCore.mseLossBackprop(ad, bd, gyd),
+      webgpu: (c, [ad, bd, gyd]) => webgpuCore.mseLossBackprop(ad, bd, gyd),
     });
     return [new Variable(ga), new Variable(gb)];
   }
