@@ -959,6 +959,13 @@ export class WebGLTensor extends Tensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
+  reshape(
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGLTensor {
+    return WebGLTensor.reshape(this, shape, allowZero);
+  }
+
   static transpose(
     x: WebGLTensor,
     axes?: ReadonlyArray<number> | null
@@ -969,6 +976,10 @@ export class WebGLTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  transpose(axes?: ReadonlyArray<number> | null): WebGLTensor {
+    return WebGLTensor.transpose(this, axes);
   }
 
   static mseLossBackprop(

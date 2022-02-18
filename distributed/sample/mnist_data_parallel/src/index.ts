@@ -15,22 +15,61 @@ function nonNull<T>(v: T | null | undefined): T {
   return v;
 }
 
-class Net extends K.nn.core.Layer {
+class NetMLP extends K.nn.core.Layer {
   fc1: K.nn.layers.Linear;
   fc2: K.nn.layers.Linear;
 
-  constructor(inFeatures: number, hidden: number, outFeatures: number) {
+  constructor(inFeatures=784, hidden=32, outFeatures=10) {
     super();
+    
     this.fc1 = new K.nn.layers.Linear(inFeatures, hidden);
     this.fc2 = new K.nn.layers.Linear(hidden, outFeatures);
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
     let y = inputs[0];
+    y = await K.nn.functions.flatten(y);
     y = await this.fc1.c(y);
     y = await K.nn.functions.relu(y);
     y = await this.fc2.c(y);
     return [y];
+  }
+}
+
+class NetConv extends K.nn.core.Layer {
+  conv1: K.nn.layers.Conv2d;
+  conv2: K.nn.layers.Conv2d;
+  fc1: K.nn.layers.Linear;
+
+  constructor() {
+    super();
+
+    this.conv1 = new K.nn.layers.Conv2d(1, 8, 3, {});
+    this.conv2 = new K.nn.layers.Conv2d(8, 8, 3, {});
+    this.fc1 = new K.nn.layers.Linear(200, 10);
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    let y = inputs[0];
+    y = await this.conv1.c(y);
+    y = await K.nn.functions.relu(y);
+    y = await K.nn.functions.max_pool2d(y, {kernelSize: 2});
+    y = await this.conv2.c(y);
+    y = await K.nn.functions.relu(y);
+    y = await K.nn.functions.max_pool2d(y, {kernelSize: 2});    y = await K.nn.functions.flatten(y);
+    y = await this.fc1.c(y);
+    return [y];
+  }
+}
+
+function makeModel(name: string): K.nn.core.Layer {
+  switch (name) {
+    case "mlp":
+      return new NetMLP();
+    case "conv":
+      return new NetConv();
+    default:
+      throw new Error(`Unknown model ${name}`);
   }
 }
 
@@ -63,7 +102,7 @@ async function recvBlob(itemId: string): Promise<Uint8Array> {
   return new Uint8Array(resp);
 }
 
-let model: Net;
+let model: K.nn.core.Layer;
 
 let totalBatches = 0;
 
@@ -98,8 +137,6 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
 }
 
 async function run() {
-  model = new Net(784, 32, 10);
-  await model.to(backend);
   writeState('Connecting');
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
@@ -114,6 +151,10 @@ async function run() {
   };
   ws.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
+    if (!model) {
+      model = makeModel(msg.model);
+      await model.to(backend);
+    }
     await K.tidy(async () => {
       await compute(msg);
       return [];

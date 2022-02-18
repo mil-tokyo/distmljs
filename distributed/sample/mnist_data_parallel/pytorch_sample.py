@@ -1,4 +1,7 @@
-# 分散学習と同じモデルの学習をPyTorch単独で行い、結果比較に用いる
+"""
+分散学習と同じモデルの学習をPyTorch単独で行う。
+結果比較に用いる。
+"""
 
 import os
 import pickle
@@ -7,20 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(784, 32)
-        self.fc2 = nn.Linear(32, 10)
-
-    def forward(self, x):
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
+from sample_net import make_net
 
 
 def train(model, loader, optimizer):
@@ -54,11 +44,12 @@ def test(model, loader):
 
 
 def main():
-    output_dir = "results"
+    model_name = os.environ.get("MODEL", "mlp")
+    output_dir = os.path.join("results", model_name)
     os.makedirs(output_dir, exist_ok=True)
     torch.manual_seed(0)
 
-    model = Net()
+    model = make_net(model_name)
     optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.0)
 
     transform = transforms.Compose([

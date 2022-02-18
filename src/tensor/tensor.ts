@@ -36,6 +36,11 @@ export abstract class Tensor {
     | typeof WebGPUTensor;
   abstract toArrayAsync(): Promise<number[]>;
   abstract copy(): Tensor;
+  abstract reshape(
+    shape: ReadonlyArray<number> | number,
+    allowZero: boolean
+  ): Tensor;
+  abstract transpose(axes?: ReadonlyArray<number> | null): Tensor;
 
   abstract dispose(): void;
 }

@@ -1,3 +1,18 @@
+"""
+Webブラウザを接続した分散計算を行う。
+環境変数で設定を行う。
+MODEL: mlp, convのいずれか。モデルの種類を指定する。
+N_CLIENTS: 分散計算に参加するクライアント数。1以上の整数を指定する。指定しない場合は1が指定されたとみなす。
+
+実行はuvicorn経由で行う。コマンド例(Mac/Linuxの場合):
+MODEL=conv N_CLIENTS=2 npm run train
+
+Windowsの場合はsetコマンドを使用して以下のようになる:
+set MODEL=conv
+set N_CLIENTS=2
+npm run train
+"""
+
 import asyncio
 import math
 from uuid import uuid4
@@ -10,26 +25,13 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent, setup_server
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
+from sample_net import make_net
 
 # スクリプトの配布
 kakiage_server = setup_server()
 app = kakiage_server.app
 
 # PyTorchを用いた初期モデルの作成、学習したモデルのサーバサイドでの評価
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(784, 32)
-        self.fc2 = nn.Linear(32, 10)
-
-    def forward(self, x):
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
 
 
 def test(model, loader):
@@ -69,8 +71,10 @@ async def main():
     os.makedirs(output_dir, exist_ok=True)
     torch.manual_seed(0)
     lr = 0.01
-    n_client_wait = 3
-    model = Net()
+    n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
+    model_name = os.environ.get("MODEL", "mlp")
+    print(f"Model: {model_name}")
+    model = make_net(model_name)
     train_loader, test_loader = get_dataset_loader()
     client_ids = []
     print(f"Waiting {n_client_wait} clients to connect")
@@ -113,13 +117,14 @@ async def main():
                     dataset_item_id = uuid4().hex
                     kakiage_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(
                         {
-                            "image": torch.flatten(image_chunk, 1).detach().numpy().astype(np.float32),
+                            "image": image_chunk.detach().numpy().astype(np.float32),
                             "label": label_chunk.detach().numpy().astype(np.int32),
                         }
                     )
                     item_ids_to_delete.append(dataset_item_id)
                     grad_item_id = uuid4().hex
                     await kakiage_server.send_message(client_id, {
+                        "model": model_name,
                         "weight": weight_item_id,
                         "dataset": dataset_item_id,
                         "grad": grad_item_id
@@ -161,6 +166,7 @@ async def main():
         output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
+    print("training ended")
 
 
 asyncio.get_running_loop().create_task(main())
