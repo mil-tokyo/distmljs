@@ -17,7 +17,11 @@ import * as cpuCore from '../tensor/cpu/core';
 import * as webglCore from '../tensor/webgl/core';
 import * as webgpuCore from '../tensor/webgpu/core';
 import { Tensor } from '../tensor/tensor';
-import { genCall, isAllCPUTensor } from '../tensor/tensorTypeUtil';
+import {
+  genCall,
+  isAllCPUTensor,
+  isAllWebGLTensor,
+} from '../tensor/tensorTypeUtil';
 import {
   avg_pool2d_backprop_webgl,
   avg_pool2d_webgl,
@@ -46,6 +50,10 @@ import {
   batch_norm_backprop_cpu,
   batch_norm_cpu,
 } from '../tensor/cpu/nnfunction/batch_norm';
+import {
+  batch_norm_backprop_webgl,
+  batch_norm_webgl,
+} from '../tensor/webgl/nnfunction/batch_norm';
 
 export async function broadcastTo(
   x: Variable,
@@ -1107,6 +1115,13 @@ export class BatchNormFunction extends NNFunction {
           { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
           params
         );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
       } else {
         throw new Error('not implemented');
       }
@@ -1114,6 +1129,13 @@ export class BatchNormFunction extends NNFunction {
       const ts = [x, weight, bias];
       if (isAllCPUTensor(ts)) {
         outputs = batch_norm_cpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
           ts[0],
           { weight: ts[1], bias: ts[2] },
           null,
@@ -1146,6 +1168,10 @@ export class BatchNormFunction extends NNFunction {
       {
         cpu: (c, [x, gyd, sfb]) => {
           const xwb = batch_norm_backprop_cpu(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+        webgl: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_webgl(x, gyd, sfb, 1);
           return [xwb.gx, xwb.gweight, xwb.gbias];
         },
       }

@@ -195,9 +195,13 @@ export function batch_norm_backprop_cpu(
   axesExceptCh.splice(axis, 1);
 
   const gbias = sum(gy, axesExceptCh, true);
-  const mean = statsForBackprop.gets(slice(), 0).reshape([1, -1, 1, 1]);
-  const invStd = statsForBackprop.gets(slice(), 1).reshape([1, -1, 1, 1]);
-  const scale = statsForBackprop.gets(slice(), 2).reshape([1, -1, 1, 1]);
+  const chLength = gy.shape[axis];
+  const reshapeShape = Array(x.ndim).fill(1);
+  reshapeShape[axis] = chLength; // e.g. [1, chLength, 1, 1] for 2d image
+
+  const mean = statsForBackprop.gets(slice(), 0).reshape(reshapeShape);
+  const invStd = statsForBackprop.gets(slice(), 1).reshape(reshapeShape);
+  const scale = statsForBackprop.gets(slice(), 2).reshape(reshapeShape);
   const gweight = CPUTensor.sub(
     CPUTensor.mul(sum(CPUTensor.mul(x, gy), axesExceptCh, true), invStd),
     CPUTensor.mul(gbias, CPUTensor.mul(mean, invStd))
