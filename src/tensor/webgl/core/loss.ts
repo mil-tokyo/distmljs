@@ -281,7 +281,7 @@ void main() {
     ],
     outputa,
     [
-      ...shaderGenTensorOutputUniformItem(outputa),
+      ...shaderGenTensorOutputUniformItem(outputa, [a.size]),
       ...shaderGenTensorNDGetUniformItem('tex_a', a, [1]),
       ...shaderGenTensorNDGetUniformItem('tex_b', b, [1]),
       { name: 'coef', type: 'float', value: 2 / a.size },
