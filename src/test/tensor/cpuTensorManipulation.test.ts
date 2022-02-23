@@ -1,47 +1,47 @@
 import { assert } from 'chai';
-import { CPUTensor } from '../../tensor/cpuTensor';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { arange } from '../../util';
 
 describe('repeat', () => {
   it('repeat scalar', () => {
     const x = CPUTensor.s(3);
     const y = CPUTensor.repeat(x, 4);
-    assert.equal(y.shape, [4]);
+    assert.deepEqual(y.shape, [4]);
     assert.deepEqual(y.toArray(), [3, 3, 3, 3]);
   });
 
   it('repeat without axis', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
     const y = CPUTensor.repeat(x, 2);
-    assert.equal(y.shape, [8]);
+    assert.deepEqual(y.shape, [8]);
     assert.deepEqual(y.toArray(), [1, 1, 2, 2, 3, 3, 4, 4]);
   });
 
   it('repeat axis=0', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
     const y = CPUTensor.repeat(x, 2, 1);
-    assert.equal(y.shape, [2, 4]);
+    assert.deepEqual(y.shape, [2, 4]);
     assert.deepEqual(y.toArray(), [1, 1, 2, 2, 3, 3, 4, 4]);
   });
 
   it('repeat axis=1', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
     const y = CPUTensor.repeat(x, 2, 0);
-    assert.equal(y.shape, [4, 2]);
+    assert.deepEqual(y.shape, [4, 2]);
     assert.deepEqual(y.toArray(), [1, 2, 1, 2, 3, 4, 3, 4]);
   });
 
   it('repeats with array1', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
     const y = CPUTensor.repeat(x, [1, 2], 0);
-    assert.equal(y.shape, [3, 2]);
+    assert.deepEqual(y.shape, [3, 2]);
     assert.deepEqual(y.toArray(), [1, 2, 3, 4, 3, 4]);
   });
 
   it('repeats with array3', () => {
     const x = CPUTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
     const y = CPUTensor.repeat(x, [3, 2, 4, 1], 2);
-    assert.equal(y.shape, [2, 3, 10, 5]);
+    assert.deepEqual(y.shape, [2, 3, 10, 5]);
     assert.deepEqual(y.get(0, 2, 2, 0), 40);
     assert.deepEqual(y.get(1, 1, 8, 1), 91);
     assert.deepEqual(y.get(1, 1, 9, 1), 96);
