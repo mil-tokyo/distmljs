@@ -340,7 +340,7 @@ export abstract class Layer {
   abstract forward(inputs: Variable[]): Promise<Variable[]>;
 
   async to(backend: Backend): Promise<void> {
-    for (const param of this.parameters()) {
+    for (const param of this.parameters(true, false)) {
       param.data = await param.data.to(backend);
     }
   }

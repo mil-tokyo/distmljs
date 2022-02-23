@@ -5,8 +5,8 @@ import { Layer, Parameter } from './core';
 import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
 
 export class Linear extends Layer {
-  weight: Variable;
-  bias?: Variable;
+  weight: Parameter;
+  bias?: Parameter;
 
   constructor(
     public readonly inFeatures: number,
@@ -60,8 +60,8 @@ export class Conv2d extends Layer {
     | [number, number, number, number];
   readonly dilation: number | [number, number];
   readonly groups: number;
-  weight: Variable;
-  bias?: Variable;
+  weight: Parameter;
+  bias?: Parameter;
 
   constructor(
     public readonly inChannels: number,
@@ -139,12 +139,12 @@ export class BatchNorm extends Layer {
   readonly affine: boolean;
   readonly trackRunningStats: boolean;
   // weight, bias for affine transformation
-  weight?: Variable;
-  bias?: Variable;
+  weight?: Parameter;
+  bias?: Parameter;
   // running state
-  runningMean?: Variable;
-  runningVar?: Variable;
-  numBatchesTracked?: Variable;
+  runningMean?: Parameter;
+  runningVar?: Parameter;
+  numBatchesTracked?: Parameter;
 
   constructor(
     public readonly numFeatures: number,
@@ -173,6 +173,23 @@ export class BatchNorm extends Layer {
       );
       this.bias = new Parameter(CPUTensor.zeros([this.numFeatures]), 'bias');
     }
+    if (this.trackRunningStats) {
+      this.runningMean = new Parameter(
+        CPUTensor.zeros([this.numFeatures]),
+        'runningMean',
+        false
+      );
+      this.runningVar = new Parameter(
+        CPUTensor.ones([this.numFeatures]),
+        'runningMean',
+        false
+      );
+      this.numBatchesTracked = new Parameter(
+        CPUTensor.zeros([], 'int32'),
+        'runningMean',
+        false
+      );
+    }
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
@@ -198,12 +215,16 @@ export class BatchNorm extends Layer {
     }
     const outputs = await batch_norm.call(...args);
     if (this.training && this.trackRunningStats) {
-      this.runningMean?.data.dispose();
-      this.runningMean = outputs[1];
-      this.runningVar?.data.dispose();
-      this.runningVar = outputs[2];
-      this.numBatchesTracked?.data.dispose();
-      this.numBatchesTracked = outputs[3];
+      if (this.runningMean && this.runningVar && this.numBatchesTracked) {
+        this.runningMean.data.dispose();
+        this.runningMean.data = outputs[1].data;
+        this.runningVar.data.dispose();
+        this.runningVar.data = outputs[2].data;
+        this.numBatchesTracked.data.dispose();
+        this.numBatchesTracked.data = outputs[3].data;
+      } else {
+        throw new Error();
+      }
     }
     return [outputs[0]];
   }
