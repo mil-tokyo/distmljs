@@ -168,10 +168,7 @@ export class BatchNorm extends Layer {
     this.affine = affine;
     this.trackRunningStats = trackRunningStats;
     if (this.affine) {
-      this.weight = new Parameter(
-        CPUTensor.zeros([this.numFeatures]),
-        'weight'
-      );
+      this.weight = new Parameter(CPUTensor.ones([this.numFeatures]), 'weight');
       this.bias = new Parameter(CPUTensor.zeros([this.numFeatures]), 'bias');
     }
     if (this.trackRunningStats) {
