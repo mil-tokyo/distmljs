@@ -177,13 +177,17 @@ export class NNWebGLContext {
     return texture;
   }
 
-  createShader(type: number, source: string): WebGLShader {
+  createShader(type: number, source: string, name?: string): WebGLShader {
     const shader = nonNull(this.gl.createShader(type));
 
     this.gl.shaderSource(shader, source);
     this.gl.compileShader(shader);
     if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      throw Error(`Shader Compile failed: ${this.gl.getShaderInfoLog(shader)}`);
+      throw Error(
+        `Shader Compile failed (name=${name}): ${this.gl.getShaderInfoLog(
+          shader
+        )}`
+      );
     }
 
     return shader;
@@ -193,22 +197,23 @@ export class NNWebGLContext {
     if (this.programs.has(name)) {
       return;
     }
-    this.programs.set(name, { program: this.compileKernel(sourceCode) });
+    this.programs.set(name, { program: this.compileKernel(sourceCode, name) });
   }
 
   hasKernel(name: string): boolean {
     return this.programs.has(name);
   }
 
-  compileKernel(sourceCode: string): WebGLProgram {
+  compileKernel(sourceCode: string, name?: string): WebGLProgram {
     const { gl } = this;
     if (!this.vshader) {
       this.vshader = this.createShader(
         gl.VERTEX_SHADER,
-        vertex_shader_source_2
+        vertex_shader_source_2,
+        'vertex_shader'
       );
     }
-    const fshader = this.createShader(gl.FRAGMENT_SHADER, sourceCode),
+    const fshader = this.createShader(gl.FRAGMENT_SHADER, sourceCode, name),
       program = nonNull(this.gl.createProgram());
 
     this.gl.attachShader(program, fshader);

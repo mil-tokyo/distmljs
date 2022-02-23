@@ -17,7 +17,11 @@ import * as cpuCore from '../tensor/cpu/core';
 import * as webglCore from '../tensor/webgl/core';
 import * as webgpuCore from '../tensor/webgpu/core';
 import { Tensor } from '../tensor/tensor';
-import { genCall } from '../tensor/tensorTypeUtil';
+import {
+  genCall,
+  isAllCPUTensor,
+  isAllWebGLTensor,
+} from '../tensor/tensorTypeUtil';
 import {
   avg_pool2d_backprop_webgl,
   avg_pool2d_webgl,
@@ -42,6 +46,14 @@ import {
   SumTo,
   Variable,
 } from './core';
+import {
+  batch_norm_backprop_cpu,
+  batch_norm_cpu,
+} from '../tensor/cpu/nnfunction/batch_norm';
+import {
+  batch_norm_backprop_webgl,
+  batch_norm_webgl,
+} from '../tensor/webgl/nnfunction/batch_norm';
 
 export async function broadcastTo(
   x: Variable,
@@ -1028,5 +1040,149 @@ export async function conv2d(
   } else {
     // x, weight, undefined, params
     return new Conv2d(params || {}).c(x, weight);
+  }
+}
+
+export interface BatchNormParams {
+  numFeatures: number;
+  training: boolean;
+  eps?: number;
+  momentum?: number;
+  trackRunningStats: boolean;
+}
+
+export class BatchNormFunction extends NNFunction {
+  numFeatures: number;
+  training: boolean;
+  eps: number;
+  momentum?: number;
+  trackRunningStats: boolean;
+  statsForBackprop?: Tensor;
+
+  constructor(params: BatchNormParams) {
+    super();
+    const {
+      numFeatures,
+      training,
+      trackRunningStats,
+      eps = 1e-5,
+      momentum = 0.1,
+    } = params;
+    this.numFeatures = numFeatures;
+    this.training = training;
+    this.eps = eps;
+    this.momentum = momentum;
+    this.trackRunningStats = trackRunningStats;
+  }
+
+  async forward([
+    x,
+    weight,
+    bias,
+    runningMean,
+    runningVar,
+    numBatchesTracked,
+  ]: Tensor[]): Promise<Tensor[]> {
+    const params = {
+      axis: 1,
+      training: this.training,
+      eps: this.eps,
+      momentum: this.momentum,
+      trackRunningStats: this.trackRunningStats,
+    };
+
+    if (!(weight && bias)) {
+      // TODO: 場合分け
+      throw new Error(
+        'BatchNormND without weight, bias is not yet implemented'
+      );
+    }
+    let outputs: {
+      y: Tensor;
+      statsForBackprop: Tensor;
+      updatedRunningStats: {
+        runningMean: Tensor;
+        runningVar: Tensor;
+        numBatchesTracked: Tensor;
+      } | null;
+    };
+    if (runningMean && runningVar && numBatchesTracked) {
+      const ts = [x, weight, bias, runningMean, runningVar, numBatchesTracked];
+      if (isAllCPUTensor(ts)) {
+        outputs = batch_norm_cpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
+      } else {
+        throw new Error('not implemented');
+      }
+    } else {
+      const ts = [x, weight, bias];
+      if (isAllCPUTensor(ts)) {
+        outputs = batch_norm_cpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else {
+        throw new Error('not implemented');
+      }
+    }
+
+    if (defaultNNContext.get('enableBackprop')) {
+      this.statsForBackprop = outputs.statsForBackprop;
+    }
+
+    if (outputs.updatedRunningStats) {
+      return [
+        outputs.y,
+        outputs.updatedRunningStats.runningMean,
+        outputs.updatedRunningStats.runningVar,
+        outputs.updatedRunningStats.numBatchesTracked,
+      ];
+    } else {
+      return [outputs.y];
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const [gxd, gwd, gbd] = genCall(
+      [nonNull(this.inputs)[0].data, gy.data, nonNull(this.statsForBackprop)],
+      {
+        cpu: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_cpu(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+        webgl: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_webgl(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+      }
+    );
+    return [
+      new Variable(gxd),
+      new Variable(gwd),
+      new Variable(gbd),
+      null,
+      null,
+      null,
+    ];
   }
 }

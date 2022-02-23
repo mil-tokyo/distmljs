@@ -2,11 +2,11 @@ import { Variable } from '.';
 import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
-import { conv2d, Conv2dParams, linear } from './functions';
+import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
 
 export class Linear extends Layer {
-  weight: Variable;
-  bias?: Variable;
+  weight: Parameter;
+  bias?: Parameter;
 
   constructor(
     public readonly inFeatures: number,
@@ -60,8 +60,8 @@ export class Conv2d extends Layer {
     | [number, number, number, number];
   readonly dilation: number | [number, number];
   readonly groups: number;
-  weight: Variable;
-  bias?: Variable;
+  weight: Parameter;
+  bias?: Parameter;
 
   constructor(
     public readonly inChannels: number,
@@ -130,5 +130,102 @@ export class Conv2d extends Layer {
         groups: this.groups,
       }),
     ];
+  }
+}
+
+export class BatchNorm extends Layer {
+  readonly eps: number;
+  readonly momentum: number;
+  readonly affine: boolean;
+  readonly trackRunningStats: boolean;
+  // weight, bias for affine transformation
+  weight?: Parameter;
+  bias?: Parameter;
+  // running state
+  runningMean?: Parameter;
+  runningVar?: Parameter;
+  numBatchesTracked?: Parameter;
+
+  constructor(
+    public readonly numFeatures: number,
+    params: {
+      eps?: number;
+      momentum?: number;
+      affine?: boolean;
+      trackRunningStats?: boolean;
+    }
+  ) {
+    super();
+    const {
+      eps = 1e-5,
+      momentum = 0.1,
+      affine = true,
+      trackRunningStats = true,
+    } = params;
+    this.eps = eps;
+    this.momentum = momentum;
+    this.affine = affine;
+    this.trackRunningStats = trackRunningStats;
+    if (this.affine) {
+      this.weight = new Parameter(
+        CPUTensor.zeros([this.numFeatures]),
+        'weight'
+      );
+      this.bias = new Parameter(CPUTensor.zeros([this.numFeatures]), 'bias');
+    }
+    if (this.trackRunningStats) {
+      this.runningMean = new Parameter(
+        CPUTensor.zeros([this.numFeatures]),
+        'runningMean',
+        false
+      );
+      this.runningVar = new Parameter(
+        CPUTensor.ones([this.numFeatures]),
+        'runningMean',
+        false
+      );
+      this.numBatchesTracked = new Parameter(
+        CPUTensor.zeros([], 'int32'),
+        'runningMean',
+        false
+      );
+    }
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    const batch_norm = new BatchNormFunction({
+      numFeatures: this.numFeatures,
+      training: this.training,
+      eps: this.eps,
+      momentum: this.momentum,
+      trackRunningStats: this.trackRunningStats,
+    });
+    // TODO: optional引数の扱い方改善。weightなしrunningMeanありケースに対応できていない。
+    const args: Variable[] = [inputs[0]];
+    if (this.affine) {
+      args.push(this.weight as Variable);
+      args.push(this.bias as Variable);
+      if (this.runningMean) {
+        args.push(this.runningMean as Variable);
+        args.push(this.runningVar as Variable);
+        args.push(this.numBatchesTracked as Variable);
+      }
+    } else if (this.runningMean) {
+      throw new Error();
+    }
+    const outputs = await batch_norm.call(...args);
+    if (this.training && this.trackRunningStats) {
+      if (this.runningMean && this.runningVar && this.numBatchesTracked) {
+        this.runningMean.data.dispose();
+        this.runningMean.data = outputs[1].data;
+        this.runningVar.data.dispose();
+        this.runningVar.data = outputs[2].data;
+        this.numBatchesTracked.data.dispose();
+        this.numBatchesTracked.data = outputs[3].data;
+      } else {
+        throw new Error();
+      }
+    }
+    return [outputs[0]];
   }
 }
