@@ -3,6 +3,7 @@ import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
 import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
+import { Sequential } from './layer/sequential';
 
 export class Linear extends Layer {
   weight: Parameter;
@@ -229,3 +230,5 @@ export class BatchNorm extends Layer {
     return [outputs[0]];
   }
 }
+
+export { Sequential } from './layer/sequential';
