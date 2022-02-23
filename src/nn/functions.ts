@@ -4,16 +4,33 @@ import {
   avg_pool2d_cpu,
 } from '../tensor/cpu/nnfunction/avg_pool2d';
 import {
+  conv2d_backprop_gb_cpu,
+  conv2d_backprop_gxgw_cpu,
+  conv2d_cpu,
+} from '../tensor/cpu/nnfunction/conv2d';
+import {
   max_pool2d_backprop_cpu,
   max_pool2d_cpu,
   max_pool2d_with_indices_cpu,
 } from '../tensor/cpu/nnfunction/max_pool2d';
+import * as cpuCore from '../tensor/cpu/core';
+import * as webglCore from '../tensor/webgl/core';
+import * as webgpuCore from '../tensor/webgpu/core';
 import { Tensor } from '../tensor/tensor';
-import { genCall } from '../tensor/tensorTypeUtil';
+import {
+  genCall,
+  isAllCPUTensor,
+  isAllWebGLTensor,
+} from '../tensor/tensorTypeUtil';
 import {
   avg_pool2d_backprop_webgl,
   avg_pool2d_webgl,
 } from '../tensor/webgl/nnfunction/avg_pool2d';
+import {
+  conv2d_backprop_gb_webgl,
+  conv2d_backprop_gxgw_webgl,
+  conv2d_webgl,
+} from '../tensor/webgl/nnfunction/conv2d';
 import {
   max_pool2d_backprop_webgl,
   max_pool2d_webgl,
@@ -29,6 +46,14 @@ import {
   SumTo,
   Variable,
 } from './core';
+import {
+  batch_norm_backprop_cpu,
+  batch_norm_cpu,
+} from '../tensor/cpu/nnfunction/batch_norm';
+import {
+  batch_norm_backprop_webgl,
+  batch_norm_webgl,
+} from '../tensor/webgl/nnfunction/batch_norm';
 
 export async function broadcastTo(
   x: Variable,
@@ -158,9 +183,9 @@ export async function neg(x: Variable): Promise<Variable> {
 export class ReLUBackprop extends NNFunction {
   async forward([x, gx]: Tensor[]): Promise<Tensor[]> {
     return genCall([x, gx], {
-      cpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
-      webgl: (c, [x, gx]) => [c.reluBackprop(x, gx)],
-      webgpu: (c, [x, gx]) => [c.reluBackprop(x, gx)],
+      cpu: (c, [x, gx]) => [cpuCore.reluBackprop(x, gx)],
+      webgl: (c, [x, gx]) => [webglCore.reluBackprop(x, gx)],
+      webgpu: (c, [x, gx]) => [webgpuCore.reluBackprop(x, gx)],
     });
   }
 }
@@ -201,9 +226,9 @@ export class Sigmoid extends NNFunction {
       throw new Error();
     }
     const [gx] = genCall([y.data, gy.data], {
-      cpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
-      webgl: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
-      webgpu: (c, [yd, gyd]) => [c.sigmoidBackprop(yd, gyd)],
+      cpu: (c, [yd, gyd]) => [cpuCore.sigmoidBackprop(yd, gyd)],
+      webgl: (c, [yd, gyd]) => [webglCore.sigmoidBackprop(yd, gyd)],
+      webgpu: (c, [yd, gyd]) => [webgpuCore.sigmoidBackprop(yd, gyd)],
     });
     return [new Variable(gx)];
   }
@@ -251,13 +276,13 @@ export class SoftmaxCrossEntropyBackward extends NNFunction {
   async forward([softmax, label, gy]: Tensor[]): Promise<Tensor[]> {
     return genCall([softmax, label, gy], {
       cpu: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        cpuCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
       webgl: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        webglCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
       webgpu: (c, [softmax, label, gy]) => [
-        c.softmaxCrossEntropyBackward(softmax, label, gy),
+        webgpuCore.softmaxCrossEntropyBackward(softmax, label, gy),
       ],
     });
   }
@@ -266,9 +291,9 @@ export class SoftmaxCrossEntropyBackward extends NNFunction {
 export class Softmax extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.softmax(x)],
-      webgl: (c, [x]) => [c.softmax(x)],
-      webgpu: (c, [x]) => [c.softmax(x)],
+      cpu: (c, [x]) => [cpuCore.softmax(x)],
+      webgl: (c, [x]) => [webglCore.softmax(x)],
+      webgpu: (c, [x]) => [webgpuCore.softmax(x)],
     });
   }
 
@@ -285,17 +310,17 @@ export class SoftmaxCrossEntropy extends NNFunction {
 
   async forward([x, label]: Tensor[]): Promise<Tensor[]> {
     const [softmax] = genCall([x], {
-      cpu: (c, [x]) => [c.softmax(x)],
-      webgl: (c, [x]) => [c.softmax(x)],
-      webgpu: (c, [x]) => [c.softmax(x)],
+      cpu: (c, [x]) => [cpuCore.softmax(x)],
+      webgl: (c, [x]) => [webglCore.softmax(x)],
+      webgpu: (c, [x]) => [webgpuCore.softmax(x)],
     });
     if (defaultNNContext.get('enableBackprop')) {
       this.softmax = softmax;
     }
     const ce = genCall([softmax, label], {
-      cpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
-      webgl: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
-      webgpu: (c, [softmax, label]) => [c.nllLoss(softmax, label)],
+      cpu: (c, [softmax, label]) => [cpuCore.nllLoss(softmax, label)],
+      webgl: (c, [softmax, label]) => [webglCore.nllLoss(softmax, label)],
+      webgpu: (c, [softmax, label]) => [webgpuCore.nllLoss(softmax, label)],
     });
     return ce;
   }
@@ -327,9 +352,9 @@ export async function softmaxCrossEntropy(
 export class MSELoss extends NNFunction {
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
     return genCall([a, b], {
-      cpu: (c, [a, b]) => [c.mseLoss(a, b)],
-      webgl: (c, [a, b]) => [c.mseLoss(a, b)],
-      webgpu: (c, [a, b]) => [c.mseLoss(a, b)],
+      cpu: (c, [a, b]) => [cpuCore.mseLoss(a, b)],
+      webgl: (c, [a, b]) => [webglCore.mseLoss(a, b)],
+      webgpu: (c, [a, b]) => [webgpuCore.mseLoss(a, b)],
     });
   }
 
@@ -340,9 +365,9 @@ export class MSELoss extends NNFunction {
     const [a, b] = this.inputs;
     // TODO: backprop可能にする
     const [ga, gb] = genCall([a.data, b.data, gy.data], {
-      cpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
-      webgl: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
-      webgpu: (c, [ad, bd, gyd]) => c.mseLossBackprop(ad, bd, gyd),
+      cpu: (c, [ad, bd, gyd]) => cpuCore.mseLossBackprop(ad, bd, gyd),
+      webgl: (c, [ad, bd, gyd]) => webglCore.mseLossBackprop(ad, bd, gyd),
+      webgpu: (c, [ad, bd, gyd]) => webgpuCore.mseLossBackprop(ad, bd, gyd),
     });
     return [new Variable(ga), new Variable(gb)];
   }
@@ -902,4 +927,262 @@ export async function adaptive_avg_pool2d(
   outputSize: number | number[]
 ): Promise<Variable> {
   return new AdaptiveAvgPool2d(outputSize).c(x);
+}
+
+export interface Conv2dParams {
+  stride?: number | [number, number];
+  padding?: number | [number, number] | [number, number, number, number];
+  dilation?: number | [number, number];
+  groups?: number;
+}
+
+export class Conv2d extends NNFunction {
+  stride: number | [number, number];
+  padding: number | [number, number] | [number, number, number, number]; //TODO: support 'same' and 'valid'
+  dilation: number | [number, number];
+  groups: number;
+  xShape?: ReadonlyArray<number>;
+  wShape?: ReadonlyArray<number>;
+  x?: Tensor;
+  weight?: Tensor;
+  hasBias?: boolean;
+
+  constructor(params: Conv2dParams) {
+    super();
+    const { stride = 1, padding = 0, dilation = 1, groups = 1 } = params;
+    this.stride = stride;
+    this.padding = padding;
+    this.dilation = dilation;
+    this.groups = groups;
+  }
+
+  async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
+    if (defaultNNContext.get('enableBackprop')) {
+      this.xShape = x.shape;
+      this.wShape = weight.shape;
+      this.x = x;
+      this.weight = weight;
+      this.hasBias = !!bias;
+    }
+    const params = {
+      stride: this.stride,
+      padding: this.padding,
+      dilation: this.dilation,
+      groups: this.groups,
+    };
+
+    if (bias) {
+      return genCall([x, weight, bias], {
+        cpu: (c, [x, weight, bias]) => [conv2d_cpu(x, weight, bias, params)],
+        webgl: (c, [x, weight, bias]) => [
+          conv2d_webgl(x, weight, bias, params),
+        ],
+      });
+    } else {
+      return genCall([x, weight], {
+        cpu: (c, [x, weight]) => [conv2d_cpu(x, weight, undefined, params)],
+        webgl: (c, [x, weight]) => [conv2d_webgl(x, weight, undefined, params)],
+      });
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // TODO: convtransposeを実装し、conv2d_backprop_gx_cpuの実装を共用するとともにbackprop可能にする
+    const params = {
+      stride: this.stride,
+      padding: this.padding,
+      dilation: this.dilation,
+      groups: this.groups,
+    };
+    const [gxd, gwd] = genCall(
+      [gy.data, nonNull(this.x), nonNull(this.weight)],
+      {
+        cpu: (c, [gyd, x, weight]) =>
+          conv2d_backprop_gxgw_cpu(gyd, x, weight, false, false, params),
+
+        webgl: (c, [gyd, x, weight]) =>
+          conv2d_backprop_gxgw_webgl(gyd, x, weight, false, false, params),
+      }
+    );
+    if (this.hasBias) {
+      const [gbd] = genCall([gy.data], {
+        cpu: (c, [gyd]) => [conv2d_backprop_gb_cpu(gyd)],
+        webgl: (c, [gyd]) => [conv2d_backprop_gb_webgl(gyd)],
+      });
+      return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
+    } else {
+      return [new Variable(gxd), new Variable(gwd)];
+    }
+  }
+}
+
+export function conv2d(
+  x: Variable,
+  weight: Variable,
+  params?: Conv2dParams
+): Promise<Variable>;
+export function conv2d(
+  x: Variable,
+  weight: Variable,
+  bias: Variable | undefined,
+  params?: Conv2dParams
+): Promise<Variable>;
+export async function conv2d(
+  x: Variable,
+  weight: Variable,
+  biasOrParams?: Conv2dParams | Variable,
+  params?: Conv2dParams
+): Promise<Variable> {
+  if (biasOrParams instanceof Variable) {
+    return new Conv2d(params || {}).c(x, weight, biasOrParams);
+  } else if (biasOrParams) {
+    return new Conv2d(biasOrParams || {}).c(x, weight);
+  } else {
+    // x, weight, undefined, params
+    return new Conv2d(params || {}).c(x, weight);
+  }
+}
+
+export interface BatchNormParams {
+  numFeatures: number;
+  training: boolean;
+  eps?: number;
+  momentum?: number;
+  trackRunningStats: boolean;
+}
+
+export class BatchNormFunction extends NNFunction {
+  numFeatures: number;
+  training: boolean;
+  eps: number;
+  momentum?: number;
+  trackRunningStats: boolean;
+  statsForBackprop?: Tensor;
+
+  constructor(params: BatchNormParams) {
+    super();
+    const {
+      numFeatures,
+      training,
+      trackRunningStats,
+      eps = 1e-5,
+      momentum = 0.1,
+    } = params;
+    this.numFeatures = numFeatures;
+    this.training = training;
+    this.eps = eps;
+    this.momentum = momentum;
+    this.trackRunningStats = trackRunningStats;
+  }
+
+  async forward([
+    x,
+    weight,
+    bias,
+    runningMean,
+    runningVar,
+    numBatchesTracked,
+  ]: Tensor[]): Promise<Tensor[]> {
+    const params = {
+      axis: 1,
+      training: this.training,
+      eps: this.eps,
+      momentum: this.momentum,
+      trackRunningStats: this.trackRunningStats,
+    };
+
+    if (!(weight && bias)) {
+      // TODO: 場合分け
+      throw new Error(
+        'BatchNormND without weight, bias is not yet implemented'
+      );
+    }
+    let outputs: {
+      y: Tensor;
+      statsForBackprop: Tensor;
+      updatedRunningStats: {
+        runningMean: Tensor;
+        runningVar: Tensor;
+        numBatchesTracked: Tensor;
+      } | null;
+    };
+    if (runningMean && runningVar && numBatchesTracked) {
+      const ts = [x, weight, bias, runningMean, runningVar, numBatchesTracked];
+      if (isAllCPUTensor(ts)) {
+        outputs = batch_norm_cpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
+      } else {
+        throw new Error('not implemented');
+      }
+    } else {
+      const ts = [x, weight, bias];
+      if (isAllCPUTensor(ts)) {
+        outputs = batch_norm_cpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else if (isAllWebGLTensor(ts)) {
+        outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else {
+        throw new Error('not implemented');
+      }
+    }
+
+    if (defaultNNContext.get('enableBackprop')) {
+      this.statsForBackprop = outputs.statsForBackprop;
+    }
+
+    if (outputs.updatedRunningStats) {
+      return [
+        outputs.y,
+        outputs.updatedRunningStats.runningMean,
+        outputs.updatedRunningStats.runningVar,
+        outputs.updatedRunningStats.numBatchesTracked,
+      ];
+    } else {
+      return [outputs.y];
+    }
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const [gxd, gwd, gbd] = genCall(
+      [nonNull(this.inputs)[0].data, gy.data, nonNull(this.statsForBackprop)],
+      {
+        cpu: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_cpu(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+        webgl: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_webgl(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+      }
+    );
+    return [
+      new Variable(gxd),
+      new Variable(gwd),
+      new Variable(gbd),
+      null,
+      null,
+      null,
+    ];
+  }
 }

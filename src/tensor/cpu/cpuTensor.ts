@@ -5,7 +5,6 @@ import {
   TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
-import { arrayEqual } from '../../util';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { sum, sumTo } from './core/reduction';
@@ -43,6 +42,7 @@ import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { repeat, tile } from './core/manipulation';
+import { gemm } from './core/gemm';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -322,73 +322,6 @@ export class CPUTensor extends Tensor {
     return corepow(lhs, rhs);
   }
 
-  static reluBackprop(x: CPUTensor, gy: CPUTensor): CPUTensor {
-    const output = CPUTensor.zeros(x.shape);
-    const dx = x.getBuffer().data;
-    const dgy = gy.getBuffer().data;
-    const dgx = output.getBuffer().data;
-    for (let i = 0; i < output.size; i++) {
-      dgx[i] = dx[i] > 0.0 ? dgy[i] : 0.0;
-    }
-    return output;
-  }
-
-  static sigmoidBackprop(y: CPUTensor, gy: CPUTensor): CPUTensor {
-    const output = CPUTensor.zeros(gy.shape);
-    const dy = y.getBuffer().data;
-    const dgy = gy.getBuffer().data;
-    const dgx = output.getBuffer().data;
-    for (let i = 0; i < output.size; i++) {
-      const yv = dy[i];
-      dgx[i] = (1 - yv) * yv * dgy[i];
-    }
-    return output;
-  }
-
-  static mseLoss(a: CPUTensor, b: CPUTensor): CPUTensor {
-    if (!arrayEqual(a.shape, b.shape)) {
-      throw new Error('Shape mismatch');
-    }
-    const output = CPUTensor.zeros([]);
-    const da = a.getBuffer().data;
-    const db = b.getBuffer().data;
-    const dy = output.getBuffer().data;
-    let sum = 0.0;
-    for (let i = 0; i < a.size; i++) {
-      const diff = da[i] - db[i];
-      sum += diff * diff;
-    }
-    dy[0] = sum / a.size;
-    return output;
-  }
-
-  static mseLossBackprop(
-    a: CPUTensor,
-    b: CPUTensor,
-    gy: CPUTensor
-  ): [CPUTensor, CPUTensor] {
-    if (!arrayEqual(a.shape, b.shape)) {
-      throw new Error('Shape mismatch');
-    }
-    if (gy.ndim !== 0) {
-      throw new Error('gy must be scalar');
-    }
-    const da = a.getBuffer().data;
-    const db = b.getBuffer().data;
-    const dgy = gy.getBuffer().data;
-    const ga = CPUTensor.zeros(a.shape);
-    const gb = CPUTensor.zeros(a.shape);
-    const dga = ga.getBuffer().data;
-    const dgb = gb.getBuffer().data;
-    const coef = (dgy[0] * 2) / a.size;
-    for (let i = 0; i < a.size; i++) {
-      const v = (da[i] - db[i]) * coef;
-      dga[i] = v;
-      dgb[i] = -v;
-    }
-    return [ga, gb];
-  }
-
   /**
    * 転置込みの行列積を行う暫定的な関数
    * @param a
@@ -402,44 +335,7 @@ export class CPUTensor extends Tensor {
     transa = false,
     transb = false
   ): CPUTensor {
-    let m: number, n: number, k: number, bk: number;
-    let stam: number, stak: number, stbk: number, stbn: number; //strides
-    if (a.ndim !== 2 || b.ndim !== 2) {
-      throw new Error('must be 2dim');
-    }
-    if (transa) {
-      [k, m] = a.shape;
-      [stak, stam] = a.strides;
-    } else {
-      [m, k] = a.shape;
-      [stam, stak] = a.strides;
-    }
-    if (transb) {
-      [n, bk] = b.shape;
-      [stbn, stbk] = b.strides;
-    } else {
-      [bk, n] = b.shape;
-      [stbk, stbn] = b.strides;
-    }
-    if (k !== bk) {
-      throw new Error('inner product length does not match');
-    }
-
-    const output = CPUTensor.zeros([m, n]);
-    let i = 0;
-    const da = a.getBuffer().data;
-    const db = b.getBuffer().data;
-    const dy = output.getBuffer().data;
-    for (let row = 0; row < m; row++) {
-      for (let col = 0; col < n; col++) {
-        let sum = 0.0;
-        for (let ip = 0; ip < k; ip++) {
-          sum += da[row * stam + ip * stak] * db[col * stbn + ip * stbk];
-        }
-        dy[i++] = sum;
-      }
-    }
-    return output;
+    return gemm(a, b, transa, transb);
   }
 
   static dot(a: CPUTensor, b: CPUTensor): CPUTensor {
@@ -469,99 +365,16 @@ export class CPUTensor extends Tensor {
     return sumTo(x, shape);
   }
 
-  static softmax(x: CPUTensor): CPUTensor {
-    const [batch, cs] = x.shape;
-    if (x.shape.length !== 2) {
-      throw new Error('softmaxCrossEntropy needs 2d input');
-    }
-    const output = CPUTensor.zeros([batch, cs]);
-    const dx = x.getBuffer().data;
-    const dy = output.getBuffer().data;
-    for (let b = 0; b < batch; b++) {
-      let max = -Infinity;
-      for (let c = 0; c < cs; c++) {
-        const v = dx[b * cs + c];
-        if (v > max) {
-          max = v;
-        }
-      }
-      let expSum = 0.0;
-      for (let c = 0; c < cs; c++) {
-        const v = dx[b * cs + c] - max;
-        const exp = Math.exp(v);
-        dy[b * cs + c] = exp;
-        expSum += exp;
-      }
-      for (let c = 0; c < cs; c++) {
-        dy[b * cs + c] /= expSum;
-      }
-    }
-    return output;
-  }
-
-  static nllLoss(x: CPUTensor, label: CPUTensor): CPUTensor {
-    const [batch, cs] = x.shape;
-    if (x.shape.length !== 2) {
-      throw new Error('nllLoss needs 2d input');
-    }
-    if (label.shape.length !== 1) {
-      throw new Error('nllLoss needs 1d label input');
-    }
-    const output = CPUTensor.zeros([]);
-    const dx = x.getBuffer().data;
-    const dlabel = label.getBuffer().data;
-    let ceSum = 0.0;
-    for (let b = 0; b < batch; b++) {
-      const label = dlabel[b];
-      ceSum += -Math.log(dx[b * cs + label]);
-    }
-    const ceAvg = ceSum / batch;
-    output.getBuffer().data[0] = ceAvg;
-    return output;
-  }
-
-  static softmaxCrossEntropyBackward(
-    softmax: CPUTensor,
-    label: CPUTensor,
-    gy: CPUTensor
-  ): CPUTensor {
-    // x -> softmax -> lossでgxを求める
-    // TODO: labelはint32
-    const [batch, cs] = softmax.shape;
-    if (softmax.shape.length !== 2) {
-      throw new Error('nllLoss needs 2d input');
-    }
-    if (label.shape.length !== 1) {
-      throw new Error('nllLoss needs 1d label input');
-    }
-    if (!arrayEqual(gy.shape, [])) {
-      throw new Error('gy must be scalar');
-    }
-    const output = CPUTensor.zeros(softmax.shape);
-    const dgx = output.getBuffer().data;
-    const dsoftmax = softmax.getBuffer().data;
-    const dlabel = label.getBuffer().data;
-    const dgy = gy.getBuffer().data;
-    const gyValue = dgy[0] / batch;
-    for (let b = 0; b < batch; b++) {
-      const label = dlabel[b];
-      for (let c = 0; c < cs; c++) {
-        let v = dsoftmax[b * cs + c];
-        if (c === label) {
-          v -= 1;
-        }
-        dgx[b * cs + c] = v * gyValue;
-      }
-    }
-    return output;
-  }
-
   static reshape(
     x: CPUTensor,
     shape: ReadonlyArray<number> | number,
     allowZero = true
   ): CPUTensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
+  }
+
+  reshape(shape: ReadonlyArray<number> | number, allowZero = true): CPUTensor {
+    return CPUTensor.reshape(this, shape, allowZero);
   }
 
   static transpose(
@@ -574,6 +387,10 @@ export class CPUTensor extends Tensor {
       axes
     );
     return stridedCopy(x, newShape, srcStrides);
+  }
+
+  transpose(axes?: ReadonlyArray<number> | null): CPUTensor {
+    return CPUTensor.transpose(this, axes);
   }
 
   /**
