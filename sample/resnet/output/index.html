@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</title>
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <h1>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</h1>
+    <div>
+      <button type="button" id="start-training">Start training</button>
+      Backend:
+      <label><input type="radio" name="backend" value="cpu" />CPU</label>
+      <label
+        ><input type="radio" name="backend" value="webgl" checked />WebGL</label
+      ><label><input type="radio" name="backend" value="webgpu" />WebGPU</label>
+    </div>
+    <div id="result"></div>
+  </body>
+</html>

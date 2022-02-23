@@ -284,7 +284,7 @@ export abstract class Layer {
           yield value;
         }
       } else if (recursive && value instanceof Layer) {
-        for (const subParam of value.parameters()) {
+        for (const subParam of value.parameters(recursive, optimizableOnly)) {
           yield subParam;
         }
       }
@@ -301,7 +301,10 @@ export abstract class Layer {
           yield { name, parameter: value };
         }
       } else if (recursive && value instanceof Layer) {
-        for (const subParam of value.parametersWithName()) {
+        for (const subParam of value.parametersWithName(
+          recursive,
+          optimizableOnly
+        )) {
           yield {
             name: `${name}.${subParam.name}`,
             parameter: subParam.parameter,

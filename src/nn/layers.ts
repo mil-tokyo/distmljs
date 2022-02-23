@@ -3,6 +3,7 @@ import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
 import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
+import { Sequential } from './layer/sequential';
 
 export class Linear extends Layer {
   weight: Parameter;
@@ -167,10 +168,7 @@ export class BatchNorm extends Layer {
     this.affine = affine;
     this.trackRunningStats = trackRunningStats;
     if (this.affine) {
-      this.weight = new Parameter(
-        CPUTensor.zeros([this.numFeatures]),
-        'weight'
-      );
+      this.weight = new Parameter(CPUTensor.ones([this.numFeatures]), 'weight');
       this.bias = new Parameter(CPUTensor.zeros([this.numFeatures]), 'bias');
     }
     if (this.trackRunningStats) {
@@ -229,3 +227,5 @@ export class BatchNorm extends Layer {
     return [outputs[0]];
   }
 }
+
+export { Sequential } from './layer/sequential';
