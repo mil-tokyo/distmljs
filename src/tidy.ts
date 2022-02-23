@@ -43,7 +43,7 @@ export async function tidy<T extends TidyResult>(
     } else if (r instanceof Variable) {
       returnedTensors.push(r.data);
     } else if (r instanceof Layer) {
-      for (const param of r.parameters()) {
+      for (const param of r.parameters(true, false)) {
         returnedTensors.push(param.data);
       }
     } else if (r instanceof Optimizer) {
@@ -110,7 +110,7 @@ export function tidySync<T extends TidyResult>(
     } else if (r instanceof Variable) {
       returnedTensors.push(r.data);
     } else if (r instanceof Layer) {
-      for (const param of r.parameters()) {
+      for (const param of r.parameters(true, false)) {
         returnedTensors.push(param.data);
       }
     } else if (r instanceof Optimizer) {
