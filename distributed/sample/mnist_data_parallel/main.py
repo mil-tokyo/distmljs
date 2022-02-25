@@ -22,10 +22,9 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets, transforms
 from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent, setup_server
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
-from sample_net import make_net
+from sample_net import make_net, get_io_shape, get_dataset_loader
 
 # スクリプトの配布
 kakiage_server = setup_server()
@@ -51,31 +50,20 @@ def test(model, loader):
     return {"loss": loss_sum / count, "accuracy": correct / count}
 
 
-def get_dataset_loader():
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('../pytorch_data', train=True, download=True,
-                                   transform=transform)
-    test_dataset = datasets.MNIST('../pytorch_data', train=False,
-                                  transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
-    return train_loader, test_loader
-
-
 async def main():
-    print("MNIST data parallel training sample")
+    print("MNIST / CIFAR data parallel training sample")
     n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
+    dataset_name = os.environ.get("DATASET", "mnist")
     model_name = os.environ.get("MODEL", "mlp")
-    output_dir = os.path.join("results", model_name)
+    input_shape, n_classes = get_io_shape(dataset_name)
+    output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
+
     torch.manual_seed(0)
     lr = 0.01
     print(f"Model: {model_name}")
-    model = make_net(model_name)
-    train_loader, test_loader = get_dataset_loader()
+    model = make_net(model_name, input_shape, n_classes)
+    train_loader, test_loader = get_dataset_loader(dataset_name)
     client_ids = []
     print(f"Waiting {n_client_wait} clients to connect")
 
@@ -125,6 +113,8 @@ async def main():
                     grad_item_id = uuid4().hex
                     await kakiage_server.send_message(client_id, {
                         "model": model_name,
+                        "inputShape": list(input_shape),
+                        "nClasses": n_classes,
                         "weight": weight_item_id,
                         "dataset": dataset_item_id,
                         "grad": grad_item_id
@@ -166,7 +156,7 @@ async def main():
         output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
-    torch.onnx.export(model, torch.zeros(1, 1, 28, 28), os.path.join(
+    torch.onnx.export(model, torch.zeros(1, *input_shape), os.path.join(
         output_dir, "kakiage_trained_model.onnx"),
         input_names=["input"],
         output_names=["output"])

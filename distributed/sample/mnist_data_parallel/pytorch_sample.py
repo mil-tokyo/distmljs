@@ -9,8 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
-from sample_net import make_net
+from sample_net import make_net, get_io_shape, get_dataset_loader
 
 
 def train(model, loader, optimizer):
@@ -44,24 +43,16 @@ def test(model, loader):
 
 
 def main():
+    dataset_name = os.environ.get("DATASET", "mnist")
+    input_shape, n_classes = get_io_shape(dataset_name)
     model_name = os.environ.get("MODEL", "mlp")
-    output_dir = os.path.join("results", model_name)
+    output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
     torch.manual_seed(0)
 
-    model = make_net(model_name)
+    train_loader, test_loader = get_dataset_loader(dataset_name)
+    model = make_net(model_name, input_shape, n_classes)
     optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.0)
-
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('../pytorch_data', train=True, download=True,
-                                   transform=transform)
-    test_dataset = datasets.MNIST('../pytorch_data', train=False,
-                                  transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
 
     torch.save(model.state_dict(), os.path.join(
         output_dir, "initial_model.pt"))

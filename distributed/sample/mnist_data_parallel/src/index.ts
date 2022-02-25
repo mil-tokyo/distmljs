@@ -6,7 +6,7 @@ import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
 
 let ws: WebSocket;
-let backend: K.Backend = "webgl";
+let backend: K.Backend = 'webgl';
 
 function nonNull<T>(v: T | null | undefined): T {
   if (!v) {
@@ -19,11 +19,14 @@ class NetMLP extends K.nn.core.Layer {
   fc1: K.nn.layers.Linear;
   fc2: K.nn.layers.Linear;
 
-  constructor(inFeatures=784, hidden=32, outFeatures=10) {
+  constructor(inputShape: number[], nClasses: number) {
     super();
-    
-    this.fc1 = new K.nn.layers.Linear(inFeatures, hidden);
-    this.fc2 = new K.nn.layers.Linear(hidden, outFeatures);
+
+    this.fc1 = new K.nn.layers.Linear(
+      inputShape[0] * inputShape[1] * inputShape[2],
+      32
+    );
+    this.fc2 = new K.nn.layers.Linear(32, nClasses);
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
@@ -39,42 +42,52 @@ class NetMLP extends K.nn.core.Layer {
 class NetConv extends K.nn.core.Layer {
   conv1: K.nn.layers.Conv2d;
   conv2: K.nn.layers.Conv2d;
+  conv3: K.nn.layers.Conv2d;
   fc1: K.nn.layers.Linear;
 
-  constructor() {
+  constructor(inputShape: number[], nClasses: number) {
     super();
 
-    this.conv1 = new K.nn.layers.Conv2d(1, 8, 3, {});
-    this.conv2 = new K.nn.layers.Conv2d(8, 8, 3, {});
-    this.fc1 = new K.nn.layers.Linear(200, 10);
+    this.conv1 = new K.nn.layers.Conv2d(inputShape[0], 8, 3, {});
+    this.conv2 = new K.nn.layers.Conv2d(8, 16, 3, {});
+    this.conv3 = new K.nn.layers.Conv2d(16, 32, 3, {});
+    this.fc1 = new K.nn.layers.Linear(32, nClasses);
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
     let y = inputs[0];
     y = await this.conv1.c(y);
     y = await K.nn.functions.relu(y);
-    y = await K.nn.functions.max_pool2d(y, {kernelSize: 2});
+    y = await K.nn.functions.max_pool2d(y, { kernelSize: 2 });
     y = await this.conv2.c(y);
     y = await K.nn.functions.relu(y);
-    y = await K.nn.functions.max_pool2d(y, {kernelSize: 2});    y = await K.nn.functions.flatten(y);
+    y = await K.nn.functions.max_pool2d(y, { kernelSize: 2 });
+    y = await this.conv3.c(y);
+    y = await K.nn.functions.relu(y);
+    y = await K.nn.functions.adaptive_avg_pool2d(y, 1);
+    y = await K.nn.functions.flatten(y);
     y = await this.fc1.c(y);
     return [y];
   }
 }
 
-function makeModel(name: string): K.nn.core.Layer {
+function makeModel(
+  name: string,
+  inputShape: number[],
+  nClasses: number
+): K.nn.core.Layer {
   switch (name) {
-    case "mlp":
-      return new NetMLP();
-    case "conv":
-      return new NetConv();
+    case 'mlp':
+      return new NetMLP(inputShape, nClasses);
+    case 'conv':
+      return new NetConv(inputShape, nClasses);
     default:
       throw new Error(`Unknown model ${name}`);
   }
 }
 
 function writeLog(message: string) {
-  document.getElementById("messages")!.innerText += message + "\n";
+  document.getElementById('messages')!.innerText += message + '\n';
 }
 
 const writeState = throttle((message: string) => {
@@ -122,12 +135,12 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
   const y = await model.c(new K.nn.Variable(image));
   const labelV = new K.nn.Variable(label);
   const loss = await K.nn.functions.softmaxCrossEntropy(y, labelV);
-  const lossValue = (await loss.data.to("cpu")).get(0);
+  const lossValue = (await loss.data.to('cpu')).get(0);
   console.log(`loss: ${lossValue}`);
   await loss.backward();
   const grads = new Map<string, T>();
   for (const { name, parameter } of model.parametersWithName()) {
-    grads.set(name, await nonNull(parameter.grad).data.to("cpu"));
+    grads.set(name, await nonNull(parameter.grad).data.to('cpu'));
   }
   await sendBlob(msg.grad, new TensorSerializer().serialize(grads));
   totalBatches += 1;
@@ -152,7 +165,7 @@ async function run() {
   ws.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
     if (!model) {
-      model = makeModel(msg.model);
+      model = makeModel(msg.model, msg.inputShape, msg.nClasses);
       await model.to(backend);
     }
     await K.tidy(async () => {
@@ -164,9 +177,10 @@ async function run() {
 }
 
 window.addEventListener('load', async () => {
-  backend = (new URLSearchParams(window.location.search).get("backend") || "webgl") as K.Backend;
+  backend = (new URLSearchParams(window.location.search).get('backend') ||
+    'webgl') as K.Backend;
   writeLog(`backend: ${backend}`);
-  if (backend === "webgl") {
+  if (backend === 'webgl') {
     await K.tensor.initializeNNWebGLContext();
   }
   await run();
