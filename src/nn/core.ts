@@ -362,7 +362,7 @@ export abstract class Layer {
 
   async stateMap(): Promise<Map<string, CPUTensor>> {
     const m = new Map<string, CPUTensor>();
-    for (const { name, parameter } of this.parametersWithName()) {
+    for (const { name, parameter } of this.parametersWithName(true, false)) {
       m.set(name, await parameter.data.to('cpu'));
     }
     return m;
@@ -374,7 +374,7 @@ export abstract class Layer {
   ): Promise<{ missingKeys: string[]; unexpectedKeys: string[] }> {
     const unexpectedKeys = new Set(map.keys());
     const missingKeys: string[] = [];
-    for (const { name, parameter } of this.parametersWithName()) {
+    for (const { name, parameter } of this.parametersWithName(true, false)) {
       const v = map.get(name);
       unexpectedKeys.delete(name);
       if (v) {
