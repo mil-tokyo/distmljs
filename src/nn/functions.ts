@@ -80,9 +80,7 @@ export async function sum(
 export class Sub extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.sub(lhs, rhs)],
     });
   }
 
@@ -113,9 +111,7 @@ export class Sub extends NNFunction {
 export class Div extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.div(lhs, rhs)],
     });
   }
 
@@ -141,9 +137,7 @@ export async function div(lhs: Variable, rhs: Variable): Promise<Variable> {
 export class Exp extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.exp(x)],
-      webgl: (c, [x]) => [c.exp(x)],
-      webgpu: (c, [x]) => [c.exp(x)],
+      all: (c, [x]) => [c.exp(x)],
     });
   }
 
@@ -164,9 +158,7 @@ export async function exp(x: Variable): Promise<Variable> {
 export class Neg extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.neg(x)],
-      webgl: (c, [x]) => [c.neg(x)],
-      webgpu: (c, [x]) => [c.neg(x)],
+      all: (c, [x]) => [c.neg(x)],
     });
   }
 
@@ -193,9 +185,7 @@ export class ReLUBackprop extends NNFunction {
 export class ReLU extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.relu(x)],
-      webgl: (c, [x]) => [c.relu(x)],
-      webgpu: (c, [x]) => [c.relu(x)],
+      all: (c, [x]) => [c.relu(x)],
     });
   }
 
@@ -211,9 +201,7 @@ export async function relu(x: Variable): Promise<Variable> {
 export class Sigmoid extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.sigmoid(x)],
-      webgl: (c, [x]) => [c.sigmoid(x)],
-      webgpu: (c, [x]) => [c.sigmoid(x)],
+      all: (c, [x]) => [c.sigmoid(x)],
     });
   }
 
@@ -245,9 +233,7 @@ export class MatMul extends NNFunction {
 
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
     return genCall([a, b], {
-      cpu: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
-      webgl: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
-      webgpu: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
+      all: (c, [a, b]) => [c.gemm(a, b, this.transa, this.transb)],
     });
   }
 
@@ -380,15 +366,11 @@ export async function mseLoss(a: Variable, b: Variable): Promise<Variable> {
 export class Linear extends NNFunction {
   async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
     let [y] = genCall([x, weight], {
-      cpu: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
-      webgl: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
-      webgpu: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+      all: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
     });
     if (bias) {
       [y] = genCall([y, bias], {
-        cpu: (c, [y, bias]) => [c.add(y, bias)],
-        webgl: (c, [y, bias]) => [c.add(y, bias)],
-        webgpu: (c, [y, bias]) => [c.add(y, bias)],
+        all: (c, [y, bias]) => [c.add(y, bias)],
       });
     }
     return [y];
@@ -435,9 +417,7 @@ export class Reshape extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     this.xShape = x.shape;
     return genCall([x], {
-      cpu: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
-      webgl: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
-      webgpu: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
+      all: (c, [x]) => [c.reshape(x, this.shape, this.allowZero)],
     });
   }
 
@@ -465,9 +445,7 @@ export class Transpose extends NNFunction {
 
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [x]) => [c.transpose(x, this.axes)],
-      webgl: (c, [x]) => [c.transpose(x, this.axes)],
-      webgpu: (c, [x]) => [c.transpose(x, this.axes)],
+      all: (c, [x]) => [c.transpose(x, this.axes)],
     });
   }
 
@@ -506,9 +484,7 @@ export class Flatten extends NNFunction {
     this.xShape = x.shape;
     const batch = x.shape[0] || 1;
     return genCall([x], {
-      cpu: (c, [x]) => [c.reshape(x, [batch, -1])],
-      webgl: (c, [x]) => [c.reshape(x, [batch, -1])],
-      webgpu: (c, [x]) => [c.reshape(x, [batch, -1])],
+      all: (c, [x]) => [c.reshape(x, [batch, -1])],
     });
   }
 

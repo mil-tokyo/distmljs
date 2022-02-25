@@ -172,9 +172,7 @@ export class BroadcastTo extends NNFunction {
 
   async forward(x: Tensor[]): Promise<Tensor[]> {
     return genCall(x, {
-      cpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
-      webgl: (c, [t]) => [c.broadcastTo(t, this.shape)],
-      webgpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
+      all: (c, [t]) => [c.broadcastTo(t, this.shape)],
     });
   }
 
@@ -190,9 +188,7 @@ export class SumTo extends NNFunction {
 
   async forward(x: Tensor[]): Promise<Tensor[]> {
     return genCall(x, {
-      cpu: (c, [t]) => [c.sumTo(t, this.shape)],
-      webgl: (c, [t]) => [c.sumTo(t, this.shape)],
-      webgpu: (c, [t]) => [c.sumTo(t, this.shape)],
+      all: (c, [t]) => [c.sumTo(t, this.shape)],
     });
   }
 
@@ -210,9 +206,7 @@ export class Sum extends NNFunction {
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [t]) => [c.sum(t)],
-      webgl: (c, [t]) => [c.sum(t)],
-      webgpu: (c, [t]) => [c.sum(t)],
+      all: (c, [t]) => [c.sum(t)],
     });
   }
 
@@ -224,9 +218,7 @@ export class Sum extends NNFunction {
 export class Add extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
     });
   }
 
@@ -257,9 +249,7 @@ export class Add extends NNFunction {
 export class Mul extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
     });
   }
 
