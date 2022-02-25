@@ -67,12 +67,12 @@ def get_dataset_loader():
 
 async def main():
     print("MNIST data parallel training sample")
-    output_dir = "results"
+    n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
+    model_name = os.environ.get("MODEL", "mlp")
+    output_dir = os.path.join("results", model_name)
     os.makedirs(output_dir, exist_ok=True)
     torch.manual_seed(0)
     lr = 0.01
-    n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
-    model_name = os.environ.get("MODEL", "mlp")
     print(f"Model: {model_name}")
     model = make_net(model_name)
     train_loader, test_loader = get_dataset_loader()
@@ -166,7 +166,12 @@ async def main():
         output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
-    print("training ended")
+    torch.onnx.export(model, torch.zeros(1, 1, 28, 28), os.path.join(
+        output_dir, "kakiage_trained_model.onnx"),
+        input_names=["input"],
+        output_names=["output"])
+    print("training ended. You can close the program by Ctrl-C.")
+    # TODO: exit program (sys.exit(0) emits long error message)
 
 
 asyncio.get_running_loop().create_task(main())
