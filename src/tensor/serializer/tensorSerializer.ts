@@ -62,6 +62,16 @@ export class TensorDeserializer {
     }
   }
 
+  /**
+   * Load from local file (e.g. files[0] of <input type="file">)
+   * @param file
+   * @returns
+   */
+  async fromFile(file: File | Blob): Promise<Map<string, CPUTensor>> {
+    const ab = await file.arrayBuffer();
+    return this.deserialize(new Uint8Array(ab));
+  }
+
   deserialize(data: Uint8Array): Map<string, CPUTensor> {
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
     if (signatureFile !== view.getUint32(0, true)) {
@@ -272,6 +282,27 @@ export class TensorSerializer {
     // to support future splitting, save to path/0
     const key = path.substring(localStoragePrefix.length) + '/0';
     localStorage.setItem(key, uint8ArrayToBase64(buf));
+  }
+
+  /**
+   * Serialize to download file.
+   * @param tensors
+   * @param fileName
+   */
+  async toFile(
+    tensors: Map<string, CPUTensor> | Record<string, CPUTensor> | CPUTensor,
+    fileName = 'tensors.bin'
+  ): Promise<void> {
+    const buf = this.serialize(tensors);
+    const blob = new Blob([buf], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   private serializeCore(tensors: Map<string, CPUTensor>): Uint8Array {
