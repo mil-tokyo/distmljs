@@ -105,4 +105,70 @@ describe('serializer', () => {
     assert.deepEqual(wwww.shape, [2]);
     arrayNearlyEqual(wwww.toArray(), [1, 0]);
   });
+
+  it('saves and loads with localStorage', async () => {
+    const srcMap = new Map<string, CPUTensor>();
+
+    srcMap.set(
+      'x',
+      CPUTensor.fromArray(
+        [
+          0.54881352186203, 0.7151893377304077, 0.6027633547782898,
+          0.5448831915855408, 0.42365479469299316, 0.6458941102027893,
+        ],
+        [2, 3],
+        'float32'
+      )
+    );
+    srcMap.set(
+      'yy',
+      CPUTensor.fromArray(
+        [
+          -625436, -264169, -263674, -689256, 219160, -160948, -395526, -458623,
+          -50266, -325657, -629225, -254952,
+        ],
+        [3, 1, 4],
+        'int32'
+      )
+    );
+    srcMap.set('zzz', CPUTensor.fromArray([81], [], 'uint8'));
+    srcMap.set('wwww', CPUTensor.fromArray([1, 0], [2], 'bool'));
+    const s = new TensorSerializer();
+    const keyInLocalStorage = 'serializertest/0'; // implementation dependent
+    localStorage.removeItem(keyInLocalStorage);
+    const path = 'localstorage://serializertest';
+    await s.toLocalStorage(srcMap, path);
+    assert.exists(localStorage.getItem(keyInLocalStorage));
+    const d = new TensorDeserializer();
+    const tensors = await d.fromLocalStorage(path);
+    const x = nonNull(tensors.get('x'));
+    assert.equal(x.dtype, 'float32');
+    assert.deepEqual(x.shape, [2, 3]);
+    arrayNearlyEqual(
+      x.toArray(),
+      [
+        0.54881352186203, 0.7151893377304077, 0.6027633547782898,
+        0.5448831915855408, 0.42365479469299316, 0.6458941102027893,
+      ]
+    );
+    const yy = nonNull(tensors.get('yy'));
+    assert.equal(yy.dtype, 'int32');
+    assert.deepEqual(yy.shape, [3, 1, 4]);
+    arrayNearlyEqual(
+      yy.toArray(),
+      [
+        -625436, -264169, -263674, -689256, 219160, -160948, -395526, -458623,
+        -50266, -325657, -629225, -254952,
+      ]
+    );
+    const zzz = nonNull(tensors.get('zzz'));
+    assert.equal(zzz.dtype, 'uint8');
+    assert.deepEqual(zzz.shape, []);
+    arrayNearlyEqual(zzz.toArray(), [81]);
+    const wwww = nonNull(tensors.get('wwww'));
+    assert.equal(wwww.dtype, 'bool');
+    assert.deepEqual(wwww.shape, [2]);
+    arrayNearlyEqual(wwww.toArray(), [1, 0]);
+    localStorage.removeItem(keyInLocalStorage);
+  });
 });
