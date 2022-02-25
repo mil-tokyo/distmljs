@@ -1,5 +1,6 @@
 import { Backend } from '../backend';
 import { defaultNNContext } from '../context';
+import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
@@ -357,6 +358,43 @@ export abstract class Layer {
    */
   eval(): void {
     this.train(false);
+  }
+
+  async stateMap(): Promise<Map<string, CPUTensor>> {
+    const m = new Map<string, CPUTensor>();
+    for (const { name, parameter } of this.parametersWithName()) {
+      m.set(name, await parameter.data.to('cpu'));
+    }
+    return m;
+  }
+
+  async setStateMap(
+    map: Map<string, CPUTensor>,
+    strict = true
+  ): Promise<{ missingKeys: string[]; unexpectedKeys: string[] }> {
+    const unexpectedKeys = new Set(map.keys());
+    const missingKeys: string[] = [];
+    for (const { name, parameter } of this.parametersWithName()) {
+      const v = map.get(name);
+      unexpectedKeys.delete(name);
+      if (v) {
+        const backend = parameter.data.backend;
+        parameter.data.dispose();
+        parameter.data = await v.to(backend);
+      } else {
+        if (strict) {
+          throw new Error(`Tensor for ${name} is missing.`);
+        } else {
+          missingKeys.push(name);
+        }
+      }
+    }
+    if (strict) {
+      if (unexpectedKeys.size > 0) {
+        throw new Error(`Tensor ${Array.from(unexpectedKeys)} are unexpected.`);
+      }
+    }
+    return { unexpectedKeys: Array.from(unexpectedKeys), missingKeys };
   }
 }
 
