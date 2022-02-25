@@ -365,7 +365,7 @@ export class TensorSerializer {
     ofs += 4;
     view.setUint8(ofs, 0); // compression algorithm
     ofs += 1;
-    view.setUint32(ofs, buffer.data.byteLength); // compressed data length
+    view.setUint32(ofs, buffer.data.byteLength, true); // compressed data length
     ofs += 4;
     let dataType: number;
     switch (tensor.dtype) {
