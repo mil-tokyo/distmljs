@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { CPUTensor } from '../../tensor/cpuTensor';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { arange } from '../../util';
 
 describe('repeat', () => {
@@ -51,29 +51,29 @@ describe('repeat', () => {
 describe('tile', () => {
   it('tile scalar', () => {
     const x = CPUTensor.s(3);
-    const y = CPUTensor.repeat(x, 2);
-    assert.equal(y.shape, [2]);
+    const y = CPUTensor.tile(x, 2);
+    assert.deepEqual(y.shape, [2]);
     assert.deepEqual(y.toArray(), [3, 3]);
   });
 
   it('tile scalar 2d', () => {
     const x = CPUTensor.s(3);
-    const y = CPUTensor.repeat(x, [2, 3]);
-    assert.equal(y.shape, [2, 3]);
+    const y = CPUTensor.tile(x, [2, 3]);
+    assert.deepEqual(y.shape, [2, 3]);
     assert.deepEqual(y.toArray(), [3, 3, 3, 3, 3, 3]);
   });
 
   it('tile 1', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
-    const y = CPUTensor.repeat(x, 2);
-    assert.equal(y.shape, [2, 4]);
+    const y = CPUTensor.tile(x, 2);
+    assert.deepEqual(y.shape, [2, 4]);
     assert.deepEqual(y.toArray(), [1, 2, 1, 2, 3, 4, 3, 4]);
   });
 
   it('tile 2', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
-    const y = CPUTensor.repeat(x, [2, 3]);
-    assert.equal(y.shape, [4, 6]);
+    const y = CPUTensor.tile(x, [2, 3]);
+    assert.deepEqual(y.shape, [4, 6]);
     assert.deepEqual(
       y.toArray(),
       [1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4]
@@ -82,8 +82,8 @@ describe('tile', () => {
 
   it('tile 3', () => {
     const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
-    const y = CPUTensor.repeat(x, [2, 1, 3]);
-    assert.equal(y.shape, [2, 2, 6]);
+    const y = CPUTensor.tile(x, [2, 1, 3]);
+    assert.deepEqual(y.shape, [2, 2, 6]);
     assert.deepEqual(
       y.toArray(),
       [1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4, 1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4]
@@ -92,8 +92,8 @@ describe('tile', () => {
 
   it('tile 4', () => {
     const x = CPUTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-    const y = CPUTensor.repeat(x, 2);
-    assert.equal(y.shape, [2, 3, 4, 10]);
+    const y = CPUTensor.tile(x, 2);
+    assert.deepEqual(y.shape, [2, 3, 4, 10]);
     assert.deepEqual(
       y.toArray(),
       [
@@ -117,8 +117,8 @@ describe('tile', () => {
 
   it('tile 5', () => {
     const x = CPUTensor.fromArray(arange(2 * 3 * 4 * 5), [2, 3, 4, 5]);
-    const y = CPUTensor.repeat(x, [2, 1]);
-    assert.equal(y.shape, [2, 3, 8, 5]);
+    const y = CPUTensor.tile(x, [2, 1]);
+    assert.deepEqual(y.shape, [2, 3, 8, 5]);
     assert.deepEqual(
       y.toArray(),
       [
