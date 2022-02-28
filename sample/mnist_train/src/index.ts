@@ -3,6 +3,8 @@ import Variable = K.nn.Variable;
 import FetchDataset = K.dataset.datasets.FetchDataset;
 import DataLoader = K.dataset.DataLoader;
 
+const localStorageKey = 'localstorage://kakiage/mnistTrain';
+
 function print(message: string, time = false): void {
   const div = document.getElementById('result');
   const elem = document.createElement('div');
@@ -39,6 +41,8 @@ function wait() {
   });
 }
 
+let model: MLPModel;
+
 async function train(backend: K.Backend) {
   const trainDataset = new FetchDataset(
     './dataset/mnist_preprocessed_flatten_train.bin'
@@ -51,14 +55,12 @@ async function train(backend: K.Backend) {
   const trainLoader = new DataLoader(trainDataset, { batchSize: 32 });
   const testLoader = new DataLoader(testDataset, { batchSize: 32 });
 
-  const hidden = 32;
   const lr = 0.01;
-  const model = new MLPModel(784, hidden, 10);
   await model.to(backend);
   const optimizer = new K.nn.optimizers.SGD(model.parameters(), lr);
 
   print(`Start training on backend ${backend}`);
-  for (let epoch = 0; epoch < 3; epoch++) {
+  for (let epoch = 0; epoch < 1; epoch++) {
     print(`epoch ${epoch}`);
     let trainIter = 0;
     for await (const [images, labels] of trainLoader) {
@@ -114,13 +116,15 @@ async function train(backend: K.Backend) {
   print('train end');
 }
 
-window.addEventListener('load', () => {
-  document.getElementById('start-training')!.onclick = async () => {
-    const backend = (
-      document.querySelector(
-        'input[name="backend"]:checked'
-      )! as HTMLInputElement
-    ).value as K.Backend;
+async function startTraining(load?: 'localStorage' | 'file') {
+  try {
+    const backend =
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      (
+        document.querySelector(
+          'input[name="backend"]:checked'
+        )! as HTMLInputElement
+      ).value as K.Backend;
     try {
       if (backend === 'webgl') {
         await K.tensor.initializeNNWebGLContext();
@@ -132,6 +136,58 @@ window.addEventListener('load', () => {
       alert(`Failed to initialize backend ${backend}. ${error}`);
       return;
     }
+
+    const hidden = 32;
+    model = new MLPModel(784, hidden, 10);
+    const des = new K.tensor.TensorDeserializer();
+    if (load === 'localStorage') {
+      await model.setStateMap(await des.fromLocalStorage(localStorageKey));
+    } else if (load === 'file') {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const files = (
+        document.getElementById('upload-file')! as HTMLInputElement
+      ).files;
+      if (!files || !files[0]) {
+        alert('No file specified');
+        return;
+      }
+      const file = files[0];
+      await model.setStateMap(await des.fromFile(file));
+    }
     await train(backend);
+  } catch (error) {
+    console.error(error);
+    alert(`Training failed ${(error as Error).message}`);
+  }
+}
+
+window.addEventListener('load', () => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  document.getElementById('start-training')!.onclick = () => startTraining();
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  document.getElementById('start-training-with-saved')!.onclick = () =>
+    startTraining('localStorage');
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  document.getElementById('start-training-with-file')!.onclick = () =>
+    startTraining('file');
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  document.getElementById('save-inside-browser')!.onclick = async () => {
+    try {
+      const ser = new K.tensor.TensorSerializer();
+      await ser.toLocalStorage(await model.stateMap(), localStorageKey);
+    } catch (error) {
+      console.error(error);
+      alert(`Save failed ${(error as Error).message}`);
+    }
+  };
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  document.getElementById('download-to-file')!.onclick = async () => {
+    try {
+      const ser = new K.tensor.TensorSerializer();
+      await ser.toFile(await model.stateMap(), 'mnisttrain.bin');
+    } catch (error) {
+      console.error(error);
+      alert(`Save failed ${(error as Error).message}`);
+    }
   };
 });

@@ -1,4 +1,7 @@
-# 分散学習と同じモデルの学習をPyTorch単独で行い、結果比較に用いる
+"""
+分散学習と同じモデルの学習をPyTorch単独で行う。
+結果比較に用いる。
+"""
 
 import os
 import pickle
@@ -6,21 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(784, 32)
-        self.fc2 = nn.Linear(32, 10)
-
-    def forward(self, x):
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
+from sample_net import make_net, get_io_shape, get_dataset_loader
 
 
 def train(model, loader, optimizer):
@@ -54,23 +43,16 @@ def test(model, loader):
 
 
 def main():
-    output_dir = "results"
+    dataset_name = os.environ.get("DATASET", "mnist")
+    input_shape, n_classes = get_io_shape(dataset_name)
+    model_name = os.environ.get("MODEL", "mlp")
+    output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
     torch.manual_seed(0)
 
-    model = Net()
+    train_loader, test_loader = get_dataset_loader(dataset_name)
+    model = make_net(model_name, input_shape, n_classes)
     optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.0)
-
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('../pytorch_data', train=True, download=True,
-                                   transform=transform)
-    test_dataset = datasets.MNIST('../pytorch_data', train=False,
-                                  transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
 
     torch.save(model.state_dict(), os.path.join(
         output_dir, "initial_model.pt"))

@@ -13,23 +13,8 @@ import {
   getBroadcastStride,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import {
-  coreadd,
-  corediv,
-  coremul,
-  corepow,
-  corereluBackprop,
-  coresigmoidBackprop,
-  coresub,
-} from './core/binary';
+import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { stridedCopy } from './core/copy';
-import {
-  mseLoss,
-  mseLossBackprop,
-  nllLoss,
-  softmax,
-  softmaxCrossEntropyBackward,
-} from './core/loss';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
 import {
@@ -476,14 +461,6 @@ export class WebGPUTensor extends Tensor {
     return corepow(lhs, rhs);
   }
 
-  static sigmoidBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
-    return coresigmoidBackprop(lhs, rhs);
-  }
-
-  static reluBackprop(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
-    return corereluBackprop(lhs, rhs);
-  }
-
   /**
    * 転置込みの行列積を行う暫定的な関数
    * @param a
@@ -532,6 +509,13 @@ export class WebGPUTensor extends Tensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
+  reshape(
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGPUTensor {
+    return WebGPUTensor.reshape(this, shape, allowZero);
+  }
+
   static transpose(
     x: WebGPUTensor,
     axes?: ReadonlyArray<number> | null
@@ -544,32 +528,8 @@ export class WebGPUTensor extends Tensor {
     return stridedCopy(x, newShape, srcStrides);
   }
 
-  static mseLossBackprop(
-    ad: WebGPUTensor,
-    bd: WebGPUTensor,
-    gyd: WebGPUTensor
-  ): [WebGPUTensor, WebGPUTensor] {
-    return mseLossBackprop(ad, bd, gyd);
-  }
-
-  static mseLoss(a: WebGPUTensor, b: WebGPUTensor): WebGPUTensor {
-    return mseLoss(a, b);
-  }
-
-  static nllLoss(softmax: WebGPUTensor, label: WebGPUTensor): WebGPUTensor {
-    return nllLoss(softmax, label);
-  }
-
-  static softmax(x: WebGPUTensor): WebGPUTensor {
-    return softmax(x);
-  }
-
-  static softmaxCrossEntropyBackward(
-    softmax: WebGPUTensor,
-    label: WebGPUTensor,
-    gy: WebGPUTensor
-  ): WebGPUTensor {
-    return softmaxCrossEntropyBackward(softmax, label, gy);
+  transpose(axes?: ReadonlyArray<number> | null): WebGPUTensor {
+    return WebGPUTensor.transpose(this, axes);
   }
 
   /**

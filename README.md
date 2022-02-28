@@ -4,7 +4,7 @@ JavaScript 製分散計算対応 DNN フレームワーク
 
 # 環境構築
 
-node 14.x が必要。
+node 16.x が必要。
 
 ```
 npm install

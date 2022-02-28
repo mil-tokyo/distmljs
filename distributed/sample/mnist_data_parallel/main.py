@@ -1,3 +1,18 @@
+"""
+Webブラウザを接続した分散計算を行う。
+環境変数で設定を行う。
+MODEL: mlp, convのいずれか。モデルの種類を指定する。
+N_CLIENTS: 分散計算に参加するクライアント数。1以上の整数を指定する。指定しない場合は1が指定されたとみなす。
+
+実行はuvicorn経由で行う。コマンド例(Mac/Linuxの場合):
+MODEL=conv N_CLIENTS=2 npm run train
+
+Windowsの場合はsetコマンドを使用して以下のようになる:
+set MODEL=conv
+set N_CLIENTS=2
+npm run train
+"""
+
 import asyncio
 import math
 from uuid import uuid4
@@ -7,29 +22,15 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets, transforms
 from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent, setup_server
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
+from sample_net import make_net, get_io_shape, get_dataset_loader
 
 # スクリプトの配布
 kakiage_server = setup_server()
 app = kakiage_server.app
 
 # PyTorchを用いた初期モデルの作成、学習したモデルのサーバサイドでの評価
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(784, 32)
-        self.fc2 = nn.Linear(32, 10)
-
-    def forward(self, x):
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
 
 
 def test(model, loader):
@@ -49,29 +50,20 @@ def test(model, loader):
     return {"loss": loss_sum / count, "accuracy": correct / count}
 
 
-def get_dataset_loader():
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('../pytorch_data', train=True, download=True,
-                                   transform=transform)
-    test_dataset = datasets.MNIST('../pytorch_data', train=False,
-                                  transform=transform)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=64)
-    return train_loader, test_loader
-
-
 async def main():
-    print("MNIST data parallel training sample")
-    output_dir = "results"
+    print("MNIST / CIFAR data parallel training sample")
+    n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
+    dataset_name = os.environ.get("DATASET", "mnist")
+    model_name = os.environ.get("MODEL", "mlp")
+    input_shape, n_classes = get_io_shape(dataset_name)
+    output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
+
     torch.manual_seed(0)
     lr = 0.01
-    n_client_wait = 3
-    model = Net()
-    train_loader, test_loader = get_dataset_loader()
+    print(f"Model: {model_name}")
+    model = make_net(model_name, input_shape, n_classes)
+    train_loader, test_loader = get_dataset_loader(dataset_name)
     client_ids = []
     print(f"Waiting {n_client_wait} clients to connect")
 
@@ -113,13 +105,16 @@ async def main():
                     dataset_item_id = uuid4().hex
                     kakiage_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(
                         {
-                            "image": torch.flatten(image_chunk, 1).detach().numpy().astype(np.float32),
+                            "image": image_chunk.detach().numpy().astype(np.float32),
                             "label": label_chunk.detach().numpy().astype(np.int32),
                         }
                     )
                     item_ids_to_delete.append(dataset_item_id)
                     grad_item_id = uuid4().hex
                     await kakiage_server.send_message(client_id, {
+                        "model": model_name,
+                        "inputShape": list(input_shape),
+                        "nClasses": n_classes,
                         "weight": weight_item_id,
                         "dataset": dataset_item_id,
                         "grad": grad_item_id
@@ -161,6 +156,12 @@ async def main():
         output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
+    torch.onnx.export(model, torch.zeros(1, *input_shape), os.path.join(
+        output_dir, "kakiage_trained_model.onnx"),
+        input_names=["input"],
+        output_names=["output"])
+    print("training ended. You can close the program by Ctrl-C.")
+    # TODO: exit program (sys.exit(0) emits long error message)
 
 
 asyncio.get_running_loop().create_task(main())

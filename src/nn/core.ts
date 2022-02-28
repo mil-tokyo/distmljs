@@ -1,5 +1,6 @@
 import { Backend } from '../backend';
 import { defaultNNContext } from '../context';
+import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
@@ -57,7 +58,11 @@ export class Variable {
       if (!f?.outputs) {
         throw new Error();
       }
-      const gys: Variable[] = f.outputs.map((wv) => nonNull(wv.deref()?.grad));
+      // TODO: nonNullチェック（batchnormのrunning_mean出力に勾配がないがbackwardを通すためチェックを外している）
+      // differentialでない出力があるfunction全般における勾配の扱いを整理する必要あり
+      const gys: Variable[] = f.outputs.map(
+        (wv) => wv.deref()?.grad as Variable
+      );
 
       await defaultNNContext.withValue(
         'enableBackprop',
@@ -110,7 +115,15 @@ export class Variable {
   }
 }
 
-export class Parameter extends Variable {}
+export class Parameter extends Variable {
+  constructor(
+    public data: Tensor,
+    public name?: string,
+    public optimizable = true
+  ) {
+    super(data, name);
+  }
+}
 
 export abstract class NNFunction {
   generation?: number;
@@ -160,9 +173,7 @@ export class BroadcastTo extends NNFunction {
 
   async forward(x: Tensor[]): Promise<Tensor[]> {
     return genCall(x, {
-      cpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
-      webgl: (c, [t]) => [c.broadcastTo(t, this.shape)],
-      webgpu: (c, [t]) => [c.broadcastTo(t, this.shape)],
+      all: (c, [t]) => [c.broadcastTo(t, this.shape)],
     });
   }
 
@@ -178,9 +189,7 @@ export class SumTo extends NNFunction {
 
   async forward(x: Tensor[]): Promise<Tensor[]> {
     return genCall(x, {
-      cpu: (c, [t]) => [c.sumTo(t, this.shape)],
-      webgl: (c, [t]) => [c.sumTo(t, this.shape)],
-      webgpu: (c, [t]) => [c.sumTo(t, this.shape)],
+      all: (c, [t]) => [c.sumTo(t, this.shape)],
     });
   }
 
@@ -198,9 +207,7 @@ export class Sum extends NNFunction {
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      cpu: (c, [t]) => [c.sum(t)],
-      webgl: (c, [t]) => [c.sum(t)],
-      webgpu: (c, [t]) => [c.sum(t)],
+      all: (c, [t]) => [c.sum(t)],
     });
   }
 
@@ -212,9 +219,7 @@ export class Sum extends NNFunction {
 export class Add extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.add(lhs, rhs)],
     });
   }
 
@@ -245,9 +250,7 @@ export class Add extends NNFunction {
 export class Mul extends NNFunction {
   async forward([lhs, rhs]: Tensor[]): Promise<Tensor[]> {
     return genCall([lhs, rhs], {
-      cpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
-      webgl: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
-      webgpu: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
+      all: (c, [lhs, rhs]) => [c.mul(lhs, rhs)],
     });
   }
 
@@ -265,12 +268,14 @@ export class Mul extends NNFunction {
 export abstract class Layer {
   training = true; // default value is same as PyTorch
 
-  *parameters(recursive = true): Generator<Parameter> {
+  *parameters(recursive = true, optimizableOnly = true): Generator<Parameter> {
     for (const [, value] of Object.entries(this)) {
       if (value instanceof Parameter) {
-        yield value;
+        if (!optimizableOnly || value.optimizable) {
+          yield value;
+        }
       } else if (recursive && value instanceof Layer) {
-        for (const subParam of value.parameters()) {
+        for (const subParam of value.parameters(recursive, optimizableOnly)) {
           yield subParam;
         }
       }
@@ -278,13 +283,19 @@ export abstract class Layer {
   }
 
   *parametersWithName(
-    recursive = true
+    recursive = true,
+    optimizableOnly = true
   ): Generator<{ name: string; parameter: Parameter }> {
     for (const [name, value] of Object.entries(this)) {
       if (value instanceof Parameter) {
-        yield { name, parameter: value };
+        if (!optimizableOnly || value.optimizable) {
+          yield { name, parameter: value };
+        }
       } else if (recursive && value instanceof Layer) {
-        for (const subParam of value.parametersWithName()) {
+        for (const subParam of value.parametersWithName(
+          recursive,
+          optimizableOnly
+        )) {
           yield {
             name: `${name}.${subParam.name}`,
             parameter: subParam.parameter,
@@ -323,7 +334,7 @@ export abstract class Layer {
   abstract forward(inputs: Variable[]): Promise<Variable[]>;
 
   async to(backend: Backend): Promise<void> {
-    for (const param of this.parameters()) {
+    for (const param of this.parameters(true, false)) {
       param.data = await param.data.to(backend);
     }
   }
@@ -347,6 +358,43 @@ export abstract class Layer {
    */
   eval(): void {
     this.train(false);
+  }
+
+  async stateMap(): Promise<Map<string, CPUTensor>> {
+    const m = new Map<string, CPUTensor>();
+    for (const { name, parameter } of this.parametersWithName(true, false)) {
+      m.set(name, await parameter.data.to('cpu'));
+    }
+    return m;
+  }
+
+  async setStateMap(
+    map: Map<string, CPUTensor>,
+    strict = true
+  ): Promise<{ missingKeys: string[]; unexpectedKeys: string[] }> {
+    const unexpectedKeys = new Set(map.keys());
+    const missingKeys: string[] = [];
+    for (const { name, parameter } of this.parametersWithName(true, false)) {
+      const v = map.get(name);
+      unexpectedKeys.delete(name);
+      if (v) {
+        const backend = parameter.data.backend;
+        parameter.data.dispose();
+        parameter.data = await v.to(backend);
+      } else {
+        if (strict) {
+          throw new Error(`Tensor for ${name} is missing.`);
+        } else {
+          missingKeys.push(name);
+        }
+      }
+    }
+    if (strict) {
+      if (unexpectedKeys.size > 0) {
+        throw new Error(`Tensor ${Array.from(unexpectedKeys)} are unexpected.`);
+      }
+    }
+    return { unexpectedKeys: Array.from(unexpectedKeys), missingKeys };
   }
 }
 

@@ -1,5 +1,10 @@
 import { DType, TypedArrayTypes } from '../../dtype';
-import { arrayProd, arraySum } from '../../util';
+import {
+  arrayProd,
+  arraySum,
+  base64ToUint8Array,
+  uint8ArrayToBase64,
+} from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { decodeTensorRaw } from './tensorDecoder/decodeTensorRaw';
 
@@ -27,6 +32,8 @@ export enum TensorSerializerDataType {
   BFLOAT16 = 16,
 }
 
+const localStoragePrefix = 'localstorage://';
+
 export class TensorDeserializer {
   async fromHTTP(paths: string[] | string): Promise<Map<string, CPUTensor>> {
     let pathsArray: string[];
@@ -38,6 +45,31 @@ export class TensorDeserializer {
     // TODO: progress
     const fileArray = await this.fetchAllFile(pathsArray);
     return this.deserialize(fileArray);
+  }
+
+  async fromLocalStorage(path: string): Promise<Map<string, CPUTensor>> {
+    if (!path.startsWith(localStoragePrefix)) {
+      throw new Error(
+        `toLocalStorage: path must be prefix '${localStoragePrefix}'`
+      );
+    }
+    const key = path.substring(localStoragePrefix.length) + '/0';
+    const serialized = localStorage.getItem(key);
+    if (serialized) {
+      return this.deserialize(base64ToUint8Array(serialized));
+    } else {
+      throw new Error('no tensor stored');
+    }
+  }
+
+  /**
+   * Load from local file (e.g. files[0] of <input type="file">)
+   * @param file
+   * @returns
+   */
+  async fromFile(file: File | Blob): Promise<Map<string, CPUTensor>> {
+    const ab = await file.arrayBuffer();
+    return this.deserialize(new Uint8Array(ab));
   }
 
   deserialize(data: Uint8Array): Map<string, CPUTensor> {
@@ -237,6 +269,42 @@ export class TensorSerializer {
     }
   }
 
+  async toLocalStorage(
+    tensors: Map<string, CPUTensor> | Record<string, CPUTensor> | CPUTensor,
+    path: string
+  ): Promise<void> {
+    if (!path.startsWith(localStoragePrefix)) {
+      throw new Error(
+        `toLocalStorage: path must be prefix '${localStoragePrefix}'`
+      );
+    }
+    const buf = this.serialize(tensors);
+    // to support future splitting, save to path/0
+    const key = path.substring(localStoragePrefix.length) + '/0';
+    localStorage.setItem(key, uint8ArrayToBase64(buf));
+  }
+
+  /**
+   * Serialize to download file.
+   * @param tensors
+   * @param fileName
+   */
+  async toFile(
+    tensors: Map<string, CPUTensor> | Record<string, CPUTensor> | CPUTensor,
+    fileName = 'tensors.bin'
+  ): Promise<void> {
+    const buf = this.serialize(tensors);
+    const blob = new Blob([buf], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   private serializeCore(tensors: Map<string, CPUTensor>): Uint8Array {
     let totalLength = 4;
     const tensorEntries: [string, CPUTensor, number, number][] = [];
@@ -297,7 +365,7 @@ export class TensorSerializer {
     ofs += 4;
     view.setUint8(ofs, 0); // compression algorithm
     ofs += 1;
-    view.setUint32(ofs, buffer.data.byteLength); // compressed data length
+    view.setUint32(ofs, buffer.data.byteLength, true); // compressed data length
     ofs += 4;
     let dataType: number;
     switch (tensor.dtype) {

@@ -4,24 +4,9 @@ import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import { calcReshape, calcTransposeShape } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import {
-  coreadd,
-  corediv,
-  coremul,
-  corepow,
-  corereluBackprop,
-  coresigmoidBackprop,
-  coresub,
-} from './core/binary';
+import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
-import {
-  mseLoss,
-  mseLossBackprop,
-  nllLoss,
-  softmax,
-  softmaxCrossEntropyBackward,
-} from './core/loss';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -959,6 +944,13 @@ export class WebGLTensor extends Tensor {
     return x.alias(calcReshape(x.shape, shape, allowZero));
   }
 
+  reshape(
+    shape: ReadonlyArray<number> | number,
+    allowZero = true
+  ): WebGLTensor {
+    return WebGLTensor.reshape(this, shape, allowZero);
+  }
+
   static transpose(
     x: WebGLTensor,
     axes?: ReadonlyArray<number> | null
@@ -971,40 +963,8 @@ export class WebGLTensor extends Tensor {
     return stridedCopy(x, newShape, srcStrides);
   }
 
-  static mseLossBackprop(
-    ad: WebGLTensor,
-    bd: WebGLTensor,
-    gyd: WebGLTensor
-  ): WebGLTensor[] {
-    return mseLossBackprop(ad, bd, gyd);
-  }
-
-  static mseLoss(a: WebGLTensor, b: WebGLTensor): WebGLTensor {
-    return mseLoss(a, b);
-  }
-
-  static nllLoss(softmax: WebGLTensor, label: WebGLTensor): WebGLTensor {
-    return nllLoss(softmax, label);
-  }
-
-  static softmax(x: WebGLTensor): WebGLTensor {
-    return softmax(x);
-  }
-
-  static softmaxCrossEntropyBackward(
-    softmax: WebGLTensor,
-    label: WebGLTensor,
-    gy: WebGLTensor
-  ): WebGLTensor {
-    return softmaxCrossEntropyBackward(softmax, label, gy);
-  }
-
-  static reluBackprop(yd: WebGLTensor, gyd: WebGLTensor): WebGLTensor {
-    return corereluBackprop(yd, gyd);
-  }
-
-  static sigmoidBackprop(yd: WebGLTensor, gyd: WebGLTensor): WebGLTensor {
-    return coresigmoidBackprop(yd, gyd);
+  transpose(axes?: ReadonlyArray<number> | null): WebGLTensor {
+    return WebGLTensor.transpose(this, axes);
   }
 
   /**

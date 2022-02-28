@@ -9,13 +9,33 @@
   </head>
   <body>
     <div>
-      <button type="button" id="start-training">Start training</button>
-      Backend:
-      <label><input type="radio" name="backend" value="cpu" />CPU</label>
-      <label
-        ><input type="radio" name="backend" value="webgl" checked />WebGL</label
-      ><label><input type="radio" name="backend" value="webgpu" />WebGPU</label>
+      <div>
+        <button type="button" id="start-training">Start training</button>
+        <button type="button" id="start-training-with-saved">
+          with saved data in browser
+        </button>
+        <button type="button" id="start-training-with-file">with file</button
+        ><input type="file" id="upload-file" />
+      </div>
+      <div>
+        Backend:
+        <label><input type="radio" name="backend" value="cpu" />CPU</label>
+        <label
+          ><input
+            type="radio"
+            name="backend"
+            value="webgl"
+            checked
+          />WebGL</label
+        ><label
+          ><input type="radio" name="backend" value="webgpu" />WebGPU</label
+        >
+      </div>
     </div>
     <div id="result"></div>
+    <div id="save-control">
+      <button type="button" id="save-inside-browser">Save inside browser</button
+      ><button type="button" id="download-to-file">Download to file</button>
+    </div>
   </body>
 </html>

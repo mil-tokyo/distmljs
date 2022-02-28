@@ -3,6 +3,16 @@
 
 import { arange, arrayProd } from '../util';
 
+export function getStride(shape: ReadonlyArray<number>): number[] {
+  const strides: number[] = [];
+  let size = 1;
+  for (let i = shape.length - 1; i >= 0; i--) {
+    strides.unshift(size);
+    size *= shape[i];
+  }
+  return strides;
+}
+
 export function getBroadcastStride(
   fromShape: ReadonlyArray<number>,
   toShape: ReadonlyArray<number>

@@ -5,3 +5,5 @@ dist
 # config files
 .*.js
 webpack*
+# sample does not belong to source
+sample
