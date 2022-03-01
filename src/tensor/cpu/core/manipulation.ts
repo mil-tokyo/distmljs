@@ -113,34 +113,31 @@ export function tile(
 
 function catSub(
   arrays: Array<TypedArrayTypes>,
-  shape: ReadonlyArray<number>,
-  strides: ReadonlyArray<number>,
+  shapes: ReadonlyArray<ReadonlyArray<number>>,
+  strides: ReadonlyArray<ReadonlyArray<number>>,
   axis: number,
-  dtype: DType
+  dtype: DType,
+  dim: number
 ): Array<number> {
   const y: Array<number> = [];
-  if (axis == 0) {
+  if (dim === axis) {
     for (const array of arrays) {
       for (let i = 0; i < array.length; ++i) {
         y.push(array[i]);
       }
     }
   } else {
-    const nextShape = shape.slice(1);
-    const nextStrides = strides.slice(1);
-    const nextArraySize = arrayProd(nextShape);
-    const stride0 = strides[0];
-    for (let i = 0; i < shape[0]; ++i) {
+    for (let i = 0; i < shapes[0][dim]; ++i) {
       const nextArrays: Array<TypedArrayTypes> = [];
       for (let j = 0; j < arrays.length; ++j) {
-        nextArrays[j] = new TypedArrayForDType[dtype](nextArraySize);
+        nextArrays[j] = new TypedArrayForDType[dtype](strides[j][dim]);
       }
       for (let j = 0; j < arrays.length; ++j) {
-        for (let k = 0; k < stride0; ++k) {
-          nextArrays[j][k] = arrays[j][i * stride0 + k];
+        for (let k = 0; k < strides[j][dim]; ++k) {
+          nextArrays[j][k] = arrays[j][i * strides[j][dim] + k];
         }
       }
-      const t = catSub(nextArrays, nextShape, nextStrides, axis - 1, dtype);
+      const t = catSub(nextArrays, shapes, strides, axis, dtype, dim + 1);
       for (let j = 0; j < t.length; ++j) {
         y.push(t[j]);
       }
@@ -149,21 +146,24 @@ function catSub(
   return y;
 }
 
-function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
+export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
   if (tensors.length === 0) {
     throw new Error('tensors must not be empty');
   }
-  const tensor0 = tensors[0];
-  const ndim = tensor0.ndim;
-  const shape = tensor0.shape;
-  const dtype = tensor0.dtype;
+  const ndim = tensors[0].ndim;
+  const shape = tensors[0].shape;
+  const dtype = tensors[0].dtype;
   for (const tensor of tensors) {
     if (tensor.ndim !== ndim) {
-      throw new Error('all tensors must be the same dimention');
+      throw new Error('all tensors must be the same dimension');
     }
     for (let i = 0; i < shape.length; ++i) {
-      if (tensor.shape[i] !== shape[i]) {
-        throw new Error('all tensors must be the same shape');
+      if (i !== axis) {
+        if (tensor.shape[i] !== shape[i]) {
+          throw new Error(
+            'all tensors must have the same shape except in the concatenating dimension'
+          );
+        }
       }
     }
     if (tensor.dtype !== dtype) {
@@ -171,17 +171,26 @@ function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
     }
   }
   if (axis >= ndim) {
-    throw new Error('axis must be smaller than tensor dimention');
+    throw new Error('axis must be smaller than tensor dimension');
   }
   const arrays: Array<TypedArrayTypes> = [];
   for (let i = 0; i < tensors.length; ++i) {
     arrays[i] = tensors[i].getBuffer().data;
   }
-  const dy = catSub(arrays, shape, tensor0.strides, axis, dtype);
+  const shapes = [];
+  const strides = [];
+  for (let i = 0; i < tensors.length; ++i) {
+    shapes[i] = tensors[i].shape;
+    strides[i] = tensors[i].strides;
+  }
+  const dy = catSub(arrays, shapes, strides, axis, dtype, 0);
   const yShape: Array<number> = [];
   for (let i = 0; i < tensors[0].ndim; ++i) {
     if (i === axis) {
-      yShape[i] = shape[i] * tensors.length;
+      yShape[i] = 0;
+      for (const tensor of tensors) {
+        yShape[i] += tensor.shape[i];
+      }
     } else {
       yShape[i] = shape[i];
     }
@@ -189,36 +198,3 @@ function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
   const y = CPUTensor.fromArray(dy, yShape);
   return y;
 }
-
-let x1 = CPUTensor.fromArray([1, 2, 3, 4], [4]);
-let x2 = CPUTensor.fromArray([5, 6, 7, 8], [4]);
-let x3 = CPUTensor.fromArray([9, 10, 11, 12], [4]);
-let y = cat([x1, x2, x3]);
-assert.deepEqual(y.shape, [12]);
-assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-
-x1 = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
-x2 = CPUTensor.fromArray([5, 6, 7, 8], [2, 2]);
-y = cat([x1, x2]);
-assert.deepEqual(y.shape, [4, 2]);
-assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8]);
-
-x1 = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
-x2 = CPUTensor.fromArray([5, 6, 7, 8], [2, 2]);
-y = cat([x1, x2], 1);
-assert.deepEqual(y.shape, [2, 4]);
-assert.deepEqual(y.toArray(), [1, 2, 5, 6, 3, 4, 7, 8]);
-
-x1 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-x2 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-x3 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-y = cat([x1, x2, x3], 0);
-assert.deepEqual(y.shape, [6, 3, 4]);
-assert.deepEqual(y.get(3, 2, 2), 22);
-
-x1 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-x2 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-x3 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
-y = cat([x1, x2, x3], 2);
-assert.deepEqual(y.shape, [2, 3, 12]);
-assert.deepEqual(y.get(1, 2, 8), 20);
