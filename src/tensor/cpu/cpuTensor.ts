@@ -41,7 +41,7 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
-import { repeat, tile } from './core/manipulation';
+import { cat, repeat, tile } from './core/manipulation';
 import { gemm } from './core/gemm';
 
 class CPUTensorBuffer {
@@ -421,5 +421,9 @@ export class CPUTensor extends Tensor {
 
   static tile(x: CPUTensor, reps: ReadonlyArray<number> | number): CPUTensor {
     return tile(x, reps);
+  }
+
+  static cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
+    return cat(tensors, axis);
   }
 }

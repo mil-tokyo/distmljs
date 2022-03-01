@@ -140,3 +140,70 @@ describe('tile', () => {
     );
   });
 });
+
+describe('cat', () => {
+  it('cat 1d', () => {
+    const x1 = CPUTensor.fromArray([1, 2, 3, 4], [4]);
+    const x2 = CPUTensor.fromArray([5, 6, 7, 8], [4]);
+    const y = CPUTensor.cat([x1, x2]);
+    assert.deepEqual(y.shape, [8]);
+    assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it('cat 2d 1', () => {
+    const x1 = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
+    const x2 = CPUTensor.fromArray([5, 6, 7, 8], [2, 2]);
+    const y = CPUTensor.cat([x1, x2]);
+    assert.deepEqual(y.shape, [4, 2]);
+    assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  it('cat 2d 2', () => {
+    const x1 = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
+    const x2 = CPUTensor.fromArray([5, 6, 7, 8, 9, 10], [2, 3]);
+    const y = CPUTensor.cat([x1, x2], 1);
+    assert.deepEqual(y.shape, [2, 5]);
+    assert.deepEqual(y.toArray(), [1, 2, 5, 6, 7, 3, 4, 8, 9, 10]);
+  });
+
+  it('cat 2d 3', () => {
+    const x1 = CPUTensor.fromArray(arange(2 * 3), [2, 3]);
+    const x2 = CPUTensor.fromArray(arange(100, 100 + 2 * 4), [2, 4]);
+    const x3 = CPUTensor.fromArray(arange(200, 200 + 2 * 7), [2, 7]);
+    const y = CPUTensor.cat([x1, x2, x3], 1);
+    assert.deepEqual(y.shape, [2, 14]);
+    assert.deepEqual(
+      y.toArray(),
+      [
+        0, 1, 2, 100, 101, 102, 103, 200, 201, 202, 203, 204, 205, 206, 3, 4, 5,
+        104, 105, 106, 107, 207, 208, 209, 210, 211, 212, 213,
+      ]
+    );
+  });
+
+  it('cat 3d 1', () => {
+    const x1 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+    const x2 = CPUTensor.fromArray(arange(100, 100 + 2 * 3 * 4), [2, 3, 4]);
+    const y = CPUTensor.cat([x1, x2]);
+    assert.deepEqual(y.shape, [4, 3, 4]);
+    assert.deepEqual(
+      y.toArray(),
+      [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+        20, 21, 22, 23, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+        111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123,
+      ]
+    );
+  });
+
+  it('cat 3d 2', () => {
+    const x1 = CPUTensor.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+    const x2 = CPUTensor.fromArray(arange(100, 100 + 2 * 3 * 4), [2, 3, 4]);
+    const y = CPUTensor.cat([x1, x2], 2);
+    assert.deepEqual(y.shape, [2, 3, 8]);
+    assert.deepEqual(y.get(0, 0, 7), 103);
+    assert.deepEqual(y.get(0, 1, 0), 4);
+    assert.deepEqual(y.get(0, 2, 0), 8);
+    assert.deepEqual(y.get(0, 2, 7), 111);
+  });
+});

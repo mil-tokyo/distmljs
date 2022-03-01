@@ -1,4 +1,4 @@
-import { TypedArrayTypes } from '../../../dtype';
+import { DType, TypedArrayForDType, TypedArrayTypes } from '../../../dtype';
 import { arraySum } from '../../../util';
 import { CPUTensor } from '../cpuTensor';
 
@@ -179,5 +179,93 @@ export function tile(
   const dx = x.getBuffer().data;
   const dy = tileSub(dx, x.shape, x.strides, yreps, 0, yDim, 0);
   const y = CPUTensor.fromArray(dy, yShape, x.dtype);
+  return y;
+}
+
+function catSub(
+  arrays: Array<TypedArrayTypes>,
+  shapes: ReadonlyArray<ReadonlyArray<number>>,
+  strides: ReadonlyArray<ReadonlyArray<number>>,
+  axis: number,
+  dtype: DType,
+  dim: number
+): Array<number> {
+  const y: Array<number> = [];
+  if (dim === axis) {
+    for (const array of arrays) {
+      for (let i = 0; i < array.length; ++i) {
+        y.push(array[i]);
+      }
+    }
+  } else {
+    for (let i = 0; i < shapes[0][dim]; ++i) {
+      const nextArrays: Array<TypedArrayTypes> = [];
+      for (let j = 0; j < arrays.length; ++j) {
+        nextArrays[j] = new TypedArrayForDType[dtype](strides[j][dim]);
+      }
+      for (let j = 0; j < arrays.length; ++j) {
+        for (let k = 0; k < strides[j][dim]; ++k) {
+          nextArrays[j][k] = arrays[j][i * strides[j][dim] + k];
+        }
+      }
+      const t = catSub(nextArrays, shapes, strides, axis, dtype, dim + 1);
+      for (let j = 0; j < t.length; ++j) {
+        y.push(t[j]);
+      }
+    }
+  }
+  return y;
+}
+
+export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
+  if (tensors.length === 0) {
+    throw new Error('tensors must not be empty');
+  }
+  const ndim = tensors[0].ndim;
+  const shape = tensors[0].shape;
+  const dtype = tensors[0].dtype;
+  for (const tensor of tensors) {
+    if (tensor.ndim !== ndim) {
+      throw new Error('all tensors must be the same dimension');
+    }
+    for (let i = 0; i < shape.length; ++i) {
+      if (i !== axis) {
+        if (tensor.shape[i] !== shape[i]) {
+          throw new Error(
+            'all tensors must have the same shape except in the concatenating dimension'
+          );
+        }
+      }
+    }
+    if (tensor.dtype !== dtype) {
+      throw new Error('all tensors must have the same dtype');
+    }
+  }
+  if (axis >= ndim) {
+    throw new Error('axis must be smaller than tensor dimension');
+  }
+  const arrays: Array<TypedArrayTypes> = [];
+  for (let i = 0; i < tensors.length; ++i) {
+    arrays[i] = tensors[i].getBuffer().data;
+  }
+  const shapes = [];
+  const strides = [];
+  for (let i = 0; i < tensors.length; ++i) {
+    shapes[i] = tensors[i].shape;
+    strides[i] = tensors[i].strides;
+  }
+  const dy = catSub(arrays, shapes, strides, axis, dtype, 0);
+  const yShape: Array<number> = [];
+  for (let i = 0; i < tensors[0].ndim; ++i) {
+    if (i === axis) {
+      yShape[i] = 0;
+      for (const tensor of tensors) {
+        yShape[i] += tensor.shape[i];
+      }
+    } else {
+      yShape[i] = shape[i];
+    }
+  }
+  const y = CPUTensor.fromArray(dy, yShape);
   return y;
 }
