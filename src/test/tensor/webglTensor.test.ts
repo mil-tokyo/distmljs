@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { CPUTensor } from '../../tensor';
 import {
   getTensorTextureShapeFormatForDType,
   WebGLTensor,
