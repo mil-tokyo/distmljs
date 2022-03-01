@@ -252,3 +252,28 @@ export function calcTransposeShape(
   }
   return { newShape, srcStrides };
 }
+
+export function calcSqueeze(
+  shape: ReadonlyArray<number>,
+  dim?: number
+): Array<number> {
+  if (dim == undefined) {
+    const newShape: Array<number> = [];
+    for (let i = 0; i < shape.length; ++i) {
+      if (shape[i] !== 1) {
+        newShape.push(shape[i]);
+      }
+    }
+    return newShape;
+  } else {
+    const newShape: Array<number> = [];
+    for (let i = 0; i < shape.length; ++i) {
+      if (shape[i] !== 1) {
+        newShape.push(shape[i]);
+      } else if (i !== dim) {
+        newShape.push(shape[i]);
+      }
+    }
+    return newShape;
+  }
+}

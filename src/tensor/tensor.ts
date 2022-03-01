@@ -93,4 +93,5 @@ export interface TensorStatic<B extends Tensor> {
   transpose: (x: B, axes?: ReadonlyArray<number> | null) => B;
   flatten: (x: B) => B;
   ravel: (x: B) => B;
+  squeeze: (input: B, dim?: number) => B;
 }
