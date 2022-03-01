@@ -33,6 +33,7 @@ import {
 } from './core/unary';
 import {
   calcReshape,
+  calcSqueeze,
   calcTransposeShape,
   getMultiBroadcastShape,
 } from '../shapeUtil';
@@ -425,5 +426,9 @@ export class CPUTensor extends Tensor {
 
   static cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
     return cat(tensors, axis);
+  }
+
+  static squeeze(input: CPUTensor, dim?: number): CPUTensor {
+    return input.alias(calcSqueeze(input.shape, dim));
   }
 }
