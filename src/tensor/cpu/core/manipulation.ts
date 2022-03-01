@@ -1,6 +1,5 @@
-import { assert } from 'chai';
 import { DType, TypedArrayForDType, TypedArrayTypes } from '../../../dtype';
-import { arange, arrayProd, arraySum } from '../../../util';
+import { arraySum } from '../../../util';
 import { CPUTensor } from '../cpuTensor';
 
 function repeatSub(
