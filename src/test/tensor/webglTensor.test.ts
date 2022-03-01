@@ -173,23 +173,4 @@ describe('webglTensor', () => {
       assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
     });
   });
-
-  describe('squeeze', () => {
-    it('5d to 3d 1', () => {
-      const x = WebGLTensor.fromArray(
-        [1, 2, 3, 4, 5, 6, 7, 8],
-        [2, 1, 2, 1, 2]
-      );
-      const y = WebGLTensor.squeeze(x);
-      assert.deepEqual(y.shape, [2, 2, 2]);
-    });
-    it('5d to 3d 2', () => {
-      const x = WebGLTensor.fromArray(
-        [1, 2, 3, 4, 5, 6, 7, 8],
-        [2, 1, 2, 1, 2]
-      );
-      const y = WebGLTensor.squeeze(x, 1);
-      assert.deepEqual(y.shape, [2, 2, 1, 2]);
-    });
-  });
 });

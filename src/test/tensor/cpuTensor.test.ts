@@ -66,19 +66,4 @@ describe('cpuTensor', () => {
       assert.deepEqual(x.toArray(), [0, 1, 2, 3, 4, 5]);
     });
   });
-
-  describe('squeeze', () => {
-    it('5d to 3d 1', () => {
-      const x = CPUTensor.fromArray([1, 2, 3, 4, 5, 6, 7, 8], [2, 1, 2, 1, 2]);
-      const y = CPUTensor.squeeze(x);
-      assert.deepEqual(y.shape, [2, 2, 2]);
-      assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8]);
-    });
-    it('5d to 3d 2', () => {
-      const x = CPUTensor.fromArray([1, 2, 3, 4, 5, 6, 7, 8], [2, 1, 2, 1, 2]);
-      const y = CPUTensor.squeeze(x, 1);
-      assert.deepEqual(y.shape, [2, 2, 1, 2]);
-      assert.deepEqual(y.toArray(), [1, 2, 3, 4, 5, 6, 7, 8]);
-    });
-  });
 });
