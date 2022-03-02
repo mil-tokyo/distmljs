@@ -138,4 +138,17 @@ describe('sort', () => {
     assert.deepEqual(sorted.toArray(), [2, 5, 10, 8, 9, 11, 1, 3, 12, 4, 6, 7]);
     assert.deepEqual(indices.toArray(), [2, 1, 0, 1, 0, 2, 0, 1, 2, 1, 2, 0]);
   });
+  it('sort negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [48, 13, 73, 24, 137, 32, 6, 84, 27, 37, 92, 55],
+      [3, 4]
+    );
+    const [sorted, indices] = CPUTensor.sort(x, -2);
+    assert.deepEqual(sorted.shape, [3, 4]);
+    assert.deepEqual(indices.shape, [3, 4]);
+    assert.deepEqual(
+      sorted.toArray(),
+      [27, 13, 6, 24, 48, 32, 73, 55, 137, 37, 92, 84]
+    );
+  });
 });
