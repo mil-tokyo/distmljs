@@ -536,6 +536,39 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(await y.toArrayAsync(), [1, 2, 3, 4, 5, 6, 7, 8]);
       });
     });
+
+    describe('unsqueeze', () => {
+      it('1d to 2d', async () => {
+        const x = T.fromArray([1, 2, 3, 4], [4]);
+        const y = T.unsqueeze(x, 0);
+        assert.deepEqual(y.shape, [1, 4]);
+        assert.deepEqual(await y.toArrayAsync(), [1, 2, 3, 4]);
+      });
+      it('1d to 2d 2', async () => {
+        const x = T.fromArray([1, 2, 3, 4], [4]);
+        const y = T.unsqueeze(x, 1);
+        assert.deepEqual(y.shape, [4, 1]);
+        assert.deepEqual(await y.toArrayAsync(), [1, 2, 3, 4]);
+      });
+      it('2d', async () => {
+        const x = T.fromArray([1, 2, 3, 4, 5, 6], [2, 3]);
+        const y = T.unsqueeze(x, 2);
+        assert.deepEqual(y.shape, [2, 3, 1]);
+        assert.deepEqual(await y.toArrayAsync(), [1, 2, 3, 4, 5, 6]);
+      });
+      it('3d', async () => {
+        const x = T.fromArray(arange(4 * 7 * 13), [4, 7, 13]);
+        const y = T.unsqueeze(x, 2);
+        assert.deepEqual(y.shape, [4, 7, 1, 13]);
+        assert.deepEqual(await y.toArrayAsync(), arange(4 * 7 * 13));
+      });
+      it('negative dim', async () => {
+        const x = T.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+        const y = T.unsqueeze(x, -1);
+        assert.deepEqual(y.shape, [2, 3, 4, 1]);
+        assert.deepEqual(await y.toArrayAsync(), arange(2 * 3 * 4));
+      });
+    });
   });
 }
 
