@@ -151,4 +151,12 @@ describe('sort', () => {
       [27, 13, 6, 24, 48, 32, 73, 55, 137, 37, 92, 84]
     );
   });
+  it('stable sort', () => {
+    const x = CPUTensor.fromArray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], [10]);
+    const [sorted, indices] = CPUTensor.sort(x);
+    assert.deepEqual(sorted.shape, [10]);
+    assert.deepEqual(indices.shape, [10]);
+    assert.deepEqual(sorted.toArray(), [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]);
+    assert.deepEqual(indices.toArray(), [0, 2, 4, 6, 8, 1, 3, 5, 7, 9]);
+  });
 });
