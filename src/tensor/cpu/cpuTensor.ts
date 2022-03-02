@@ -45,6 +45,7 @@ import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { cat, repeat, tile } from './core/manipulation';
 import { gemm } from './core/gemm';
+import { fromArrayND, toArrayND } from './core/arraynd';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -54,6 +55,10 @@ class CPUTensorBuffer {
 }
 
 export type IndexingArg = number | Slice | Ellipsis | null;
+
+export type ArrayNDElement = number | boolean | string;
+export type ArrayNDValue = ArrayLike<ArrayNDValue> | CPUTensor | ArrayNDElement;
+export type NumberArrayND = number | NumberArrayND[]; // number, number[], number[][], number[][], ...
 
 export class CPUTensor extends Tensor {
   buffer: CPUTensorBuffer;
@@ -124,6 +129,10 @@ export class CPUTensor extends Tensor {
     return t;
   }
 
+  static fromArrayND(value: ArrayNDValue, dtype?: DType): CPUTensor {
+    return fromArrayND(value, dtype);
+  }
+
   setArray(data: ArrayLike<number>): void {
     if (data.length !== this.size) {
       throw new Error('length mismatch');
@@ -151,6 +160,10 @@ export class CPUTensor extends Tensor {
   toArray(): number[] {
     const buffer = this.getBuffer();
     return Array.from(buffer.data);
+  }
+
+  toArrayND(): NumberArrayND {
+    return toArrayND(this);
   }
 
   async toArrayAsync(): Promise<number[]> {
