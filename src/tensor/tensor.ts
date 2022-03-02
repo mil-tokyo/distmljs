@@ -94,4 +94,5 @@ export interface TensorStatic<B extends Tensor> {
   flatten: (x: B) => B;
   ravel: (x: B) => B;
   squeeze: (input: B, dim?: number) => B;
+  unsqueeze: (input: B, dim: number) => B;
 }

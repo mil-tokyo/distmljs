@@ -2,7 +2,12 @@ import { Backend } from '../../backend';
 import { DType, DTypeDefault, TypedArrayTypes } from '../../dtype';
 import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
-import { calcReshape, calcSqueeze, calcTransposeShape } from '../shapeUtil';
+import {
+  calcReshape,
+  calcSqueeze,
+  calcTransposeShape,
+  calcUnsqueeze,
+} from '../shapeUtil';
 import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
@@ -987,5 +992,9 @@ export class WebGLTensor extends Tensor {
 
   static squeeze(input: WebGLTensor, dim?: number): WebGLTensor {
     return input.alias(calcSqueeze(input.shape, dim));
+  }
+
+  static unsqueeze(input: WebGLTensor, dim: number): WebGLTensor {
+    return input.alias(calcUnsqueeze(input.shape, dim));
   }
 }

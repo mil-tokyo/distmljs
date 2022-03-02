@@ -277,3 +277,27 @@ export function calcSqueeze(
     return newShape;
   }
 }
+
+export function calcUnsqueeze(
+  shape: ReadonlyArray<number>,
+  dim: number
+): Array<number> {
+  const newShape: Array<number> = [];
+  if (dim < -shape.length - 1 || dim >= shape.length + 1) {
+    throw new Error(
+      ' A dim value within the range [-input.dim - 1, input.dim + 1) can be used'
+    );
+  }
+  if (dim < 0) {
+    dim = dim + shape.length + 1;
+  }
+  let count = 0;
+  for (let i = 0; i < shape.length + 1; i++) {
+    if (i === dim) {
+      newShape[i] = 1;
+    } else {
+      newShape[i] = shape[count++];
+    }
+  }
+  return newShape;
+}
