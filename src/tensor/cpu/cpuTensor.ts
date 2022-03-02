@@ -44,6 +44,7 @@ import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { cat, repeat, tile } from './core/manipulation';
 import { gemm } from './core/gemm';
+import { sort } from './core/sort';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -430,5 +431,13 @@ export class CPUTensor extends Tensor {
 
   static squeeze(input: CPUTensor, dim?: number): CPUTensor {
     return input.alias(calcSqueeze(input.shape, dim));
+  }
+
+  static sort(
+    input: CPUTensor,
+    dim = -1,
+    descending = false
+  ): [CPUTensor, CPUTensor] {
+    return sort(input, dim, descending);
   }
 }

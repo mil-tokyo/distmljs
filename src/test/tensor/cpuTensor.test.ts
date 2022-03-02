@@ -67,3 +67,75 @@ describe('cpuTensor', () => {
     });
   });
 });
+
+describe('sort', () => {
+  it('sort 1d asc', () => {
+    const x = CPUTensor.fromArray([19, 46, 7, 2], [4]);
+    const [sorted, indices] = CPUTensor.sort(x);
+    assert.deepEqual(sorted.shape, [4]);
+    assert.deepEqual(indices.shape, [4]);
+    assert.deepEqual(sorted.toArray(), [2, 7, 19, 46]);
+    assert.deepEqual(indices.toArray(), [3, 2, 0, 1]);
+  });
+  it('sort 1d des', () => {
+    const x = CPUTensor.fromArray([19, 46, 7, 2], [4]);
+    const [sorted, indices] = CPUTensor.sort(x, 0, true);
+    assert.deepEqual(sorted.shape, [4]);
+    assert.deepEqual(indices.shape, [4]);
+    assert.deepEqual(sorted.toArray(), [46, 19, 7, 2]);
+    assert.deepEqual(indices.toArray(), [1, 0, 2, 3]);
+  });
+  it('sort 2d asc 1', () => {
+    const x = CPUTensor.fromArray(
+      [48, 13, 73, 24, 137, 32, 6, 84, 27, 37, 92, 55],
+      [3, 4]
+    );
+    const [sorted, indices] = CPUTensor.sort(x, 1);
+    assert.deepEqual(sorted.shape, [3, 4]);
+    assert.deepEqual(indices.shape, [3, 4]);
+    assert.deepEqual(
+      sorted.toArray(),
+      [13, 24, 48, 73, 6, 32, 84, 137, 27, 37, 55, 92]
+    );
+    assert.deepEqual(indices.toArray(), [1, 3, 0, 2, 2, 1, 3, 0, 0, 1, 3, 2]);
+  });
+  it('sort 2d asc 2', () => {
+    const x = CPUTensor.fromArray(
+      [48, 13, 73, 24, 137, 32, 6, 84, 27, 37, 92, 55],
+      [3, 4]
+    );
+    const [sorted, indices] = CPUTensor.sort(x, 0);
+    assert.deepEqual(sorted.shape, [3, 4]);
+    assert.deepEqual(indices.shape, [3, 4]);
+    assert.deepEqual(
+      sorted.toArray(),
+      [27, 13, 6, 24, 48, 32, 73, 55, 137, 37, 92, 84]
+    );
+    assert.deepEqual(indices.toArray(), [2, 0, 1, 0, 0, 1, 0, 2, 1, 2, 2, 1]);
+  });
+  it('sort 2d des', () => {
+    const x = CPUTensor.fromArray(
+      [48, 13, 73, 24, 137, 32, 6, 84, 27, 37, 92, 55],
+      [3, 4]
+    );
+    const [sorted, indices] = CPUTensor.sort(x, 1, true);
+    assert.deepEqual(sorted.shape, [3, 4]);
+    assert.deepEqual(indices.shape, [3, 4]);
+    assert.deepEqual(
+      sorted.toArray(),
+      [73, 48, 24, 13, 137, 84, 32, 6, 92, 55, 37, 27]
+    );
+    assert.deepEqual(indices.toArray(), [2, 0, 3, 1, 0, 3, 1, 2, 2, 3, 1, 0]);
+  });
+  it('sort 3d asc', () => {
+    const x = CPUTensor.fromArray(
+      [10, 5, 2, 9, 8, 11, 1, 3, 12, 7, 4, 6],
+      [2, 2, 3]
+    );
+    const [sorted, indices] = CPUTensor.sort(x, 2);
+    assert.deepEqual(sorted.shape, [2, 2, 3]);
+    assert.deepEqual(indices.shape, [2, 2, 3]);
+    assert.deepEqual(sorted.toArray(), [2, 5, 10, 8, 9, 11, 1, 3, 12, 4, 6, 7]);
+    assert.deepEqual(indices.toArray(), [2, 1, 0, 1, 0, 2, 0, 1, 2, 1, 2, 0]);
+  });
+});
