@@ -35,6 +35,7 @@ import {
   calcReshape,
   calcSqueeze,
   calcTransposeShape,
+  calcUnsqueeze,
   getMultiBroadcastShape,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
@@ -433,6 +434,10 @@ export class CPUTensor extends Tensor {
     return input.alias(calcSqueeze(input.shape, dim));
   }
 
+  static unsqueeze(input: CPUTensor, dim: number): CPUTensor {
+    return input.alias(calcUnsqueeze(input.shape, dim));
+  }
+  
   static sort(
     input: CPUTensor,
     dim = -1,
