@@ -562,6 +562,12 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(y.shape, [4, 7, 1, 13]);
         assert.deepEqual(await y.toArrayAsync(), arange(4 * 7 * 13));
       });
+      it('negative dim', async () => {
+        const x = T.fromArray(arange(2 * 3 * 4), [2, 3, 4]);
+        const y = T.unsqueeze(x, -1);
+        assert.deepEqual(y.shape, [2, 3, 4, 1]);
+        assert.deepEqual(await y.toArrayAsync(), arange(2 * 3 * 4));
+      });
     });
   });
 }
