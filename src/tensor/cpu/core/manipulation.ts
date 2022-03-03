@@ -109,3 +109,93 @@ export function tile(
   // TODO: implement
   throw new Error();
 }
+
+function division_ceil(x: number, y: number): number {
+  const result = (x - (x % y)) / y;
+  if (x % y == 0) return result;
+  else return result + 1;
+}
+
+function chunkSub(
+  dx: TypedArrayTypes,
+  xShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yShape: ReadonlyArray<number>,
+  size: number,
+  place: number,
+  order: number,
+  dim: number,
+  axis: number
+): number[] {
+  let dy: number[] = [];
+  let yplace = place;
+  if (dim == axis) yplace += size * xStrides[dim] * order;
+  if (axis == xShape.length - 1) {
+    for (let i = 0; i < yShape[axis]; ++i) {
+      dy.push(dx[yplace + i]);
+    }
+  } else {
+    for (let i = 0; i < yShape[axis]; ++i) {
+      dy = [
+        ...dy,
+        ...chunkSub(
+          dx,
+          xShape,
+          xStrides,
+          yShape,
+          size,
+          yplace + xStrides[axis] * i,
+          order,
+          dim,
+          axis + 1
+        ),
+      ];
+    }
+  }
+  return dy;
+}
+
+export function chunk(x: CPUTensor, chunks: number, dim?: number): CPUTensor[] {
+  if (x.ndim == 0) {
+    throw new Error('chunk: chunk expects at least a 1-dimensional tensor');
+  }
+  if (typeof dim == 'undefined') {
+    dim = 0;
+  }
+  const result: CPUTensor[] = [];
+  const size = division_ceil(x.shape[dim], chunks); //1つあたりの大きさ
+  const num = division_ceil(x.shape[dim], size); //要素数
+  const lastsize = x.shape[dim] - size * (num - 1);
+  const yShape: number[] = [];
+  const lastShape: number[] = [];
+  for (let i = 0; i < x.shape.length; ++i) {
+    if (i === dim) {
+      yShape[i] = size;
+      lastShape[i] = lastsize;
+    } else {
+      yShape[i] = x.shape[i];
+      lastShape[i] = x.shape[i];
+    }
+  }
+  const dx = x.getBuffer().data;
+  for (let i = 0; i < num; ++i) {
+    if (i < num - 1) {
+      const dy = chunkSub(dx, x.shape, x.strides, yShape, size, 0, i, dim, 0);
+      result[i] = CPUTensor.fromArray(dy, yShape, x.dtype);
+    } else {
+      const dy = chunkSub(
+        dx,
+        x.shape,
+        x.strides,
+        lastShape,
+        size,
+        0,
+        i,
+        dim,
+        0
+      );
+      result[i] = CPUTensor.fromArray(dy, lastShape, x.dtype);
+    }
+  }
+  return result;
+}
