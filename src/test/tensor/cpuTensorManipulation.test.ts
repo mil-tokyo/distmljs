@@ -141,6 +141,67 @@ describe('tile', () => {
   });
 });
 
+describe('chunk', () => {
+  it('chunk 1', () => {
+    const x = CPUTensor.fromArray([1, 2, 3, 4], [4]);
+    const y = CPUTensor.chunk(x, 2);
+    assert.deepEqual(y[0].shape, [2]);
+    assert.deepEqual(y[1].shape, [2]);
+    assert.deepEqual(y[0].toArray(), [1, 2]);
+    assert.deepEqual(y[1].toArray(), [3, 4]);
+  });
+
+  it('chunk 2', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      [3, 4]
+    );
+    const y = CPUTensor.chunk(x, 3, 1);
+    assert.deepEqual(y[0].shape, [3, 2]);
+    assert.deepEqual(y[1].shape, [3, 2]);
+    assert.deepEqual(y[0].toArray(), [1, 2, 5, 6, 9, 10]);
+    assert.deepEqual(y[1].toArray(), [3, 4, 7, 8, 11, 12]);
+  });
+
+  it('chunk 3', () => {
+    const x = CPUTensor.fromArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 5]);
+    const y = CPUTensor.chunk(x, 3, 1);
+    assert.deepEqual(y[0].shape, [2, 2]);
+    assert.deepEqual(y[1].shape, [2, 2]);
+    assert.deepEqual(y[2].shape, [2, 1]);
+    assert.deepEqual(y[0].toArray(), [1, 2, 6, 7]);
+    assert.deepEqual(y[1].toArray(), [3, 4, 8, 9]);
+    assert.deepEqual(y[2].toArray(), [5, 10]);
+  });
+
+  it('chunk 4', () => {
+    const x = CPUTensor.zeros([3, 4, 4]);
+    const y = CPUTensor.chunk(x, 2, 0);
+    assert.deepEqual(y[0].shape, [2, 4, 4]);
+    assert.deepEqual(y[1].shape, [1, 4, 4]);
+    assert.deepEqual(
+      y[0].toArray(),
+      [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+      ]
+    );
+    assert.deepEqual(
+      y[1].toArray(),
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+  });
+
+  it('chunk 4', () => {
+    const x = CPUTensor.fromArray([1, 2, 3], [3, 1]);
+    const y = CPUTensor.chunk(x, 2);
+    assert.deepEqual(y[0].shape, [2, 1]);
+    assert.deepEqual(y[1].shape, [1, 1]);
+    assert.deepEqual(y[0].toArray(), [1, 2]);
+    assert.deepEqual(y[1].toArray(), [3]);
+  });
+});
+
 describe('cat', () => {
   it('cat 1d', () => {
     const x1 = CPUTensor.fromArray([1, 2, 3, 4], [4]);

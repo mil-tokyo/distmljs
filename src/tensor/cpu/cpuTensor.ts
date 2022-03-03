@@ -43,7 +43,7 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
-import { cat, repeat, tile } from './core/manipulation';
+import { cat, chunk, repeat, tile } from './core/manipulation';
 import { gemm } from './core/gemm';
 import { sort } from './core/sort';
 
@@ -424,6 +424,10 @@ export class CPUTensor extends Tensor {
 
   static tile(x: CPUTensor, reps: ReadonlyArray<number> | number): CPUTensor {
     return tile(x, reps);
+  }
+
+  static chunk(x: CPUTensor, chunks: number, dim?: number): CPUTensor[] {
+    return chunk(x, chunks, dim);
   }
 
   static cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
