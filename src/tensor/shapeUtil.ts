@@ -252,3 +252,52 @@ export function calcTransposeShape(
   }
   return { newShape, srcStrides };
 }
+
+export function calcSqueeze(
+  shape: ReadonlyArray<number>,
+  dim?: number
+): Array<number> {
+  if (dim == undefined) {
+    const newShape: Array<number> = [];
+    for (let i = 0; i < shape.length; ++i) {
+      if (shape[i] !== 1) {
+        newShape.push(shape[i]);
+      }
+    }
+    return newShape;
+  } else {
+    const newShape: Array<number> = [];
+    for (let i = 0; i < shape.length; ++i) {
+      if (shape[i] !== 1) {
+        newShape.push(shape[i]);
+      } else if (i !== dim) {
+        newShape.push(shape[i]);
+      }
+    }
+    return newShape;
+  }
+}
+
+export function calcUnsqueeze(
+  shape: ReadonlyArray<number>,
+  dim: number
+): Array<number> {
+  const newShape: Array<number> = [];
+  if (dim < -shape.length - 1 || dim >= shape.length + 1) {
+    throw new Error(
+      ' A dim value within the range [-input.dim - 1, input.dim + 1) can be used'
+    );
+  }
+  if (dim < 0) {
+    dim = dim + shape.length + 1;
+  }
+  let count = 0;
+  for (let i = 0; i < shape.length + 1; i++) {
+    if (i === dim) {
+      newShape[i] = 1;
+    } else {
+      newShape[i] = shape[count++];
+    }
+  }
+  return newShape;
+}

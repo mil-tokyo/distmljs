@@ -9,7 +9,9 @@ import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import {
   calcReshape,
+  calcSqueeze,
   calcTransposeShape,
+  calcUnsqueeze,
   getBroadcastStride,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
@@ -548,5 +550,13 @@ export class WebGPUTensor extends Tensor {
    */
   static ravel(x: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.reshape(x, [-1]);
+  }
+
+  static squeeze(input: WebGPUTensor, dim?: number): WebGPUTensor {
+    return input.alias(calcSqueeze(input.shape, dim));
+  }
+
+  static unsqueeze(input: WebGPUTensor, dim: number): WebGPUTensor {
+    return input.alias(calcUnsqueeze(input.shape, dim));
   }
 }
