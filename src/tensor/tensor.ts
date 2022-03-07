@@ -1,6 +1,6 @@
 import { CPUTensor } from './cpu/cpuTensor';
 import { Backend } from '../backend';
-import { DType } from '../dtype';
+import { DType, DTypeDefault } from '../dtype';
 import { WebGLTensor } from './webgl/webglTensor';
 import { WebGPUTensor } from './webgpu/webgpuTensor';
 
@@ -95,4 +95,5 @@ export interface TensorStatic<B extends Tensor> {
   ravel: (x: B) => B;
   squeeze: (input: B, dim?: number) => B;
   unsqueeze: (input: B, dim: number) => B;
+  full: (shape: ArrayLike<number>, fillValue: number, dtype?: DType) => B;
 }

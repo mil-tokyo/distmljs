@@ -3,6 +3,7 @@ import {
   DType,
   DTypeDefault,
   TypedArrayConstructor,
+  TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
 import { arrayProd } from '../../util';
@@ -558,5 +559,15 @@ export class WebGPUTensor extends Tensor {
 
   static unsqueeze(input: WebGPUTensor, dim: number): WebGPUTensor {
     return input.alias(calcUnsqueeze(input.shape, dim));
+  }
+
+  static full(
+    shape: ArrayLike<number>,
+    fillValue: number,
+    dtype: DType = DTypeDefault
+  ): WebGPUTensor {
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
+    data.fill(fillValue);
+    return WebGPUTensor.fromArray(data, shape, dtype);
   }
 }
