@@ -350,3 +350,89 @@ export function chunk(x: CPUTensor, chunks: number, dim = 0): CPUTensor[] {
   }
   return result;
 }
+
+function splitSub(
+  dx: TypedArrayTypes,
+  xShape: ReadonlyArray<number>,
+  xStrides: ReadonlyArray<number>,
+  yShape: ReadonlyArray<number>,
+  place: number,
+  order: number,
+  dim: number,
+  axis: number
+): number[] {
+  let dy: number[] = [];
+  if (axis === xShape.length - 1) {
+    for (let i = 0; i < yShape[axis]; ++i) {
+      dy.push(dx[place + i]);
+    }
+  } else {
+    for (let i = 0; i < yShape[axis]; ++i) {
+      dy = [
+        ...dy,
+        ...splitSub(
+          dx,
+          xShape,
+          xStrides,
+          yShape,
+          place + xStrides[axis] * i,
+          order,
+          dim,
+          axis + 1
+        ),
+      ];
+    }
+  }
+  return dy;
+}
+
+export function split(
+  x: CPUTensor,
+  split_size_or_sections: number | number[],
+  dim = 0
+): CPUTensor[] {
+  let num; //要素数
+  const dimShape: number[] = []; //dim次元における変更後の大きさ
+  if (typeof split_size_or_sections === 'number') {
+    const size = split_size_or_sections;
+    num = Math.ceil(x.shape[dim] / size);
+    for (let i = 0; i < num; ++i) {
+      if (i < num - 1) {
+        dimShape[i] = size;
+      } else {
+        dimShape[i] = x.shape[dim] - size * (num - 1);
+      }
+    }
+  } else {
+    if (arraySum(split_size_or_sections) != x.shape[dim]) {
+      throw new Error('split: sum of split size and tensor size must match');
+    }
+    num = split_size_or_sections.length;
+    for (let i = 0; i < num; ++i) {
+      dimShape[i] = split_size_or_sections[i];
+    }
+  }
+  const result: CPUTensor[] = [];
+  const yShape: number[] = [];
+  for (let i = 0; i < x.shape.length; ++i) {
+    yShape[i] = x.shape[i];
+  }
+  const dx = x.getBuffer().data;
+  let order = 0;
+  for (let i = 0; i < num; ++i) {
+    yShape[dim] = dimShape[i];
+    const dy = splitSub(
+      dx,
+      x.shape,
+      x.strides,
+      yShape,
+      order * x.strides[dim],
+      i,
+      dim,
+      0
+    );
+    order += dimShape[i];
+    result[i] = CPUTensor.fromArray(dy, yShape, x.dtype);
+  }
+  return result;
+}

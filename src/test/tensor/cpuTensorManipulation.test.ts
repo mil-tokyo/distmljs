@@ -268,3 +268,82 @@ describe('cat', () => {
     assert.deepEqual(y.get(0, 2, 7), 111);
   });
 });
+
+describe('split', () => {
+  it('split 1', () => {
+    const x = CPUTensor.fromArray([1, 2, 3, 4, 5], [5]);
+    const y = CPUTensor.split(x, 3);
+    assert.deepEqual(y[0].shape, [3]);
+    assert.deepEqual(y[1].shape, [2]);
+    assert.deepEqual(y[0].toArray(), [1, 2, 3]);
+    assert.deepEqual(y[1].toArray(), [4, 5]);
+  });
+
+  it('split 2', () => {
+    const x = CPUTensor.fromArray([1], [1]);
+    const y = CPUTensor.split(x, 10);
+    assert.deepEqual(y[0].shape, [1]);
+    assert.deepEqual(y[0].toArray(), [1]);
+  });
+
+  it('split 2d 1', () => {
+    const x = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
+    const y = CPUTensor.split(x, 1, 1);
+    assert.deepEqual(y[0].shape, [2, 1]);
+    assert.deepEqual(y[1].shape, [2, 1]);
+    assert.deepEqual(y[0].toArray(), [1, 3]);
+    assert.deepEqual(y[1].toArray(), [2, 4]);
+  });
+
+  it('split 2d 2', () => {
+    const x = CPUTensor.fromArray([1, 2, 3, 4, 5, 6], [3, 2]);
+    const y = CPUTensor.split(x, [1, 2]);
+    assert.deepEqual(y[0].shape, [1, 2]);
+    assert.deepEqual(y[1].shape, [2, 2]);
+    assert.deepEqual(y[0].toArray(), [1, 2]);
+    assert.deepEqual(y[1].toArray(), [3, 4, 5, 6]);
+  });
+
+  it('split 3d 1', () => {
+    const x = CPUTensor.zeros([3, 4, 4]);
+    const y = CPUTensor.split(x, [1, 2]);
+    assert.deepEqual(y[0].shape, [1, 4, 4]);
+    assert.deepEqual(y[1].shape, [2, 4, 4]);
+    assert.deepEqual(
+      y[0].toArray(),
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert.deepEqual(
+      y[1].toArray(),
+      [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+      ]
+    );
+  });
+  it('split 3d 2', () => {
+    const x = CPUTensor.zeros([3, 4, 4]);
+    const y = CPUTensor.split(x, [1, 2, 1], 2);
+    assert.deepEqual(y[0].shape, [3, 4, 1]);
+    assert.deepEqual(y[1].shape, [3, 4, 2]);
+    assert.deepEqual(y[2].shape, [3, 4, 1]);
+    assert.deepEqual(y[0].toArray(), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert.deepEqual(
+      y[1].toArray(),
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert.deepEqual(y[2].toArray(), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('split 3d 3', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
+      [2, 3, 2]
+    );
+    const y = CPUTensor.split(x, [1, 2], 1);
+    assert.deepEqual(y[0].shape, [2, 1, 2]);
+    assert.deepEqual(y[1].shape, [2, 2, 2]);
+    assert.deepEqual(y[0].toArray(), [1, 2, 1, 2]);
+    assert.deepEqual(y[1].toArray(), [3, 4, 5, 6, 3, 4, 5, 6]);
+  });
+});

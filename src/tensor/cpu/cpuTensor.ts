@@ -43,7 +43,7 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
-import { cat, chunk, repeat, tile } from './core/manipulation';
+import { cat, chunk, repeat, tile, split } from './core/manipulation';
 import { gemm } from './core/gemm';
 import { sort } from './core/sort';
 import { arrayProd } from '../../util';
@@ -459,5 +459,13 @@ export class CPUTensor extends Tensor {
     const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(fillValue);
     return CPUTensor.fromArray(data, shape, dtype);
+  }
+
+  static split(
+    x: CPUTensor,
+    split_size_or_sections: number | number[],
+    dim = 0
+  ): CPUTensor[] {
+    return split(x, split_size_or_sections, dim);
   }
 }
