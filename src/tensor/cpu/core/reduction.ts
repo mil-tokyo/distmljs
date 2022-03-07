@@ -1,6 +1,7 @@
 import { TypedArrayTypes } from '../../../dtype';
 import { CPUTensor } from '../cpuTensor';
 import {
+  calcSqueeze,
   getReductionByAxis,
   getReductionByBroadcastShape,
 } from '../../shapeUtil';
@@ -659,4 +660,342 @@ export function sumTo(x: CPUTensor, shape: ReadonlyArray<number>): CPUTensor {
   );
 
   return y;
+}
+
+function maxSub(
+  dx: TypedArrayTypes,
+  shape: ReadonlyArray<number>,
+  strides: ReadonlyArray<number>,
+  dim: number,
+  cur: number
+): number[][] {
+  if (cur === dim) {
+    const res: number[][] = [];
+    for (let i = 0; i < strides[cur]; ++i) {
+      let nowMax: number = dx[i];
+      let nowArgmax = 0;
+      res[i] = [nowMax, nowArgmax];
+      for (let j = 0; j < shape[cur]; ++j) {
+        const t = dx[i + strides[cur] * j];
+        if (nowMax < t) {
+          nowMax = t;
+          nowArgmax = j;
+        }
+      }
+      res[i][0] = nowMax;
+      res[i][1] = nowArgmax;
+    }
+    return res;
+  } else {
+    const res: number[][] = [];
+    for (let i = 0; i < shape[cur]; ++i) {
+      const t = maxSub(
+        dx.slice(i * strides[cur], (i + 1) * strides[cur]),
+        shape,
+        strides,
+        dim,
+        cur + 1
+      );
+      for (let j = 0; j < t.length; ++j) {
+        res.push(t[j]);
+      }
+    }
+    return res;
+  }
+}
+
+export function max(
+  input: CPUTensor,
+  dim?: number,
+  keepdim = false
+): CPUTensor | [CPUTensor, CPUTensor] {
+  if (input.size === 0) {
+    throw new Error("input mustn't be empty");
+  }
+  if (dim == undefined) {
+    const dx = input.getBuffer().data;
+    let res = dx[0];
+    for (let i = 0; i < input.size; ++i) {
+      if (res < dx[i]) {
+        res = dx[i];
+      }
+    }
+    return CPUTensor.s(res);
+  } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
+    const dx = input.getBuffer().data;
+    const t = maxSub(dx, input.shape, input.strides, dim, 0);
+    const dy: number[] = [];
+    const dindice: number[] = [];
+    for (let i = 0; i < t.length; ++i) {
+      dy[i] = t[i][0];
+      dindice[i] = t[i][1];
+    }
+    let shape: number[] = [];
+    for (let i = 0; i < input.ndim; ++i) {
+      if (i === dim) {
+        shape[i] = 1;
+      } else {
+        shape[i] = input.shape[i];
+      }
+    }
+    if (keepdim === false) {
+      shape = calcSqueeze(shape, dim);
+    }
+    const y = CPUTensor.fromArray(dy, shape);
+    const indices = CPUTensor.fromArray(dindice, shape, 'int32');
+    return [y, indices];
+  }
+}
+
+function minSub(
+  dx: TypedArrayTypes,
+  shape: ReadonlyArray<number>,
+  strides: ReadonlyArray<number>,
+  dim: number,
+  cur: number
+): number[][] {
+  if (cur === dim) {
+    const res: number[][] = [];
+    for (let i = 0; i < strides[cur]; ++i) {
+      let nowMin: number = dx[i];
+      let nowArgmin = 0;
+      res[i] = [nowMin, nowArgmin];
+      for (let j = 0; j < shape[cur]; ++j) {
+        const t = dx[i + strides[cur] * j];
+        if (nowMin > t) {
+          nowMin = t;
+          nowArgmin = j;
+        }
+      }
+      res[i][0] = nowMin;
+      res[i][1] = nowArgmin;
+    }
+    return res;
+  } else {
+    const res: number[][] = [];
+    for (let i = 0; i < shape[cur]; ++i) {
+      const t = minSub(
+        dx.slice(i * strides[cur], (i + 1) * strides[cur]),
+        shape,
+        strides,
+        dim,
+        cur + 1
+      );
+      for (let j = 0; j < t.length; ++j) {
+        res.push(t[j]);
+      }
+    }
+    return res;
+  }
+}
+
+export function min(
+  input: CPUTensor,
+  dim?: number,
+  keepdim = false
+): CPUTensor | [CPUTensor, CPUTensor] {
+  if (input.size === 0) {
+    throw new Error("input mustn't be empty");
+  }
+  if (dim == undefined) {
+    const dx = input.getBuffer().data;
+    let res = dx[0];
+    for (let i = 0; i < input.size; ++i) {
+      if (res > dx[i]) {
+        res = dx[i];
+      }
+    }
+    return CPUTensor.s(res);
+  } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
+    const dx = input.getBuffer().data;
+    const t = minSub(dx, input.shape, input.strides, dim, 0);
+    const dy: number[] = [];
+    const dindice: number[] = [];
+    for (let i = 0; i < t.length; ++i) {
+      dy[i] = t[i][0];
+      dindice[i] = t[i][1];
+    }
+    let shape: number[] = [];
+    for (let i = 0; i < input.ndim; ++i) {
+      if (i === dim) {
+        shape[i] = 1;
+      } else {
+        shape[i] = input.shape[i];
+      }
+    }
+    if (keepdim === false) {
+      shape = calcSqueeze(shape, dim);
+    }
+    const y = CPUTensor.fromArray(dy, shape);
+    const indices = CPUTensor.fromArray(dindice, shape, 'int32');
+    return [y, indices];
+  }
+}
+
+function argmaxSub(
+  dx: TypedArrayTypes,
+  shape: ReadonlyArray<number>,
+  strides: ReadonlyArray<number>,
+  dim: number,
+  cur: number
+): number[] {
+  if (cur === dim) {
+    const res: number[] = [];
+    for (let i = 0; i < strides[cur]; ++i) {
+      let nowMax: number = dx[i];
+      let nowArgmax = 0;
+      for (let j = 0; j < shape[cur]; ++j) {
+        const t = dx[i + strides[cur] * j];
+        if (nowMax < t) {
+          nowMax = t;
+          nowArgmax = j;
+        }
+      }
+      res[i] = nowArgmax;
+    }
+    return res;
+  } else {
+    const res: number[] = [];
+    for (let i = 0; i < shape[cur]; ++i) {
+      const t = argmaxSub(
+        dx.slice(i * strides[cur], (i + 1) * strides[cur]),
+        shape,
+        strides,
+        dim,
+        cur + 1
+      );
+      for (let j = 0; j < t.length; ++j) {
+        res.push(t[j]);
+      }
+    }
+    return res;
+  }
+}
+
+export function argmax(
+  input: CPUTensor,
+  dim?: number,
+  keepdim = false
+): CPUTensor {
+  if (input.size === 0) {
+    throw new Error("input mustn't be empty");
+  }
+  if (dim == undefined) {
+    const dx = input.getBuffer().data;
+    let res = 0;
+    let nowMax = dx[0];
+    for (let i = 0; i < input.size; ++i) {
+      if (nowMax < dx[i]) {
+        nowMax = dx[i];
+        res = i;
+      }
+    }
+    return CPUTensor.fromArray([res], [], 'int32');
+  } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
+    const dx = input.getBuffer().data;
+    const dy = argmaxSub(dx, input.shape, input.strides, dim, 0);
+    let shape: number[] = [];
+    for (let i = 0; i < input.ndim; ++i) {
+      if (i === dim) {
+        shape[i] = 1;
+      } else {
+        shape[i] = input.shape[i];
+      }
+    }
+    if (keepdim === false) {
+      shape = calcSqueeze(shape, dim);
+    }
+    const y = CPUTensor.fromArray(dy, shape, 'int32');
+    return y;
+  }
+}
+
+function argminSub(
+  dx: TypedArrayTypes,
+  shape: ReadonlyArray<number>,
+  strides: ReadonlyArray<number>,
+  dim: number,
+  cur: number
+): number[] {
+  if (cur === dim) {
+    const res: number[] = [];
+    for (let i = 0; i < strides[cur]; ++i) {
+      let nowMin: number = dx[i];
+      let nowArgmin = 0;
+      for (let j = 0; j < shape[cur]; ++j) {
+        const t = dx[i + strides[cur] * j];
+        if (nowMin > t) {
+          nowMin = t;
+          nowArgmin = j;
+        }
+      }
+      res[i] = nowArgmin;
+    }
+    return res;
+  } else {
+    const res: number[] = [];
+    for (let i = 0; i < shape[cur]; ++i) {
+      const t = argminSub(
+        dx.slice(i * strides[cur], (i + 1) * strides[cur]),
+        shape,
+        strides,
+        dim,
+        cur + 1
+      );
+      for (let j = 0; j < t.length; ++j) {
+        res.push(t[j]);
+      }
+    }
+    return res;
+  }
+}
+
+export function argmin(
+  input: CPUTensor,
+  dim?: number,
+  keepdim = false
+): CPUTensor {
+  if (input.size === 0) {
+    throw new Error("input mustn't be empty");
+  }
+  if (dim == undefined) {
+    const dx = input.getBuffer().data;
+    let res = 0;
+    let nowMin = dx[0];
+    for (let i = 0; i < input.size; ++i) {
+      if (nowMin > dx[i]) {
+        nowMin = dx[i];
+        res = i;
+      }
+    }
+    return CPUTensor.fromArray([res], [], 'int32');
+  } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
+    const dx = input.getBuffer().data;
+    const dy = argminSub(dx, input.shape, input.strides, dim, 0);
+    let shape: number[] = [];
+    for (let i = 0; i < input.ndim; ++i) {
+      if (i === dim) {
+        shape[i] = 1;
+      } else {
+        shape[i] = input.shape[i];
+      }
+    }
+    if (keepdim === false) {
+      shape = calcSqueeze(shape, dim);
+    }
+    const y = CPUTensor.fromArray(dy, shape, 'int32');
+    return y;
+  }
 }

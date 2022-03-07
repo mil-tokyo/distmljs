@@ -7,7 +7,7 @@ import {
 } from '../../dtype';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
-import { sum, sumTo } from './core/reduction';
+import { argmax, argmin, max, min, sum, sumTo } from './core/reduction';
 import {
   coreabs,
   coreacos,
@@ -459,5 +459,49 @@ export class CPUTensor extends Tensor {
     const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(fillValue);
     return CPUTensor.fromArray(data, shape, dtype);
+  }
+
+  static max(input: CPUTensor): CPUTensor;
+  static max(
+    input: CPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [CPUTensor, CPUTensor];
+
+  static max(
+    input: CPUTensor,
+    dim?: number,
+    keepdim = false
+  ): CPUTensor | [CPUTensor, CPUTensor] {
+    return max(input, dim, keepdim);
+  }
+
+  static min(input: CPUTensor): CPUTensor;
+  static min(
+    input: CPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [CPUTensor, CPUTensor];
+
+  static min(
+    input: CPUTensor,
+    dim?: number,
+    keepdim = false
+  ): CPUTensor | [CPUTensor, CPUTensor] {
+    return min(input, dim, keepdim);
+  }
+
+  static argmax(input: CPUTensor): CPUTensor;
+  static argmax(input: CPUTensor, dim: number, keepdim?: boolean): CPUTensor;
+
+  static argmax(input: CPUTensor, dim?: number, keepdim = false): CPUTensor {
+    return argmax(input, dim, keepdim);
+  }
+
+  static argmin(input: CPUTensor): CPUTensor;
+  static argmin(input: CPUTensor, dim: number, keepdim?: boolean): CPUTensor;
+
+  static argmin(input: CPUTensor, dim?: number, keepdim = false): CPUTensor {
+    return argmin(input, dim, keepdim);
   }
 }

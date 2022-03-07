@@ -160,3 +160,293 @@ describe('sort', () => {
     assert.deepEqual(indices.toArray(), [0, 2, 4, 6, 8, 1, 3, 5, 7, 9]);
   });
 });
+
+describe('max', () => {
+  it('max to scalar', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [4]);
+    const y = CPUTensor.max(x);
+    assert.deepEqual(y.shape, []);
+    assert.deepEqual(y.toArray(), [202]);
+  });
+  it('max to array 1', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [2, 2]);
+    const [y, indices] = CPUTensor.max(x, 1);
+    assert.deepEqual(y.shape, [2]);
+    assert.deepEqual(y.toArray(), [37, 202]);
+    assert.deepEqual(indices.shape, [2]);
+    assert.deepEqual(indices.toArray(), [0, 0]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('max to array 2', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, 2);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [202, 93, 99, 84]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [2, 2, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('max to array 2 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, 2, true);
+    assert.deepEqual(y.shape, [2, 2, 1]);
+    assert.deepEqual(y.toArray(), [202, 93, 99, 84]);
+    assert.deepEqual(indices.shape, [2, 2, 1]);
+    assert.deepEqual(indices.toArray(), [2, 2, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('max to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [202, 93, 99, 84]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [2, 2, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('max to array 3', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, 1);
+    assert.deepEqual(y.shape, [2, 3]);
+    assert.deepEqual(y.toArray(), [65, 26, 202, 62, 99, 64]);
+    assert.deepEqual(indices.shape, [2, 3]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 1, 0, 0]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('max to array 3 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, 1, true);
+    assert.deepEqual(y.shape, [2, 1, 3]);
+    assert.deepEqual(y.toArray(), [65, 26, 202, 62, 99, 64]);
+    assert.deepEqual(indices.shape, [2, 1, 3]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 1, 0, 0]);
+    assert.equal(indices.dtype, 'int32');
+  });
+});
+
+describe('min', () => {
+  it('min to scalar', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [4]);
+    const y = CPUTensor.min(x);
+    assert.deepEqual(y.shape, []);
+    assert.deepEqual(y.toArray(), [1]);
+  });
+  it('min to array 1', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [2, 2]);
+    const [y, indices] = CPUTensor.min(x, 1);
+    assert.deepEqual(y.shape, [2]);
+    assert.deepEqual(y.toArray(), [1, 65]);
+    assert.deepEqual(indices.shape, [2]);
+    assert.deepEqual(indices.toArray(), [1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('min to array 2', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, 2);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [1, 26, 28, 16]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('min to array 2 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, 2, true);
+    assert.deepEqual(y.shape, [2, 2, 1]);
+    assert.deepEqual(y.toArray(), [1, 26, 28, 16]);
+    assert.deepEqual(indices.shape, [2, 2, 1]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('min to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [1, 26, 28, 16]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('min to array 3', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, 1);
+    assert.deepEqual(y.shape, [2, 3]);
+    assert.deepEqual(y.toArray(), [37, 1, 93, 28, 84, 16]);
+    assert.deepEqual(indices.shape, [2, 3]);
+    assert.deepEqual(indices.toArray(), [0, 0, 1, 0, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('min to array 3 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, 1, true);
+    assert.deepEqual(y.shape, [2, 1, 3]);
+    assert.deepEqual(y.toArray(), [37, 1, 93, 28, 84, 16]);
+    assert.deepEqual(indices.shape, [2, 1, 3]);
+    assert.deepEqual(indices.toArray(), [0, 0, 1, 0, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
+});
+
+describe('argmax', () => {
+  it('argmax to scalar', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [4]);
+    const y = CPUTensor.argmax(x);
+    assert.deepEqual(y.shape, []);
+    assert.deepEqual(y.toArray(), [2]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 1', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [2, 2]);
+    const y = CPUTensor.argmax(x, 1);
+    assert.deepEqual(y.shape, [2]);
+    assert.deepEqual(y.toArray(), [0, 0]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 2', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, 2);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [2, 2, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 2 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, 2, true);
+    assert.deepEqual(y.shape, [2, 2, 1]);
+    assert.deepEqual(y.toArray(), [2, 2, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [2, 2, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 3', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, 1);
+    assert.deepEqual(y.shape, [2, 3]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 1, 0, 0]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmax to array 3 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, 1, true);
+    assert.deepEqual(y.shape, [2, 1, 3]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 1, 0, 0]);
+    assert.equal(y.dtype, 'int32');
+  });
+});
+
+describe('argmin', () => {
+  it('argmin to scalar', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [4]);
+    const y = CPUTensor.argmin(x);
+    assert.deepEqual(y.shape, []);
+    assert.deepEqual(y.toArray(), [1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 1', () => {
+    const x = CPUTensor.fromArray([37, 1, 202, 65], [2, 2]);
+    const y = CPUTensor.argmin(x, 1);
+    assert.deepEqual(y.shape, [2]);
+    assert.deepEqual(y.toArray(), [1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 2', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, 2);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 2]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 2 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, 2, true);
+    assert.deepEqual(y.shape, [2, 2, 1]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 2]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 2]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 3', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, 1);
+    assert.deepEqual(y.shape, [2, 3]);
+    assert.deepEqual(y.toArray(), [0, 0, 1, 0, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 3 keepdim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, 1, true);
+    assert.deepEqual(y.shape, [2, 1, 3]);
+    assert.deepEqual(y.toArray(), [0, 0, 1, 0, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
+});
