@@ -201,6 +201,18 @@ describe('max', () => {
     assert.deepEqual(indices.toArray(), [2, 2, 1, 1]);
     assert.equal(indices.dtype, 'int32');
   });
+  it('max to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.max(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [202, 93, 99, 84]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [2, 2, 1, 1]);
+    assert.equal(indices.dtype, 'int32');
+  });
   it('max to array 3', () => {
     const x = CPUTensor.fromArray(
       [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
@@ -267,6 +279,18 @@ describe('min', () => {
     assert.deepEqual(indices.toArray(), [1, 1, 0, 2]);
     assert.equal(indices.dtype, 'int32');
   });
+  it('min to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const [y, indices] = CPUTensor.min(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [1, 26, 28, 16]);
+    assert.deepEqual(indices.shape, [2, 2]);
+    assert.deepEqual(indices.toArray(), [1, 1, 0, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
   it('min to array 3', () => {
     const x = CPUTensor.fromArray(
       [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
@@ -328,6 +352,16 @@ describe('argmax', () => {
     assert.deepEqual(y.toArray(), [2, 2, 1, 1]);
     assert.equal(y.dtype, 'int32');
   });
+  it('argmax to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmax(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
+    assert.deepEqual(y.toArray(), [2, 2, 1, 1]);
+    assert.equal(y.dtype, 'int32');
+  });
   it('argmax to array 3', () => {
     const x = CPUTensor.fromArray(
       [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
@@ -382,6 +416,16 @@ describe('argmin', () => {
     );
     const y = CPUTensor.argmin(x, 2, true);
     assert.deepEqual(y.shape, [2, 2, 1]);
+    assert.deepEqual(y.toArray(), [1, 1, 0, 2]);
+    assert.equal(y.dtype, 'int32');
+  });
+  it('argmin to array 2 negative dim', () => {
+    const x = CPUTensor.fromArray(
+      [37, 1, 202, 65, 26, 93, 28, 99, 64, 62, 84, 16],
+      [2, 2, 3]
+    );
+    const y = CPUTensor.argmin(x, -1);
+    assert.deepEqual(y.shape, [2, 2]);
     assert.deepEqual(y.toArray(), [1, 1, 0, 2]);
     assert.equal(y.dtype, 'int32');
   });

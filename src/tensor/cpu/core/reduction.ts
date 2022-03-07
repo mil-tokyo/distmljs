@@ -722,6 +722,9 @@ export function max(
     }
     return CPUTensor.s(res);
   } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
     const dx = input.getBuffer().data;
     const t = maxSub(dx, input.shape, input.strides, dim, 0);
     const dy: number[] = [];
@@ -807,6 +810,9 @@ export function min(
     }
     return CPUTensor.s(res);
   } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
     const dx = input.getBuffer().data;
     const t = minSub(dx, input.shape, input.strides, dim, 0);
     const dy: number[] = [];
@@ -892,6 +898,9 @@ export function argmax(
     }
     return CPUTensor.fromArray([res], [], 'int32');
   } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
     const dx = input.getBuffer().data;
     const dy = argmaxSub(dx, input.shape, input.strides, dim, 0);
     let shape: number[] = [];
@@ -970,6 +979,9 @@ export function argmin(
     }
     return CPUTensor.fromArray([res], [], 'int32');
   } else {
+    if (dim < 0) {
+      dim = dim + input.ndim;
+    }
     const dx = input.getBuffer().data;
     const dy = argminSub(dx, input.shape, input.strides, dim, 0);
     let shape: number[] = [];
