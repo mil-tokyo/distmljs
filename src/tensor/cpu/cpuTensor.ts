@@ -46,6 +46,7 @@ import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { cat, chunk, repeat, tile } from './core/manipulation';
 import { gemm } from './core/gemm';
 import { sort } from './core/sort';
+import { arrayProd } from '../../util';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -441,12 +442,22 @@ export class CPUTensor extends Tensor {
   static unsqueeze(input: CPUTensor, dim: number): CPUTensor {
     return input.alias(calcUnsqueeze(input.shape, dim));
   }
-  
+
   static sort(
     input: CPUTensor,
     dim = -1,
     descending = false
   ): [CPUTensor, CPUTensor] {
     return sort(input, dim, descending);
+  }
+
+  static full(
+    shape: ArrayLike<number>,
+    fillValue: number,
+    dtype: DType = DTypeDefault
+  ): CPUTensor {
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
+    data.fill(fillValue);
+    return CPUTensor.fromArray(data, shape, dtype);
   }
 }
