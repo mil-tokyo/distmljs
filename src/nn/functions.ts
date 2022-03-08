@@ -49,6 +49,8 @@ import {
 import {
   batch_norm_backprop_cpu,
   batch_norm_cpu,
+  layer_norm_backprop_cpu,
+  layer_norm_cpu,
 } from '../tensor/cpu/nnfunction/batch_norm';
 import {
   batch_norm_backprop_webgl,
@@ -1160,5 +1162,73 @@ export class BatchNormFunction extends NNFunction {
       null,
       null,
     ];
+  }
+}
+
+export interface LayerNormParams {
+  normalizedShape: ReadonlyArray<number>;
+  eps?: number;
+}
+
+export class LayerNormFunction extends NNFunction {
+  normalizedShape: ReadonlyArray<number>;
+  eps: number;
+  statsForBackprop?: Tensor;
+
+  constructor(params: LayerNormParams) {
+    super();
+    const { normalizedShape, eps = 1e-5 } = params;
+    this.eps = eps;
+    this.normalizedShape = normalizedShape;
+  }
+
+  async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
+    const params = {
+      normalizedShape: this.normalizedShape,
+      eps: this.eps,
+    };
+
+    if (!(weight && bias)) {
+      // TODO: 場合分け
+      throw new Error('LayerNorm without weight, bias is not yet implemented');
+    }
+    let outputs: {
+      y: Tensor;
+      statsForBackprop: Tensor;
+    };
+    const ts = [x, weight, bias];
+    if (isAllCPUTensor(ts)) {
+      outputs = layer_norm_cpu(ts[0], { weight: ts[1], bias: ts[2] }, params);
+    } else {
+      throw new Error('not implemented');
+    }
+
+    if (defaultNNContext.get('enableBackprop')) {
+      this.statsForBackprop = outputs.statsForBackprop;
+    }
+
+    return [outputs.y];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const params = {
+      normalizedShape: this.normalizedShape,
+      eps: this.eps,
+    };
+    const [gxd, gwd, gbd] = genCall(
+      [
+        nonNull(this.inputs)[0].data,
+        nonNull(this.inputs)[1].data,
+        gy.data,
+        nonNull(this.statsForBackprop),
+      ],
+      {
+        cpu: (c, [x, w, gyd, sfb]) => {
+          const xwb = layer_norm_backprop_cpu(x, w, gyd, sfb, params);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+      }
+    );
+    return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
   }
 }

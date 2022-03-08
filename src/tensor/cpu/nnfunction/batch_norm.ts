@@ -216,3 +216,108 @@ export function batch_norm_backprop_cpu(
   const gx = CPUTensor.mul(scale, CPUTensor.sub(gy, tmp));
   return { gx, gweight: gweight.reshape([-1]), gbias: gbias.reshape([-1]) };
 }
+
+export interface LayerNormParams {
+  normalizedShape: ReadonlyArray<number>;
+  eps: number;
+}
+
+export function layer_norm_cpu(
+  x: CPUTensor,
+  affine: { weight: CPUTensor; bias: CPUTensor },
+  params: LayerNormParams
+): {
+  y: CPUTensor;
+  statsForBackprop: CPUTensor;
+} {
+  const reduceLength = arrayProd(params.normalizedShape);
+  const reduceStride = 1;
+  const outerLength = x.size / reduceLength;
+  const outerStride = reduceLength;
+
+  const xd = x.buffer.data;
+  // outerLength, [mean, invstd]
+  const stats = CPUTensor.zeros([outerLength, 2]);
+  const sd = stats.buffer.data;
+  const eps = params.eps;
+  // calc stats
+  for (let outer = 0; outer < outerLength; outer++) {
+    let sum = 0.0,
+      sqsum = 0.0;
+    for (let inner = 0; inner < reduceLength; inner++) {
+      const v = xd[inner * reduceStride + outer * outerStride];
+      sum += v;
+      sqsum += v * v;
+    }
+    const mean = sum / reduceLength;
+    const variance = sqsum / reduceLength - mean * mean;
+    const invStd = 1 / Math.sqrt(variance + eps);
+    sd[outer * 2] = mean;
+    sd[outer * 2 + 1] = invStd;
+  }
+
+  // compute output
+  const y = CPUTensor.zeros(x.shape);
+  const yd = y.buffer.data;
+  for (let outer = 0; outer < outerLength; outer++) {
+    const mean = sd[outer * 2 + 0];
+    const invStd = sd[outer * 2 + 1];
+    for (let red = 0; red < reduceLength; red++) {
+      const v = xd[red * reduceStride + outer * outerStride];
+      const s = (v - mean) * invStd;
+      yd[red * reduceStride + outer * outerStride] = s;
+    }
+  }
+  const scaled = CPUTensor.add(CPUTensor.mul(y, affine.weight), affine.bias);
+
+  return { y: scaled, statsForBackprop: stats };
+}
+
+export function layer_norm_backprop_cpu(
+  x: CPUTensor,
+  w: CPUTensor,
+  gy: CPUTensor,
+  statsForBackprop: CPUTensor,
+  params: LayerNormParams
+): {
+  gx: CPUTensor;
+  gweight: CPUTensor;
+  gbias: CPUTensor;
+} {
+  // TODO: 高速化
+  const normDims = params.normalizedShape.length;
+  const axesExceptCh = arange(gy.ndim - normDims);
+  const axesCh = arange(gy.ndim - normDims, gy.ndim);
+
+  const gbias = sum(gy, axesExceptCh, true);
+  const reshapeShape = [
+    ...x.shape.slice(0, x.shape.length - normDims),
+    ...Array(normDims).fill(1),
+  ]; // e.g. [x.shape[0], 1, 1, 1] for 2d image
+
+  const mean = statsForBackprop.gets(slice(), 0).reshape(reshapeShape);
+  const invStd = statsForBackprop.gets(slice(), 1).reshape(reshapeShape);
+  const gweight = CPUTensor.sub(
+    sum(CPUTensor.mul(CPUTensor.mul(x, gy), invStd), axesExceptCh, true),
+    sum(CPUTensor.mul(gy, CPUTensor.mul(mean, invStd)), axesExceptCh, true)
+  );
+  const n = arrayProd(params.normalizedShape);
+  const xScaled = CPUTensor.mul(CPUTensor.sub(x, mean), invStd);
+  const gxh = CPUTensor.mul(gy, w);
+  const tmp = CPUTensor.sub(
+    CPUTensor.sub(
+      CPUTensor.mul(CPUTensor.s(n), gxh),
+      CPUTensor.sum(gxh, axesCh, true)
+    ),
+    CPUTensor.mul(
+      xScaled,
+      CPUTensor.sum(CPUTensor.mul(gxh, xScaled), axesCh, true)
+    )
+  );
+  const gx = CPUTensor.mul(CPUTensor.mul(CPUTensor.s(1 / n), invStd), tmp);
+  return {
+    gx,
+    gweight: gweight.reshape(params.normalizedShape),
+    gbias: gbias.reshape(params.normalizedShape),
+  };
+}
