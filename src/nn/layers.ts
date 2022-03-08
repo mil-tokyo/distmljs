@@ -10,7 +10,6 @@ import {
   LayerNormFunction,
   linear,
 } from './functions';
-import { Sequential } from './layer/sequential';
 
 export class Linear extends Layer {
   weight: Parameter;
