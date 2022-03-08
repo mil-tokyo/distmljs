@@ -347,3 +347,85 @@ describe('split', () => {
     assert.deepEqual(y[1].toArray(), [3, 4, 5, 6, 3, 4, 5, 6]);
   });
 });
+
+describe('triu', () => {
+  it('triu diagnonal=undefined', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.triu(x);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [1, 2, 3, 4, 5, 0, 7, 8, 9, 10, 0, 0, 13, 14, 15, 0, 0, 0, 19, 20]
+    );
+  });
+
+  it('triu diagnonal=1', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.triu(x, 1);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [0, 2, 3, 4, 5, 0, 0, 8, 9, 10, 0, 0, 0, 14, 15, 0, 0, 0, 0, 20]
+    );
+  });
+
+  it('triu diagnonal=-1', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.triu(x, -1);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0, 12, 13, 14, 15, 0, 0, 18, 19, 20]
+    );
+  });
+});
+
+describe('tril', () => {
+  it('tril diagnonal=undefined', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.tril(x);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [1, 0, 0, 0, 0, 6, 7, 0, 0, 0, 11, 12, 13, 0, 0, 16, 17, 18, 19, 0]
+    );
+  });
+
+  it('tril diagnonal=1', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.tril(x, 1);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [1, 2, 0, 0, 0, 6, 7, 8, 0, 0, 11, 12, 13, 14, 0, 16, 17, 18, 19, 20]
+    );
+  });
+
+  it('tril diagnonal=-1', () => {
+    const x = CPUTensor.fromArray(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      [4, 5]
+    );
+    const y = CPUTensor.tril(x, -1);
+    assert.deepEqual(y.shape, [4, 5]);
+    assert.deepEqual(
+      y.toArray(),
+      [0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 11, 12, 0, 0, 0, 16, 17, 18, 0, 0]
+    );
+  });
+});
