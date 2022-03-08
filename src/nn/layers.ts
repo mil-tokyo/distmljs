@@ -6,6 +6,7 @@ import {
   BatchNormFunction,
   conv2d,
   Conv2dParams,
+  EmbeddingFunction,
   LayerNormFunction,
   linear,
 } from './functions';
@@ -271,6 +272,29 @@ export class LayerNorm extends Layer {
       throw new Error();
     }
     const output = await batch_norm.c(...args);
+    return [output];
+  }
+}
+
+export class Embedding extends Layer {
+  weight: Parameter;
+
+  constructor(
+    public readonly numEmbeddings: number,
+    public readonly embeddingDim: number
+  ) {
+    super();
+    const rnd = Random.getDefault();
+    const normal = rnd.normal(numEmbeddings * embeddingDim);
+    this.weight = new Parameter(
+      CPUTensor.fromArray(normal, [numEmbeddings, embeddingDim]),
+      'weight'
+    );
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    const emb = new EmbeddingFunction(this.numEmbeddings, this.embeddingDim);
+    const output = await emb.c(inputs[0], this.weight);
     return [output];
   }
 }

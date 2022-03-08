@@ -56,6 +56,11 @@ import {
   batch_norm_backprop_webgl,
   batch_norm_webgl,
 } from '../tensor/webgl/nnfunction/batch_norm';
+import { CPUTensor } from '../tensor';
+import {
+  embedding_backprop_cpu,
+  embedding_cpu,
+} from '../tensor/cpu/nnfunction/embedding';
 
 export async function broadcastTo(
   x: Variable,
@@ -1244,5 +1249,37 @@ export class LayerNormFunction extends NNFunction {
       }
     );
     return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
+  }
+}
+
+export class EmbeddingFunction extends NNFunction {
+  constructor(
+    public readonly numEmbeddings: number,
+    public readonly embeddingDim: number
+  ) {
+    super();
+  }
+
+  async forward([x, weight]: Tensor[]): Promise<Tensor[]> {
+    const ts = [x, weight];
+    let output: CPUTensor;
+    if (isAllCPUTensor(ts)) {
+      output = embedding_cpu(ts[0], ts[1]);
+    } else {
+      throw new Error('not implemented');
+    }
+
+    return [output];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const [gwd] = genCall([nonNull(this.inputs)[0].data, gy.data], {
+      cpu: (c, [x, gyd]) => {
+        return [
+          embedding_backprop_cpu(x, gyd, this.numEmbeddings, this.embeddingDim),
+        ];
+      },
+    });
+    return [null, new Variable(gwd)];
   }
 }

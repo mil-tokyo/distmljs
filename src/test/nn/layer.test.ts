@@ -2,8 +2,14 @@
 import { assert } from 'chai';
 import { Backend } from '../../backend';
 import { Layer, Variable } from '../../nn/core';
-import { mseLoss, relu, sum } from '../../nn/functions';
-import { BatchNorm, Conv2d, LayerNorm, Linear } from '../../nn/layers';
+import { mseLoss, mul, relu, sum } from '../../nn/functions';
+import {
+  BatchNorm,
+  Conv2d,
+  Embedding,
+  LayerNorm,
+  Linear,
+} from '../../nn/layers';
 import { SGD } from '../../nn/optimizers';
 import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
@@ -468,6 +474,90 @@ for (const { backend, ctor } of [
             -0.18137556314468384, 0.1666666716337204, 0.1316680610179901,
             0.4928249716758728, 0.14382441341876984, 0.7704743146896362,
             0.2965526282787323, 0.5787943601608276, -0.04712998867034912,
+          ]
+        );
+      });
+    });
+
+    describe('embedding', () => {
+      it('forward / backward', async () => {
+        const emb = new Embedding(5, 4);
+        (emb.weight!.data as CPUTensor).setArray([
+          -1.1258398294448853, -1.152360200881958, -0.2505785822868347,
+          -0.4338788092136383, 0.5988394618034363, -1.5550950765609741,
+          -0.3413603901863098, 1.85300612449646, 0.46809640526771545,
+          -0.1577124446630478, 1.4436601400375366, 0.26604941487312317,
+          1.3893661499023438, 1.586334228515625, 0.946298360824585,
+          -0.843676745891571, 0.9318265914916992, 1.2590092420578003,
+          2.0049805641174316, 0.05373690277338028,
+        ]);
+
+        emb.train();
+        await emb.to(backend);
+
+        const x = new Variable(ctor.fromArray([3, 4, 0, 4], [4], 'int32'));
+        const y = await emb.c(x);
+        assert.deepEqual(
+          await ta(y.data),
+          [
+            1.3893661499023438, 1.586334228515625, 0.946298360824585,
+            -0.843676745891571, 0.9318265914916992, 1.2590092420578003,
+            2.0049805641174316, 0.05373690277338028, -1.1258398294448853,
+            -1.152360200881958, -0.2505785822868347, -0.4338788092136383,
+            0.9318265914916992, 1.2590092420578003, 2.0049805641174316,
+            0.05373690277338028,
+          ]
+        );
+        const weight = new Variable(ctor.fromArray(arange(16), [4, 4]));
+        const yr = await mul(y, weight);
+        const s = await sum(yr);
+        await s.backward();
+        assert.deepEqual(
+          await ta(emb.weight.grad!.data),
+          [
+            8.0, 9.0, 10.0, 11.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 2.0, 3.0, 16.0, 18.0, 20.0, 22.0,
+          ]
+        );
+      });
+
+      it('forward / backward 2d', async () => {
+        const emb = new Embedding(5, 4);
+        (emb.weight!.data as CPUTensor).setArray([
+          -1.1258398294448853, -1.152360200881958, -0.2505785822868347,
+          -0.4338788092136383, 0.5988394618034363, -1.5550950765609741,
+          -0.3413603901863098, 1.85300612449646, 0.46809640526771545,
+          -0.1577124446630478, 1.4436601400375366, 0.26604941487312317,
+          1.3893661499023438, 1.586334228515625, 0.946298360824585,
+          -0.843676745891571, 0.9318265914916992, 1.2590092420578003,
+          2.0049805641174316, 0.05373690277338028,
+        ]);
+
+        emb.train();
+        await emb.to(backend);
+
+        const x = new Variable(ctor.fromArray([3, 4, 0, 4], [2, 2], 'int32'));
+        const y = await emb.c(x);
+        assert.deepEqual(
+          await ta(y.data),
+          [
+            1.3893661499023438, 1.586334228515625, 0.946298360824585,
+            -0.843676745891571, 0.9318265914916992, 1.2590092420578003,
+            2.0049805641174316, 0.05373690277338028, -1.1258398294448853,
+            -1.152360200881958, -0.2505785822868347, -0.4338788092136383,
+            0.9318265914916992, 1.2590092420578003, 2.0049805641174316,
+            0.05373690277338028,
+          ]
+        );
+        const weight = new Variable(ctor.fromArray(arange(16), [2, 2, 4]));
+        const yr = await mul(y, weight);
+        const s = await sum(yr);
+        await s.backward();
+        assert.deepEqual(
+          await ta(emb.weight.grad!.data),
+          [
+            8.0, 9.0, 10.0, 11.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1.0, 2.0, 3.0, 16.0, 18.0, 20.0, 22.0,
           ]
         );
       });
