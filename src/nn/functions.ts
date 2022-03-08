@@ -260,6 +260,14 @@ export async function matmul(
   return await new MatMul(transa, transb).c(a, b);
 }
 
+export class SoftmaxBackward extends NNFunction {
+  async forward([softmax, gy]: Tensor[]): Promise<Tensor[]> {
+    return genCall([softmax, gy], {
+      cpu: (c, [softmax, gy]) => [cpuCore.softmaxBackward(softmax, gy)],
+    });
+  }
+}
+
 export class SoftmaxCrossEntropyBackward extends NNFunction {
   async forward([softmax, label, gy]: Tensor[]): Promise<Tensor[]> {
     return genCall([softmax, label, gy], {
@@ -285,7 +293,13 @@ export class Softmax extends NNFunction {
     });
   }
 
-  // TODO: backward (学習時は、SoftmaxCrossEntropyを推奨)
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const softmax = this.outputs?.[0]?.deref();
+    if (!softmax) {
+      throw new Error();
+    }
+    return [await new SoftmaxBackward().c(softmax, gy)];
+  }
 }
 
 export async function softmax(x: Variable): Promise<Variable> {
