@@ -45,7 +45,7 @@ import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { cat, chunk, repeat, tile, split } from './core/manipulation';
 import { gemm } from './core/gemm';
-import { sort } from './core/sort';
+import { sort, topk } from './core/sort';
 import { arrayProd } from '../../util';
 import { tril, triu } from './core/tri';
 
@@ -520,5 +520,14 @@ export class CPUTensor extends Tensor {
 
   static triu(input: CPUTensor, diagonal = 0): CPUTensor {
     return triu(input, diagonal);
+  }
+
+  static topk(
+    input: CPUTensor,
+    k: number,
+    dim = -1,
+    largest = true
+  ): [CPUTensor, CPUTensor] {
+    return topk(input, k, dim, largest);
   }
 }

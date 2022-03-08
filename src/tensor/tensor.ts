@@ -1,6 +1,6 @@
 import { CPUTensor } from './cpu/cpuTensor';
 import { Backend } from '../backend';
-import { DType, DTypeDefault } from '../dtype';
+import { DType } from '../dtype';
 import { WebGLTensor } from './webgl/webglTensor';
 import { WebGPUTensor } from './webgpu/webgpuTensor';
 
