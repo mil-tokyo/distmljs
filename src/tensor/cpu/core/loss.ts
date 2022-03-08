@@ -52,6 +52,32 @@ export function softmax(x: CPUTensor): CPUTensor {
   return output;
 }
 
+export function softmaxBackward(y: CPUTensor, gy: CPUTensor): CPUTensor {
+  const [batch, cs] = y.shape;
+  if (y.shape.length !== 2) {
+    throw new Error('softmaxBackward needs 2d input');
+  }
+  const output = CPUTensor.zeros([batch, cs]);
+  const dy = y.getBuffer().data;
+  const dgy = gy.getBuffer().data;
+  const dgx = output.getBuffer().data;
+  for (let b = 0; b < batch; b++) {
+    for (let c = 0; c < cs; c++) {
+      let sum = 0.0;
+      const my = dy[b * cs + c];
+      for (let d = 0; d < cs; d++) {
+        if (d === c) {
+          sum += my * (1 - my) * dgy[b * cs + d];
+        } else {
+          sum += -my * dy[b * cs + d] * dgy[b * cs + d];
+        }
+      }
+      dgx[b * cs + c] = sum;
+    }
+  }
+  return output;
+}
+
 export function softmaxCrossEntropyBackward(
   softmax: CPUTensor,
   label: CPUTensor,

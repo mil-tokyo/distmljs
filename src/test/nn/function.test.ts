@@ -105,11 +105,27 @@ for (const { backend, ctor } of [
         const x = new Variable(
           ctor.fromArray([0, 1, 2, 3, -1, 3, 2, 4], [2, 4])
         );
-        const z = await softmax(x);
+        const y = await softmax(x);
         arrayNearlyEqual(
-          await ta(z.data),
+          await ta(y.data),
           [0.0321, 0.0871, 0.2369, 0.6439, 0.0045, 0.2436, 0.0896, 0.6623]
         );
+        if (backend === 'cpu') {
+          // backward of webgl is not yet implemented
+          const weight = new Variable(
+            ctor.fromArray([1, 2, 3, 4, 5, 6, 7, 8], [2, 4])
+          );
+          const yr = await mul(y, weight);
+          const s = await sum(yr);
+          await s.backward();
+          arrayNearlyEqual(
+            await ta(x.grad!.data),
+            [
+              -0.0799, -0.1301, -0.1167, 0.3267, -0.0108, -0.3435, -0.0367,
+              0.3909,
+            ]
+          );
+        }
       });
     });
 
