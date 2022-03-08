@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
+import { arange } from '../../util';
 
 describe('cpuTensor', () => {
   describe('basic', () => {
@@ -448,5 +449,102 @@ describe('argmin', () => {
     assert.deepEqual(y.shape, [2, 1, 3]);
     assert.deepEqual(y.toArray(), [0, 0, 1, 0, 1, 1]);
     assert.equal(y.dtype, 'int32');
+  });
+});
+
+describe('topk', () => {
+  it('topk 1d', () => {
+    const x = CPUTensor.fromArray(arange(6), [6]);
+    const [y, indices] = CPUTensor.topk(x, 3);
+    assert.deepEqual(y.shape, [3]);
+    assert.deepEqual(y.toArray(), [5, 4, 3]);
+    assert.equal(y.dtype, 'float32');
+    assert.deepEqual(indices.shape, [3]);
+    assert.deepEqual(indices.toArray(), [5, 4, 3]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 2d 1', () => {
+    const x = CPUTensor.fromArray(
+      [37, 92, 23, 283, 13, 73, 26, 9, 64],
+      [3, 3],
+      'int32'
+    );
+    const [y, indices] = CPUTensor.topk(x, 2);
+    assert.deepEqual(y.shape, [3, 2]);
+    assert.deepEqual(y.toArray(), [92, 37, 283, 73, 64, 26]);
+    assert.equal(y.dtype, 'int32');
+    assert.deepEqual(indices.shape, [3, 2]);
+    assert.deepEqual(indices.toArray(), [1, 0, 0, 2, 2, 0]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 2d 2', () => {
+    const x = CPUTensor.fromArray(
+      [37, 92, 23, 283, 13, 73, 26, 9, 64],
+      [3, 3],
+      'int32'
+    );
+    const [y, indices] = CPUTensor.topk(x, 2, -1, false);
+    assert.deepEqual(y.shape, [3, 2]);
+    assert.deepEqual(y.toArray(), [23, 37, 13, 73, 9, 26]);
+    assert.equal(y.dtype, 'int32');
+    assert.deepEqual(indices.shape, [3, 2]);
+    assert.deepEqual(indices.toArray(), [2, 0, 1, 2, 1, 0]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 2d 3', () => {
+    const x = CPUTensor.fromArray(
+      [37, 92, 23, 283, 13, 73, 26, 9, 64],
+      [3, 3],
+      'int32'
+    );
+    const [y, indices] = CPUTensor.topk(x, 2, 0, false);
+    assert.deepEqual(y.shape, [2, 3]);
+    assert.deepEqual(y.toArray(), [26, 9, 23, 37, 13, 64]);
+    assert.equal(y.dtype, 'int32');
+    assert.deepEqual(indices.shape, [2, 3]);
+    assert.deepEqual(indices.toArray(), [2, 2, 0, 0, 1, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 3d 1', () => {
+    const x = CPUTensor.fromArray(arange(3 * 3 * 3), [3, 3, 3]);
+    const [y, indices] = CPUTensor.topk(x, 1, 1);
+    assert.deepEqual(y.shape, [3, 1, 3]);
+    assert.deepEqual(y.toArray(), [6, 7, 8, 15, 16, 17, 24, 25, 26]);
+    assert.equal(y.dtype, 'float32');
+    assert.deepEqual(indices.shape, [3, 1, 3]);
+    assert.deepEqual(indices.toArray(), [2, 2, 2, 2, 2, 2, 2, 2, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 3d 2', () => {
+    const x = CPUTensor.fromArray(arange(3 * 3 * 3), [3, 3, 3]);
+    const [y, indices] = CPUTensor.topk(x, 1, 1);
+    assert.deepEqual(y.shape, [3, 1, 3]);
+    assert.deepEqual(y.toArray(), [6, 7, 8, 15, 16, 17, 24, 25, 26]);
+    assert.equal(y.dtype, 'float32');
+    assert.deepEqual(indices.shape, [3, 1, 3]);
+    assert.deepEqual(indices.toArray(), [2, 2, 2, 2, 2, 2, 2, 2, 2]);
+    assert.equal(indices.dtype, 'int32');
+  });
+  it('topk 3d 3', () => {
+    const x = CPUTensor.fromArray(arange(3 * 3 * 3), [3, 3, 3]);
+    const [y, indices] = CPUTensor.topk(x, 3, 1);
+    assert.deepEqual(y.shape, [3, 3, 3]);
+    assert.deepEqual(
+      y.toArray(),
+      [
+        6, 7, 8, 3, 4, 5, 0, 1, 2, 15, 16, 17, 12, 13, 14, 9, 10, 11, 24, 25,
+        26, 21, 22, 23, 18, 19, 20,
+      ]
+    );
+    assert.equal(y.dtype, 'float32');
+    assert.deepEqual(indices.shape, [3, 3, 3]);
+    assert.deepEqual(
+      indices.toArray(),
+      [
+        2, 2, 2, 1, 1, 1, 0, 0, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2, 2, 2, 1, 1, 1,
+        0, 0, 0,
+      ]
+    );
+    assert.equal(indices.dtype, 'int32');
   });
 });
