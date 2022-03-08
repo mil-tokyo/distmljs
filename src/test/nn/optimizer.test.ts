@@ -5,6 +5,7 @@ import { Variable } from '../../nn/core';
 import { sum } from '../../nn/functions';
 import { Linear } from '../../nn/layers';
 import { SGD } from '../../nn/optimizers';
+import { clipGradNorm_ } from '../../nn/utils';
 import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
@@ -132,4 +133,61 @@ for (const { backend, ctor } of [
       });
     });
   });
+
+  if (backend === 'cpu') {
+    describe('sgd with clipGradNorm_', () => {
+      it('forward / backward', async () => {
+        const linear = new Linear(4, 2, true);
+        (linear.weight.data as CPUTensor).setArray([
+          -0.0037, 0.2682, -0.4115, -0.368, -0.1926, 0.1341, -0.0099, 0.3964,
+        ]);
+        (linear.bias!.data as CPUTensor).setArray([-0.0444, 0.1323]);
+        await linear.to(backend);
+        const opt = new SGD(linear.parameters(), 0.1, 0.0);
+        opt.zeroGrad();
+        let x = new Variable(
+          ctor.fromArray(
+            [
+              0.3489, 0.4017, 0.0223, 0.1689, 0.2939, 0.5185, 0.6977, 0.8,
+              0.161, 0.2823, 0.6816, 0.9152,
+            ],
+            [3, 4]
+          )
+        );
+        let y = await linear.c(x);
+        let z = await sum(y);
+        await z.backward();
+        let norm = clipGradNorm_(linear.parameters(), 0.5);
+        arrayNearlyEqual(await ta(norm), [5.763]);
+        await opt.step();
+        arrayNearlyEqual(
+          await ta(linear.weight.data),
+          [-0.0107, 0.2578, -0.4237, -0.3843, -0.1996, 0.1236, -0.0221, 0.3801]
+        );
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.0704, 0.1063]);
+
+        opt.zeroGrad();
+        x = new Variable(
+          ctor.fromArray(
+            [
+              0.3971, 0.8742, 0.4194, 0.5529, 0.9527, 0.0362, 0.1852, 0.3734,
+              0.3051, 0.932, 0.1759, 0.2698,
+            ],
+            [3, 4]
+          )
+        );
+        y = await linear.c(x);
+        z = await sum(y);
+        await z.backward();
+        norm = clipGradNorm_(linear.parameters(), 0.5);
+        arrayNearlyEqual(await ta(norm), [5.8605]);
+        await opt.step();
+        arrayNearlyEqual(
+          await ta(linear.weight.data),
+          [-0.0248, 0.2421, -0.4303, -0.3945, -0.2137, 0.1079, -0.0287, 0.3699]
+        );
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.096, 0.0807]);
+      });
+    });
+  }
 }
