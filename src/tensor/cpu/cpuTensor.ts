@@ -47,6 +47,7 @@ import { cat, chunk, repeat, tile, split } from './core/manipulation';
 import { gemm } from './core/gemm';
 import { sort } from './core/sort';
 import { arrayProd } from '../../util';
+import { tril, triu } from './core/tri';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -511,5 +512,13 @@ export class CPUTensor extends Tensor {
 
   static argmin(input: CPUTensor, dim?: number, keepdim = false): CPUTensor {
     return argmin(input, dim, keepdim);
+  }
+
+  static tril(input: CPUTensor, diagonal = 0): CPUTensor {
+    return tril(input, diagonal);
+  }
+
+  static triu(input: CPUTensor, diagonal = 0): CPUTensor {
+    return triu(input, diagonal);
   }
 }
