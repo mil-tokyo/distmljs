@@ -1,6 +1,5 @@
 import { TypedArrayTypes } from '../../../dtype';
 import { CPUTensor } from '../cpuTensor';
-import { min } from './reduction';
 
 function compareFuncAsc(a: number[], b: number[]): number {
   return a[0] - b[0];
