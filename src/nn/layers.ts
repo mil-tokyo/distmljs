@@ -2,7 +2,13 @@ import { Variable } from '.';
 import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
-import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
+import {
+  BatchNormFunction,
+  conv2d,
+  Conv2dParams,
+  LayerNormFunction,
+  linear,
+} from './functions';
 import { Sequential } from './layer/sequential';
 
 export class Linear extends Layer {
@@ -225,6 +231,47 @@ export class BatchNorm extends Layer {
       }
     }
     return [outputs[0]];
+  }
+}
+
+export class LayerNorm extends Layer {
+  readonly eps: number;
+  readonly elementwiseAffine: boolean;
+  // weight, bias for affine transformation
+  weight?: Parameter;
+  bias?: Parameter;
+
+  constructor(
+    public readonly normalizedShape: number[],
+    params: {
+      eps?: number;
+      elementwiseAffine?: boolean;
+    }
+  ) {
+    super();
+    const { eps = 1e-5, elementwiseAffine = true } = params;
+    this.eps = eps;
+    this.elementwiseAffine = elementwiseAffine;
+    if (elementwiseAffine) {
+      this.weight = new Parameter(CPUTensor.ones(normalizedShape), 'weight');
+      this.bias = new Parameter(CPUTensor.zeros(normalizedShape), 'bias');
+    }
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    const batch_norm = new LayerNormFunction({
+      eps: this.eps,
+      normalizedShape: this.normalizedShape,
+    });
+    const args: Variable[] = [inputs[0]];
+    if (this.elementwiseAffine) {
+      args.push(this.weight as Variable);
+      args.push(this.bias as Variable);
+    } else {
+      throw new Error();
+    }
+    const output = await batch_norm.c(...args);
+    return [output];
   }
 }
 
