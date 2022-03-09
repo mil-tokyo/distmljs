@@ -6,6 +6,7 @@ import { mseLoss, mul, relu, sum } from '../../nn/functions';
 import {
   BatchNorm,
   Conv2d,
+  Dropout,
   Embedding,
   LayerNorm,
   Linear,
@@ -560,6 +561,50 @@ for (const { backend, ctor } of [
             1.0, 2.0, 3.0, 16.0, 18.0, 20.0, 22.0,
           ]
         );
+      });
+    });
+
+    describe('dropout', () => {
+      it('forward / backward', async () => {
+        const dropout = new Dropout(0.875);
+        dropout.train();
+        await dropout.to(backend);
+
+        const xdata = arange(1, 101);
+        const x = new Variable(ctor.fromArray(xdata));
+        const y = await dropout.c(x);
+        // 確率的な挙動のため、テストが難しい
+        const ydata = await ta(y.data);
+        let zeroCount = 0;
+        for (let i = 0; i < ydata.length; i++) {
+          const yv = ydata[i];
+          const xv = xdata[i];
+          if (yv === 0) {
+            zeroCount++;
+          } else {
+            assert.equal(yv, xv * 8);
+          }
+        }
+        assert.isAtLeast(zeroCount, 70);
+        assert.isAtMost(zeroCount, 95);
+
+        const weight = new Variable(ctor.ones(x.data.shape));
+        const yr = await mul(y, weight);
+        const s = await sum(yr);
+        await s.backward();
+
+        const xgraddata = await ta(x.grad!.data);
+        let xgzeroCount = 0;
+        for (let i = 0; i < ydata.length; i++) {
+          const xgv = xgraddata[i];
+          if (xgv === 0) {
+            xgzeroCount++;
+          } else {
+            assert.equal(xgv, 8);
+          }
+        }
+        assert.isAtLeast(xgzeroCount, 70);
+        assert.isAtMost(xgzeroCount, 95);
       });
     });
   }
