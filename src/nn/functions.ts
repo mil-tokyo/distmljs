@@ -61,6 +61,7 @@ import {
   embedding_backprop_cpu,
   embedding_cpu,
 } from '../tensor/cpu/nnfunction/embedding';
+import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 
 export async function broadcastTo(
   x: Variable,
@@ -1282,4 +1283,33 @@ export class EmbeddingFunction extends NNFunction {
     });
     return [null, new Variable(gwd)];
   }
+}
+
+export class Dropout extends NNFunction {
+  maskForBackprop!: Tensor;
+
+  constructor(public readonly p = 0.5) {
+    super();
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const ts = [x];
+    let outputs: CPUTensor[];
+    if (isAllCPUTensor(ts)) {
+      outputs = dropout_cpu(ts[0], this.p);
+    } else {
+      throw new Error('not implemented');
+    }
+    if (defaultNNContext.get('enableBackprop')) {
+      this.maskForBackprop = outputs[1];
+    }
+    return [outputs[0]];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    return [await mul(gy, new Variable(this.maskForBackprop!))];
+  }
+}
+export async function dropout(input: Variable, p?: number): Promise<Variable> {
+  return new Dropout(p).c(input);
 }

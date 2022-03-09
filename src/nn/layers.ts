@@ -6,6 +6,7 @@ import {
   BatchNormFunction,
   conv2d,
   Conv2dParams,
+  dropout,
   EmbeddingFunction,
   LayerNormFunction,
   linear,
@@ -295,6 +296,20 @@ export class Embedding extends Layer {
     const emb = new EmbeddingFunction(this.numEmbeddings, this.embeddingDim);
     const output = await emb.c(inputs[0], this.weight);
     return [output];
+  }
+}
+
+export class Dropout extends Layer {
+  constructor(public readonly p?: number) {
+    super();
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    if (this.training) {
+      return [await dropout(inputs[0], this.p)];
+    } else {
+      return [inputs[0]];
+    }
   }
 }
 
