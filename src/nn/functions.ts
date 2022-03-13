@@ -36,7 +36,7 @@ import {
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
 } from '../tensor/webgl/nnfunction/max_pool2d';
-import { arange, arrayEqual, nonNull } from '../util';
+import { arange, arrayEqual, arrayProd, nonNull } from '../util';
 import {
   Add,
   BroadcastTo,
@@ -62,6 +62,7 @@ import {
   embedding_cpu,
 } from '../tensor/cpu/nnfunction/embedding';
 import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
+import { bmm_cpu } from '../tensor/cpu/core';
 
 export async function broadcastTo(
   x: Variable,
@@ -251,8 +252,17 @@ export class MatMul extends NNFunction {
       throw new Error();
     }
     const [a, b] = this.inputs;
-    const ga = await new MatMul(this.transa, !this.transb).c(gy, b);
-    const gb = await new MatMul(!this.transa, this.transb).c(a, gy);
+    let ga: Variable, gb: Variable;
+    if (this.transa) {
+      ga = await new MatMul(this.transb, true).c(b, gy);
+    } else {
+      ga = await new MatMul(false, !this.transb).c(gy, b);
+    }
+    if (this.transb) {
+      gb = await new MatMul(true, this.transa).c(gy, a);
+    } else {
+      gb = await new MatMul(!this.transa, false).c(a, gy);
+    }
     return [ga, gb];
   }
 }
@@ -264,6 +274,47 @@ export async function matmul(
   transb = false
 ): Promise<Variable> {
   return await new MatMul(transa, transb).c(a, b);
+}
+
+export class Bmm extends NNFunction {
+  constructor(public transa = false, public transb = false) {
+    super();
+  }
+
+  async forward([a, b]: Tensor[]): Promise<Tensor[]> {
+    return genCall([a, b], {
+      cpu: (c, [a, b]) => [bmm_cpu(a, b, this.transa, this.transb)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // a: [m, k], b: [k, n], y: [m, n]
+    if (!this.inputs) {
+      throw new Error();
+    }
+    const [a, b] = this.inputs;
+    let ga: Variable, gb: Variable;
+    if (this.transa) {
+      ga = await new Bmm(this.transb, true).c(b, gy);
+    } else {
+      ga = await new Bmm(false, !this.transb).c(gy, b);
+    }
+    if (this.transb) {
+      gb = await new Bmm(true, this.transa).c(gy, a);
+    } else {
+      gb = await new Bmm(!this.transa, false).c(a, gy);
+    }
+    return [ga, gb];
+  }
+}
+
+export async function bmm(
+  a: Variable,
+  b: Variable,
+  transa = false,
+  transb = false
+): Promise<Variable> {
+  return await new Bmm(transa, transb).c(a, b);
 }
 
 export class SoftmaxBackward extends NNFunction {
@@ -386,9 +437,38 @@ export async function mseLoss(a: Variable, b: Variable): Promise<Variable> {
 }
 
 export class Linear extends NNFunction {
+  private get2dShape(shape: ReadonlyArray<number>): number[] {
+    if (shape.length < 2) {
+      throw new Error('Linear: got 1d array');
+    }
+
+    return [
+      arrayProd(shape.slice(0, shape.length - 1)),
+      shape[shape.length - 1],
+    ];
+  }
+
   async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
     let [y] = genCall([x, weight], {
-      all: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+      all: (c, [x, weight]) => {
+        const xs = x.shape;
+        if (xs.length > 2) {
+          const yres = c.gemm(
+            x.alias(this.get2dShape(xs)) as typeof x,
+            weight,
+            false,
+            true
+          );
+          return [
+            yres.alias([
+              ...xs.slice(0, xs.length - 1),
+              yres.shape[1],
+            ]) as typeof x,
+          ];
+        } else {
+          return [c.gemm(x, weight, false, true)];
+        }
+      },
     });
     if (bias) {
       [y] = genCall([y, bias], {
@@ -403,8 +483,26 @@ export class Linear extends NNFunction {
       throw new Error();
     }
     const [x, weight] = this.inputs;
-    const gx = await matmul(gy, weight, false, false);
-    const gweight = await matmul(gy, x, true, false);
+    let gy2d: Variable;
+    if (gy.data.ndim !== 2) {
+      gy2d = await reshape(gy, this.get2dShape(gy.data.shape));
+    } else {
+      gy2d = gy;
+    }
+    let x2d: Variable;
+    if (x.data.ndim !== 2) {
+      x2d = await reshape(x, this.get2dShape(x.data.shape));
+    } else {
+      x2d = x;
+    }
+    const gx2d = await matmul(gy2d, weight, false, false);
+    let gx: Variable;
+    if (x.data.ndim !== 2) {
+      gx = await reshape(gx2d, x.data.shape);
+    } else {
+      gx = gx2d;
+    }
+    const gweight = await matmul(gy2d, x2d, true, false);
     if (this.inputs.length === 3) {
       // grad of bias
       const b = this.inputs[2];
