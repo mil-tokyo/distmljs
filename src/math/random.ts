@@ -63,7 +63,35 @@ export class Random {
       return v;
     }
   }
-
+  /**
+   * Generates random number between [range.low, range.high)
+   * @param size spceify number to specify vector length
+   */
+  uniform(range: { low: number; high: number }, size?: null): number;
+  uniform(range: { low: number; high: number }, size: number): Float32Array;
+  uniform(
+    range: { low: number; high: number },
+    size?: null | number
+  ): number | Float32Array {
+    const low = range.low;
+    const scale = range.high - range.low;
+    if (size == null) {
+      // scalar number
+      let raw = this.randomRaw(); // [-2**31, 2**31-1]
+      raw += 2147483648; // [0, 2**32-1]
+      return (raw / 4294967296) * scale + low; // [0, 1) * scale + row
+    } else {
+      // Float32Array
+      const v = new Float32Array(size);
+      for (let i = 0; i < size; i++) {
+        let raw = this.randomRaw(); // [-2**31, 2**31-1]
+        raw += 2147483648; // [0, 2**32-1]
+        const s = raw / 4294967296; // [0, 1)
+        v[i] = s * scale + low;
+      }
+      return v;
+    }
+  }
   /**
    * Generates random number from normal distribution.
    * @param size spceify number to specify vector length
