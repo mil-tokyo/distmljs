@@ -5,3 +5,4 @@ export * as nn from './nn';
 export * as tensor from './tensor';
 export { slice, Slice, Ellipsis, ellipsis, newaxis } from './tensor';
 export { tidy } from './tidy';
+export * as util from './util';

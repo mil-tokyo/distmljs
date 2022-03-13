@@ -44,7 +44,7 @@ import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
 import { cat, chunk, repeat, tile, split } from './core/manipulation';
-import { gemm } from './core/gemm';
+import { gemm_cpu } from './core/gemm';
 import { sort, topk } from './core/sort';
 import { arrayProd } from '../../util';
 import { tril, triu } from './core/tri';
@@ -340,7 +340,7 @@ export class CPUTensor extends Tensor {
     transa = false,
     transb = false
   ): CPUTensor {
-    return gemm(a, b, transa, transb);
+    return gemm_cpu(a, b, transa, transb);
   }
 
   static dot(a: CPUTensor, b: CPUTensor): CPUTensor {

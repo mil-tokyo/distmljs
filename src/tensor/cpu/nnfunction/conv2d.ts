@@ -1,5 +1,5 @@
 import { conv2DCalcShape } from '../../nnFunctionUtil';
-import { bmm } from '../core/gemm';
+import { bmm_cpu } from '../core/gemm';
 import { CPUTensor } from '../cpuTensor';
 
 interface Conv2dImplParams {
@@ -55,7 +55,7 @@ export function conv2d_cpu(
   );
 
   // dI(group, bout, cinkhkw) * dW(group, coutpergroup, cinkhkw) -> dT(group, bout, coutpergroup)
-  const matmulDataRs = bmm(
+  const matmulDataRs = bmm_cpu(
     im2colData.reshape([
       group,
       batch * outShape[0] * outShape[1],
@@ -187,7 +187,7 @@ export function conv2d_backprop_gxgw_cpu(
       chOutPerGroup,
     ]);
 
-    const gwRs = bmm(gyTRs, im2colDataRs, true, false);
+    const gwRs = bmm_cpu(gyTRs, im2colDataRs, true, false);
     gyTRs.dispose();
     im2colDataRs.dispose();
     gw = gwRs.reshape([chOut, chInPerGroup, kernelShape[0], kernelShape[1]]);
@@ -205,7 +205,7 @@ export function conv2d_backprop_gxgw_cpu(
       chOutPerGroup,
       chInPerGroup * kernelShape[0] * kernelShape[1],
     ]);
-    const matmul = bmm(gyTRs, weightRs, false, false);
+    const matmul = bmm_cpu(gyTRs, weightRs, false, false);
     gyTRs.dispose();
     weightRs.dispose();
     gx = CPUTensor.zeros([batch, chIn, inShape[0], inShape[1]]);
