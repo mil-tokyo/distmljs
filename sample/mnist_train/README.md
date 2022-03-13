@@ -17,4 +17,4 @@ cd ../..
 npm run serve
 ```
 
-Web ブラウザで [http://192.168.3.6:8080/sample/mnist_train/output/](http://192.168.3.6:8080/sample/mnist_train/output/) を開く。
+Web ブラウザで [http://localhost:8080/sample/mnist_train/output/](http://localhost:8080/sample/mnist_train/output/) を開く。
