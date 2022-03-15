@@ -1,4 +1,5 @@
 export { Backend } from './backend';
+export * as context from './context';
 export * as dataset from './dataset';
 export * as math from './math';
 export * as nn from './nn';
