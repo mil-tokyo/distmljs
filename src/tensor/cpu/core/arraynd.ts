@@ -9,6 +9,7 @@ function isArrayLike(obj: unknown): obj is ArrayLike<ArrayNDValue> {
   }
   return false;
 }
+
 function fromArrayNDSubShape(value: ArrayNDValue): number[] {
   let result: number[] = [];
   if (isArrayLike(value)) {

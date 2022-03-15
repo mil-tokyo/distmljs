@@ -119,7 +119,6 @@ describe('cpuTensor', () => {
 
     it('from 1d empty array', () => {
       const x = CPUTensor.fromArrayND([]);
-      // numpyのnumpy.array([])の挙動と合わせる
       assert.deepEqual(x.shape, [0]);
       assert.deepEqual(x.toArray(), []);
     });
