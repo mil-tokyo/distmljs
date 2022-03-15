@@ -12,9 +12,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "kakiage": "file:../.."
+    "chart.js": "^3.7.1",
+    "kakiage": "file:../..",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.180",
     "ts-loader": "^9.2.6",
     "ts-node": "^10.4.0",
     "typescript": "^4.5.4",

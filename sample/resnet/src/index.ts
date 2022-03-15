@@ -1,5 +1,8 @@
+import Chart from 'chart.js/auto';
 import * as K from 'kakiage';
+import { throttle } from 'lodash';
 import { ResNet18 } from './model';
+import CPUTensor = K.tensor.CPUTensor;
 import FetchDataset = K.dataset.datasets.FetchDataset;
 import DataLoader = K.dataset.DataLoader;
 
@@ -14,13 +17,18 @@ function print(message: string, time = false): void {
   div?.appendChild(elem);
 }
 
+const status = throttle((message: string) => {
+  document.getElementById('status')!.innerText = message;
+}, 1000);
+
 function wait() {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, 10);
   });
 }
 
-async function train(backend: K.Backend) {
+async function train(backend: K.Backend, batchSize: number) {
+  status(`Loading dataset`);
   const trainDataset = new FetchDataset(
     './dataset/cifar10_preprocessed_train.bin'
   );
@@ -29,8 +37,8 @@ async function train(backend: K.Backend) {
     './dataset/cifar10_preprocessed_test.bin'
   );
   await testDataset.load();
-  const trainLoader = new DataLoader(trainDataset, { batchSize: 32 });
-  const testLoader = new DataLoader(testDataset, { batchSize: 32 });
+  const trainLoader = new DataLoader(trainDataset, { batchSize });
+  const testLoader = new DataLoader(testDataset, { batchSize });
 
   const lr = 0.01;
   const model = new ResNet18(10);
@@ -46,9 +54,57 @@ async function train(backend: K.Backend) {
     }
   };
 
+  const ctx = (
+    document.getElementById('myChart')! as HTMLCanvasElement
+  ).getContext('2d')!;
+  const chart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Train loss',
+          showLine: true,
+          pointStyle: 'rect',
+          data: [] as { x: number; y: number }[],
+          pointBackgroundColor: '#f00',
+          pointBorderWidth: 0,
+          backgroundColor: '#f00',
+          borderColor: '#f00',
+          borderWidth: 1,
+        },
+        {
+          label: 'Test loss',
+          showLine: true,
+          data: [] as { x: number; y: number }[],
+          pointStyle: 'rect',
+          pointBackgroundColor: '#00f',
+          pointBorderWidth: 0,
+          backgroundColor: '#00f',
+          borderColor: '#00f',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      scales: {
+        y: {
+          suggestedMax: 1.0,
+          suggestedMin: 0,
+          title: { display: true, text: 'loss' },
+        },
+        x: {
+          title: { display: true, text: 'training steps' },
+        },
+      },
+    },
+  });
+
   print(`Start training on backend ${backend}`);
-  for (let epoch = 0; epoch < 3; epoch++) {
-    print(`epoch ${epoch}`);
+  let totalTrainIter = 0;
+  const totalEpochs = 3;
+  for (let epoch = 1; epoch <= totalEpochs; epoch++) {
+    const epochStartTime = Date.now();
+    print(`epoch ${epoch} / ${totalEpochs}`);
     let trainIter = 0;
     model.train();
     for await (const [images, labels] of trainLoader) {
@@ -58,17 +114,30 @@ async function train(backend: K.Backend) {
           y,
           new K.nn.Variable(await labels.to(backend))
         );
-        if (trainIter < 10 || trainIter % 100 === 0) {
-          const lossScalar = (await loss.data.to('cpu')).get(0);
-          print(
-            `epoch: ${epoch}, iter: ${trainIter}, loss: ${lossScalar}`,
-            true
-          );
+
+        const lossScalar = (await loss.data.to('cpu')).get(0);
+        const now = Date.now();
+        const speed = (now - epochStartTime) / (trainIter + 1);
+        // note: this is not precise because it includes wait
+        status(
+          `Training iter: ${trainIter}, ${speed.toFixed(
+            2
+          )} ms / iter, loss: ${lossScalar}`
+        );
+
+        if (trainIter % 100 === 0) {
+          // plot loss
+          chart.data.datasets[0].data.push({
+            x: totalTrainIter,
+            y: lossScalar,
+          });
+          chart.update('none');
         }
         optimizer.zeroGrad();
         await loss.backward();
         await optimizer.step();
         trainIter++;
+        totalTrainIter++;
         return [model, optimizer];
       });
       await waitIfNeeded();
@@ -76,37 +145,47 @@ async function train(backend: K.Backend) {
 
     let nTestSamples = 0;
     let nCorrect = 0;
+    let sumLoss = 0;
     model.eval();
-    for await (const [images, labels] of testLoader) {
-      await K.tidy(async () => {
-        // TODO: no grad
-        const y = await model.c(new K.nn.Variable(await images.to(backend)));
-        // TOOD: accuracy utility
-        const pred = await y.data.to('cpu');
-        for (let i = 0; i < pred.shape[0]; i++) {
-          let maxLogit = -Infinity;
-          let maxLabel = 0;
-          for (let j = 0; j < pred.shape[1]; j++) {
-            const logit = pred.get(i, j);
-            if (logit > maxLogit) {
-              maxLogit = logit;
-              maxLabel = j;
+    status(`Running validation`);
+    await K.context.defaultNNContext.withValue(
+      'enableBackprop',
+      false,
+      async () => {
+        for await (const [images, labels] of testLoader) {
+          await K.tidy(async () => {
+            const y = await model.c(
+              new K.nn.Variable(await images.to(backend))
+            );
+            const loss = await K.nn.functions.softmaxCrossEntropy(
+              y,
+              new K.nn.Variable(await labels.to(backend))
+            );
+            const lossScalar = (await loss.data.to('cpu')).get(0);
+            sumLoss += lossScalar * labels.shape[0];
+            const pred = CPUTensor.argmax(await y.data.to('cpu'), 1); // predicted label
+            for (let i = 0; i < pred.shape[0]; i++) {
+              nTestSamples++;
+              if (pred.get(i) === labels.get(i)) {
+                nCorrect++;
+              }
             }
-          }
-
-          nTestSamples++;
-          if (maxLabel === labels.get(i)) {
-            nCorrect++;
-          }
+            return [model];
+          });
+          await waitIfNeeded();
         }
-        return [model];
-      });
-      await waitIfNeeded();
-    }
+      }
+    );
     const accuracy = nCorrect / nTestSamples;
-    print(`Test accuracy: ${accuracy}, ${nTestSamples}, ${nCorrect}`, true);
+    const avgLoss = sumLoss / nTestSamples;
+    chart.data.datasets[1].data.push({
+      x: totalTrainIter,
+      y: avgLoss,
+    });
+    chart.update('none');
+    print(`Test accuracy: ${accuracy}, loss: ${avgLoss}`);
   }
-  print('train end');
+  print('Training finished');
 }
 
 window.addEventListener('load', () => {
@@ -116,6 +195,10 @@ window.addEventListener('load', () => {
         'input[name="backend"]:checked'
       )! as HTMLInputElement
     ).value as K.Backend;
+    const batchSize = Number(
+      (document.querySelector('input[name="batch-size"]')! as HTMLInputElement)
+        .value
+    );
     try {
       if (backend === 'webgl') {
         await K.tensor.initializeNNWebGLContext();
@@ -127,6 +210,6 @@ window.addEventListener('load', () => {
       alert(`Failed to initialize backend ${backend}. ${error}`);
       return;
     }
-    await train(backend);
+    await train(backend, batchSize);
   };
 });
