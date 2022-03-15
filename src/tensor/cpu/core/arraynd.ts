@@ -9,47 +9,80 @@ function isArrayLike(obj: unknown): obj is ArrayLike<ArrayNDValue> {
   }
   return false;
 }
-
-export function fromArrayND(value: ArrayNDValue, dtype?: DType): CPUTensor {
-  const elements: number[] = [];
-  let shape: number[];
-  if (value instanceof CPUTensor) {
-    // TODO: ArrayLikeのさらに特殊ケースとしてCPUTensorがある。value.toArrayND()で通常のArrayLikeに変換してから扱うのと等価な結果を得たい
-    throw new Error();
-  } else if (isArrayLike(value)) {
-    const v0 = value[0]; // TODO: value.length===0の場合
-    if (isArrayLike(v0)) {
-      const v00 = v0[0];
-      if (isArrayLike(v00)) {
-        throw new Error('3d case not implemented');
-      } else {
-        // 2d case
-        shape = [value.length, v0.length];
-        for (let i0 = 0; i0 < value.length; i0++) {
-          // ArrayLikeはfor-ofに対応しているとは限らない
-          const v = value[i0];
-          if (!isArrayLike(v)) {
-            throw new Error();
-          }
-          for (let i1 = 0; i1 < v.length; i1++) {
-            elements.push(Number(v[i1]));
-          }
+function fromArrayNDSubShape(value: ArrayNDValue): number[] {
+  let result: number[] = [];
+  if (isArrayLike(value)) {
+    const v0 = value[0];
+    const resultSub = [...fromArrayNDSubShape(v0)];
+    for (let i = 0; i < value.length; ++i) {
+      const resultX = [...fromArrayNDSubShape(value[i])];
+      for (let j = 0; j < resultSub.length; ++j) {
+        if (resultSub[j] != resultX[j]) {
+          throw new Error('size mismatch');
+        }
+        if (isArrayLike(v0)) {
+          break;
         }
       }
-    } else {
-      // 1d case
-      shape = [value.length];
-      for (let i0 = 0; i0 < value.length; i0++) {
-        elements.push(Number(value[i0]));
-      }
+    }
+    result = [value.length, ...resultSub];
+  } else if (value instanceof CPUTensor) {
+    for (let i = 0; i < value.ndim; ++i) {
+      result.push(value.shape[i]);
+    }
+  }
+  return result;
+}
+
+function fromArrayNDSubElements(value: ArrayNDValue): number[] {
+  const result: number[] = [];
+  if (isArrayLike(value)) {
+    for (let i = 0; i < value.length; ++i) {
+      result.push(...fromArrayNDSubElements(value[i]));
+    }
+  } else if (value instanceof CPUTensor) {
+    for (let i = 0; i < value.buffer.data.length; ++i) {
+      result.push(value.buffer.data[i]);
     }
   } else {
-    // 0d case
-    elements.push(Number(value));
-    shape = [];
+    result.push(Number(value));
   }
+  return result;
+}
 
+export function fromArrayND(value: ArrayNDValue, dtype?: DType): CPUTensor {
+  if (value instanceof CPUTensor) {
+    return value;
+  }
+  const shape = fromArrayNDSubShape(value);
+  const elements = fromArrayNDSubElements(value);
   return CPUTensor.fromArray(elements, shape, dtype);
+}
+
+function toArrayNDSub(
+  tensor: CPUTensor,
+  place: number,
+  axis: number
+): NumberArrayND {
+  const dim = tensor.ndim;
+  const data = tensor.buffer.data;
+  const stride = tensor.strides;
+  const shape = tensor.shape;
+  let array: NumberArrayND = [];
+  if (axis === dim - 1) {
+    for (let i = 0; i < shape[axis]; ++i) {
+      array.push(data[place + i]);
+    }
+    return array;
+  } else {
+    for (let i = 0; i < shape[axis]; ++i) {
+      array = [
+        ...array,
+        toArrayNDSub(tensor, place + i * stride[axis], axis + 1),
+      ];
+    }
+    return array;
+  }
 }
 
 export function toArrayND(tensor: CPUTensor): NumberArrayND {
@@ -59,7 +92,7 @@ export function toArrayND(tensor: CPUTensor): NumberArrayND {
   } else if (tensor.ndim === 1) {
     return Array.from(buf);
   } else {
-    // TODO
-    throw new Error('not implemented');
+    const result = toArrayNDSub(tensor, 0, 0);
+    return result;
   }
 }
