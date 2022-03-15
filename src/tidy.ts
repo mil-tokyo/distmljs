@@ -64,21 +64,12 @@ export async function tidy<T extends TidyResult>(
   for (const fb of keepWebGPUBuffers) {
     lastWebGPUBuffers.delete(fb);
   }
-  let ndisposegl = 0,
-    ndisposegpu = 0;
   for (const buf of lastWebGLBuffers) {
     buf.dispose();
-    ndisposegl++;
   }
   for (const buf of lastWebGPUBuffers) {
     buf.dispose();
-    ndisposegpu++;
   }
-  console.debug(
-    `tidy ${name}: disposed WebGL=${ndisposegl}, WebGPU=${ndisposegpu}, ${JSON.stringify(
-      WebGLTensor.getDebugInfo()
-    )}`
-  );
 
   return returned;
 }
@@ -131,21 +122,12 @@ export function tidySync<T extends TidyResult>(
   for (const fb of keepWebGPUBuffers) {
     lastWebGPUBuffers.delete(fb);
   }
-  let ndisposegl = 0,
-    ndisposegpu = 0;
   for (const buf of lastWebGLBuffers) {
     buf.dispose();
-    ndisposegl++;
   }
   for (const buf of lastWebGPUBuffers) {
     buf.dispose();
-    ndisposegpu++;
   }
-  console.debug(
-    `tidy ${name}: disposed WebGL=${ndisposegl}, WebGPU=${ndisposegpu}, ${JSON.stringify(
-      WebGLTensor.getDebugInfo()
-    )}`
-  );
 
   return returned;
 }
