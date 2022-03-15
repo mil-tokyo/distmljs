@@ -1,5 +1,5 @@
 {
-  "name": "scalar_train",
+  "name": "scalar_regression",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -12,6 +12,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "chart.js": "^3.7.1",
     "kakiage": "file:../.."
   },
   "devDependencies": {
