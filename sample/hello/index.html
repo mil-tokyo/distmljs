@@ -34,10 +34,16 @@
       function run() {
         // global variable kakiage is set by kakiage.js
         const CPUTensor = kakiage.tensor.CPUTensor;
-        // make 2x2 tensor with elements [1, 2, 3, 4]
-        const a = CPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
+        // make 2x2 tensor
+        const a = CPUTensor.fromArrayND([
+          [1, 2],
+          [3, 4],
+        ]);
         print2dTensor(a, 'a');
-        const b = CPUTensor.fromArray([10, 20, 30, 40], [2, 2]);
+        const b = CPUTensor.fromArrayND([
+          [10, 20],
+          [30, 40],
+        ]);
         print2dTensor(b, 'b');
         log('c = a + b');
         const c = CPUTensor.add(a, b);
