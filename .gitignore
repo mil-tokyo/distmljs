@@ -108,4 +108,5 @@ dist
 /test/kakiage-test.js
 /webpack
 pytorch_data
+kakiage-document.zip
 /shader/webgpu/autogen
