@@ -1,7 +1,5 @@
 # kakiage
 
-[日本語 README](./README.ja.md)
-
 Kakiage is the web browser-based deep learning library with distributed training tools.
 
 # Features
@@ -84,7 +82,7 @@ npm run webpack:test
 npm run serve
 ```
 
-Web ブラウザで [http://localhost:8080/test/](http://localhost:8080/test/) を開く。テストが開始し結果が表示される。
+Open [http://localhost:8080/test/](http://localhost:8080/test/) with web browser. Test automatically starts and the result will be displayed.
 
 # Samples
 

@@ -1,7 +1,5 @@
 # kakiage
 
-[English README](./README.md)
-
 Web ブラウザで動作する、分散学習対応 DNN フレームワーク
 
 # 機能
