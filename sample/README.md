@@ -1,6 +1,9 @@
 # kakiage samples
 
-TODO: introduce samples
+- `hello` - describes how to load kakiage and construct tensor using pure JavaScript.
+- `scalar_regression` - basic TypeScript application which trains multi-layer perceptron with synthesized scalar data.
+- `mnist_train` - trains multi-layer perceptron for MNIST digit classification dataset.
+- `resnet` - trains ResNet-18 image classifier model for CIFAR-10 image classification dataset. This model is heavy and shows the usefulness of learning on GPUs.
 
 # To use samples as application template
 

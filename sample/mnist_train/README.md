@@ -1,8 +1,15 @@
-# MNIST を Web ブラウザで学習するサンプル
+# Sample of training multi-layer perceptron for MNIST digit classification dataset
 
-データセットを静的ファイルをサーバから取得したのち Web ブラウザ単独で学習を行う。（分散計算はしない）
+This sample downloads dataset from static HTTP server and trains within web browser. (no distributed training)
 
-# ビルド
+This sample describes how to
+
+- prepare dataset
+- construct a neural network model
+- train and evaluate the model
+- save and load the model
+
+# Build
 
 ```
 npm install
@@ -10,11 +17,11 @@ npm run build
 python prepare_dataset.py
 ```
 
-# 実行
+# Run
 
 ```
 cd ../..
 npm run serve
 ```
 
-Web ブラウザで [http://localhost:8080/sample/mnist_train/output/](http://localhost:8080/sample/mnist_train/output/) を開く。
+Open [http://localhost:8080/sample/mnist_train/output/](http://localhost:8080/sample/mnist_train/output/) with web browser.

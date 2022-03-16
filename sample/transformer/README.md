@@ -1,8 +1,8 @@
-# Transformer による自然言語モデルを Web ブラウザで学習するサンプル
+# Sample of training Transformer, the natural language modeling
 
-データセットを静的ファイルをサーバから取得したのち Web ブラウザ単独で学習を行う。（分散計算はしない）
+This sample downloads dataset from static HTTP server and trains within web browser. (no distributed training)
 
-# ビルド
+# Build
 
 ```
 npm install
@@ -10,25 +10,25 @@ npm run build
 python convert_train_data.py
 ```
 
-# 実行
+# Run
 
 ```
 cd ../..
 npm run serve
 ```
 
-Web ブラウザで [http://localhost:8080/sample/transformer/output/](http://localhost:8080/sample/transformer/output/) を開く。
+Open [http://localhost:8080/sample/transformer/output/](http://localhost:8080/sample/transformer/output/) with web browser.
 
-# 勾配チェック
+# Gradient check
 
-複雑なモデルにおいて、既存のフレームワークと勾配計算が一致するかどうかのチェックを行うサンプル。
+A sample to check if the gradient calculation matches the existing framework in a complex model.
 
 ```
 python gradient_check.py
 ```
 
-Web ブラウザで [http://localhost:8080/sample/transformer/output/gradient_check.html](http://localhost:8080/sample/transformer/output/gradient_check.html) を開く。
+Open [http://localhost:8080/sample/transformer/output/gradient_check.html](http://localhost:8080/sample/transformer/output/gradient_check.html) with web browser.
 
-# ライセンス
+# License
 
-このサンプルは、PyTorch の Transformer モデルおよびサンプルアプリケーションを移植したものです。オリジナルのライセンスは `pytorch-license.txt` を参照ください。
+This sample is a port of the Transformer model and sample application from PyTorch. See `pytorch-license.txt` for the original license.

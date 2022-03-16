@@ -1,20 +1,42 @@
 # kakiage
 
-JavaScript 製分散計算対応 DNN フレームワーク
+[日本語 README](./README.ja.md)
 
-# 環境構築
+Kakiage is the web browser-based deep learning library with distributed training tools.
 
-node 16.x が必要。
+# Features
+
+- Multi-dimensional tensor
+  - Acceleration with GPU
+    - WebGL (WebGL2 only), WebGPU (experimental)
+  - Useful tensor operations for pre / post processing
+- Neural network building with define-by-run
+  - All operators needed by ResNet are implemented
+  - PyTorch-like API
+- Template for distributed training server
+  - Low-latency communication with WebSocket
+  - Low-overhead tensor serialization
+  - Implementation of data-parallel SGD
+
+# Setup
+
+node 16.x is needed.
 
 ```
 npm install
 ```
 
-# ビルド
+## Python environment
 
-## WebGPU シェーダ
+Python 3.8+ is needed for dataset preprocessing in samples and distributed training feature. Dataset download and export of trained model to ONNX requires [PyTorch](https://pytorch.org/).
 
-この処理は、WebGPU シェーダ関係の編集を行った場合のみ必要。
+The installation of distributed training server library is described in [distributed](./distributed/).
+
+# Build
+
+## WebGPU shader
+
+This commands are needed only when WebGPU shader is modified.
 
 ```
 python tools/generate_webgputensor_glsl_unary_op.py
@@ -23,32 +45,40 @@ node tools/compile_webgpu_shader.js
 
 ## JavaScript (CommonJS)
 
-Webpack でビルドするプログラムから読み込まれる CommonJS 形式。`dist`ディレクトリ内に生成される。
+CommonJS format to be loaded by application built with webpack. The output is generated in `dist` directory.
 
 ```
 npm run build
 ```
 
+Then run below to generate archive for distribution.
+
+```
+npm pack
+```
+
+`kakiage-<version>.tgz` is generated.
+
 ## JavaScript (Webpack)
 
-HTML から`<script>`タグで直接読み込まれる単一ファイル形式。`webpack/kakiage.js`に生成される。
+Single file format for directly loading from HTML using `<script>` tag. It is generated to `webpack/kakiage.js`.
 
 ```
 npm run webpack
 ```
 
-# テスト
+# Test
 
-Kakiage は、WebGL 等、node.js では動作せず、かつ Web ブラウザ間で実装差がある要素の単体テストを行う必要がある。
-そのため、mocha を用いて Web ブラウザ上でテストを行う。
+Kakiage needs to unit test elements such as WebGL that do not work in node.js and have implementation differences between Web browsers.
+For this reason, testing is performed on a Web browser using mocha.
 
-## ビルド
+## Build
 
 ```
 npm run webpack:test
 ```
 
-## 実行
+## Run
 
 ```
 npm run serve
@@ -56,21 +86,34 @@ npm run serve
 
 Web ブラウザで [http://localhost:8080/test/](http://localhost:8080/test/) を開く。テストが開始し結果が表示される。
 
-TODO: ホットリロード、CI 上でのマルチブラウザテスト
+# Samples
 
-# サンプルのビルド
+This section describes `scalar_regression` as an sample. For other samples, see `sample` directory.
 
-`scalar_train`を例に説明
-
-ルートディレクトリで操作を開始する。
+## Build of kakiage itself
 
 ```
 npm run build
-cd sample/scalar_train
+```
+
+## Build of sample
+
+```
+cd sample/scalar_regression
 npm install
 npm run build
 ```
 
-Web ブラウザで [http://localhost:8080/sample/scalar_train/output/](http://localhost:8080/sample/scalar_train/output/) を開く。
+## Run
 
-kakiage 本体を修正した場合、ルートディレクトリでのビルドが必要であることに注意。
+Run HTTP server
+
+```
+npm run serve
+```
+
+Open [http://localhost:8080/sample/scalar_regression/output/](http://localhost:8080/sample/scalar_regression/output/) with web browser.
+
+# License
+
+MIT
