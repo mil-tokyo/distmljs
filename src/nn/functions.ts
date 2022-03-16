@@ -36,7 +36,7 @@ import {
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
 } from '../tensor/webgl/nnfunction/max_pool2d';
-import { arange, arrayEqual, nonNull } from '../util';
+import { arange, arrayEqual, arrayProd, nonNull } from '../util';
 import {
   Add,
   BroadcastTo,
@@ -49,11 +49,20 @@ import {
 import {
   batch_norm_backprop_cpu,
   batch_norm_cpu,
+  layer_norm_backprop_cpu,
+  layer_norm_cpu,
 } from '../tensor/cpu/nnfunction/batch_norm';
 import {
   batch_norm_backprop_webgl,
   batch_norm_webgl,
 } from '../tensor/webgl/nnfunction/batch_norm';
+import { CPUTensor } from '../tensor';
+import {
+  embedding_backprop_cpu,
+  embedding_cpu,
+} from '../tensor/cpu/nnfunction/embedding';
+import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
+import { bmm_cpu } from '../tensor/cpu/core';
 
 export async function broadcastTo(
   x: Variable,
@@ -243,8 +252,17 @@ export class MatMul extends NNFunction {
       throw new Error();
     }
     const [a, b] = this.inputs;
-    const ga = await new MatMul(this.transa, !this.transb).c(gy, b);
-    const gb = await new MatMul(!this.transa, this.transb).c(a, gy);
+    let ga: Variable, gb: Variable;
+    if (this.transa) {
+      ga = await new MatMul(this.transb, true).c(b, gy);
+    } else {
+      ga = await new MatMul(false, !this.transb).c(gy, b);
+    }
+    if (this.transb) {
+      gb = await new MatMul(true, this.transa).c(gy, a);
+    } else {
+      gb = await new MatMul(!this.transa, false).c(a, gy);
+    }
     return [ga, gb];
   }
 }
@@ -256,6 +274,55 @@ export async function matmul(
   transb = false
 ): Promise<Variable> {
   return await new MatMul(transa, transb).c(a, b);
+}
+
+export class Bmm extends NNFunction {
+  constructor(public transa = false, public transb = false) {
+    super();
+  }
+
+  async forward([a, b]: Tensor[]): Promise<Tensor[]> {
+    return genCall([a, b], {
+      cpu: (c, [a, b]) => [bmm_cpu(a, b, this.transa, this.transb)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // a: [m, k], b: [k, n], y: [m, n]
+    if (!this.inputs) {
+      throw new Error();
+    }
+    const [a, b] = this.inputs;
+    let ga: Variable, gb: Variable;
+    if (this.transa) {
+      ga = await new Bmm(this.transb, true).c(b, gy);
+    } else {
+      ga = await new Bmm(false, !this.transb).c(gy, b);
+    }
+    if (this.transb) {
+      gb = await new Bmm(true, this.transa).c(gy, a);
+    } else {
+      gb = await new Bmm(!this.transa, false).c(a, gy);
+    }
+    return [ga, gb];
+  }
+}
+
+export async function bmm(
+  a: Variable,
+  b: Variable,
+  transa = false,
+  transb = false
+): Promise<Variable> {
+  return await new Bmm(transa, transb).c(a, b);
+}
+
+export class SoftmaxBackward extends NNFunction {
+  async forward([softmax, gy]: Tensor[]): Promise<Tensor[]> {
+    return genCall([softmax, gy], {
+      cpu: (c, [softmax, gy]) => [cpuCore.softmaxBackward(softmax, gy)],
+    });
+  }
 }
 
 export class SoftmaxCrossEntropyBackward extends NNFunction {
@@ -283,7 +350,13 @@ export class Softmax extends NNFunction {
     });
   }
 
-  // TODO: backward (学習時は、SoftmaxCrossEntropyを推奨)
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const softmax = this.outputs?.[0]?.deref();
+    if (!softmax) {
+      throw new Error();
+    }
+    return [await new SoftmaxBackward().c(softmax, gy)];
+  }
 }
 
 export async function softmax(x: Variable): Promise<Variable> {
@@ -364,9 +437,38 @@ export async function mseLoss(a: Variable, b: Variable): Promise<Variable> {
 }
 
 export class Linear extends NNFunction {
+  private get2dShape(shape: ReadonlyArray<number>): number[] {
+    if (shape.length < 2) {
+      throw new Error('Linear: got 1d array');
+    }
+
+    return [
+      arrayProd(shape.slice(0, shape.length - 1)),
+      shape[shape.length - 1],
+    ];
+  }
+
   async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
     let [y] = genCall([x, weight], {
-      all: (c, [x, weight]) => [c.gemm(x, weight, false, true)],
+      all: (c, [x, weight]) => {
+        const xs = x.shape;
+        if (xs.length > 2) {
+          const yres = c.gemm(
+            x.alias(this.get2dShape(xs)) as typeof x,
+            weight,
+            false,
+            true
+          );
+          return [
+            yres.alias([
+              ...xs.slice(0, xs.length - 1),
+              yres.shape[1],
+            ]) as typeof x,
+          ];
+        } else {
+          return [c.gemm(x, weight, false, true)];
+        }
+      },
     });
     if (bias) {
       [y] = genCall([y, bias], {
@@ -381,8 +483,26 @@ export class Linear extends NNFunction {
       throw new Error();
     }
     const [x, weight] = this.inputs;
-    const gx = await matmul(gy, weight, false, false);
-    const gweight = await matmul(gy, x, true, false);
+    let gy2d: Variable;
+    if (gy.data.ndim !== 2) {
+      gy2d = await reshape(gy, this.get2dShape(gy.data.shape));
+    } else {
+      gy2d = gy;
+    }
+    let x2d: Variable;
+    if (x.data.ndim !== 2) {
+      x2d = await reshape(x, this.get2dShape(x.data.shape));
+    } else {
+      x2d = x;
+    }
+    const gx2d = await matmul(gy2d, weight, false, false);
+    let gx: Variable;
+    if (x.data.ndim !== 2) {
+      gx = await reshape(gx2d, x.data.shape);
+    } else {
+      gx = gx2d;
+    }
+    const gweight = await matmul(gy2d, x2d, true, false);
     if (this.inputs.length === 3) {
       // grad of bias
       const b = this.inputs[2];
@@ -1161,4 +1281,133 @@ export class BatchNormFunction extends NNFunction {
       null,
     ];
   }
+}
+
+export interface LayerNormParams {
+  normalizedShape: ReadonlyArray<number>;
+  eps?: number;
+}
+
+export class LayerNormFunction extends NNFunction {
+  normalizedShape: ReadonlyArray<number>;
+  eps: number;
+  statsForBackprop?: Tensor;
+
+  constructor(params: LayerNormParams) {
+    super();
+    const { normalizedShape, eps = 1e-5 } = params;
+    this.eps = eps;
+    this.normalizedShape = normalizedShape;
+  }
+
+  async forward([x, weight, bias]: Tensor[]): Promise<Tensor[]> {
+    const params = {
+      normalizedShape: this.normalizedShape,
+      eps: this.eps,
+    };
+
+    if (!(weight && bias)) {
+      // TODO: 場合分け
+      throw new Error('LayerNorm without weight, bias is not yet implemented');
+    }
+    let outputs: {
+      y: Tensor;
+      statsForBackprop: Tensor;
+    };
+    const ts = [x, weight, bias];
+    if (isAllCPUTensor(ts)) {
+      outputs = layer_norm_cpu(ts[0], { weight: ts[1], bias: ts[2] }, params);
+    } else {
+      throw new Error('not implemented');
+    }
+
+    if (defaultNNContext.get('enableBackprop')) {
+      this.statsForBackprop = outputs.statsForBackprop;
+    }
+
+    return [outputs.y];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const params = {
+      normalizedShape: this.normalizedShape,
+      eps: this.eps,
+    };
+    const [gxd, gwd, gbd] = genCall(
+      [
+        nonNull(this.inputs)[0].data,
+        nonNull(this.inputs)[1].data,
+        gy.data,
+        nonNull(this.statsForBackprop),
+      ],
+      {
+        cpu: (c, [x, w, gyd, sfb]) => {
+          const xwb = layer_norm_backprop_cpu(x, w, gyd, sfb, params);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+      }
+    );
+    return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
+  }
+}
+
+export class EmbeddingFunction extends NNFunction {
+  constructor(
+    public readonly numEmbeddings: number,
+    public readonly embeddingDim: number
+  ) {
+    super();
+  }
+
+  async forward([x, weight]: Tensor[]): Promise<Tensor[]> {
+    const ts = [x, weight];
+    let output: CPUTensor;
+    if (isAllCPUTensor(ts)) {
+      output = embedding_cpu(ts[0], ts[1]);
+    } else {
+      throw new Error('not implemented');
+    }
+
+    return [output];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    const [gwd] = genCall([nonNull(this.inputs)[0].data, gy.data], {
+      cpu: (c, [x, gyd]) => {
+        return [
+          embedding_backprop_cpu(x, gyd, this.numEmbeddings, this.embeddingDim),
+        ];
+      },
+    });
+    return [null, new Variable(gwd)];
+  }
+}
+
+export class Dropout extends NNFunction {
+  maskForBackprop!: Tensor;
+
+  constructor(public readonly p = 0.5) {
+    super();
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const ts = [x];
+    let outputs: CPUTensor[];
+    if (isAllCPUTensor(ts)) {
+      outputs = dropout_cpu(ts[0], this.p);
+    } else {
+      throw new Error('not implemented');
+    }
+    if (defaultNNContext.get('enableBackprop')) {
+      this.maskForBackprop = outputs[1];
+    }
+    return [outputs[0]];
+  }
+
+  async backward([gy]: Variable[]): Promise<(Variable | null)[]> {
+    return [await mul(gy, new Variable(this.maskForBackprop!))];
+  }
+}
+export async function dropout(input: Variable, p?: number): Promise<Variable> {
+  return new Dropout(p).c(input);
 }

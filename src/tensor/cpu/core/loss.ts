@@ -1,4 +1,4 @@
-import { arrayEqual } from '../../../util';
+import { arrayEqual, arrayProd } from '../../../util';
 import { CPUTensor } from '../cpuTensor';
 
 export function nllLoss(x: CPUTensor, label: CPUTensor): CPUTensor {
@@ -23,11 +23,12 @@ export function nllLoss(x: CPUTensor, label: CPUTensor): CPUTensor {
 }
 
 export function softmax(x: CPUTensor): CPUTensor {
-  const [batch, cs] = x.shape;
-  if (x.shape.length !== 2) {
-    throw new Error('softmaxCrossEntropy needs 2d input');
+  if (x.shape.length < 2) {
+    throw new Error('softmax needs 2d input');
   }
-  const output = CPUTensor.zeros([batch, cs]);
+  const batch = arrayProd(x.shape.slice(0, x.shape.length - 1));
+  const cs = x.shape[x.shape.length - 1];
+  const output = CPUTensor.zeros(x.shape);
   const dx = x.getBuffer().data;
   const dy = output.getBuffer().data;
   for (let b = 0; b < batch; b++) {
@@ -47,6 +48,33 @@ export function softmax(x: CPUTensor): CPUTensor {
     }
     for (let c = 0; c < cs; c++) {
       dy[b * cs + c] /= expSum;
+    }
+  }
+  return output;
+}
+
+export function softmaxBackward(y: CPUTensor, gy: CPUTensor): CPUTensor {
+  if (y.shape.length < 2) {
+    throw new Error('softmaxBackward needs 2d input');
+  }
+  const batch = arrayProd(y.shape.slice(0, y.shape.length - 1));
+  const cs = y.shape[y.shape.length - 1];
+  const output = CPUTensor.zeros(y.shape);
+  const dy = y.getBuffer().data;
+  const dgy = gy.getBuffer().data;
+  const dgx = output.getBuffer().data;
+  for (let b = 0; b < batch; b++) {
+    for (let c = 0; c < cs; c++) {
+      let sum = 0.0;
+      const my = dy[b * cs + c];
+      for (let d = 0; d < cs; d++) {
+        if (d === c) {
+          sum += my * (1 - my) * dgy[b * cs + d];
+        } else {
+          sum += -my * dy[b * cs + d] * dgy[b * cs + d];
+        }
+      }
+      dgx[b * cs + c] = sum;
     }
   }
   return output;

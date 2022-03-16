@@ -7,7 +7,7 @@ import { CPUTensor } from '../cpuTensor';
  * @param transa
  * @param transb
  */
-export function gemm(
+export function gemm_cpu(
   a: CPUTensor,
   b: CPUTensor,
   transa: boolean,
@@ -54,7 +54,7 @@ export function gemm(
 }
 
 // batched gemm (b, m, k) * (b, k, n) -> (b, m, n)
-export function bmm(
+export function bmm_cpu(
   a: CPUTensor,
   b: CPUTensor,
   transa: boolean,

@@ -2,8 +2,15 @@ import { Variable } from '.';
 import { CPUTensor } from '../tensor/cpu/cpuTensor';
 import { Random } from '../math';
 import { Layer, Parameter } from './core';
-import { BatchNormFunction, conv2d, Conv2dParams, linear } from './functions';
-import { Sequential } from './layer/sequential';
+import {
+  BatchNormFunction,
+  conv2d,
+  Conv2dParams,
+  dropout,
+  EmbeddingFunction,
+  LayerNormFunction,
+  linear,
+} from './functions';
 
 export class Linear extends Layer {
   weight: Parameter;
@@ -225,6 +232,84 @@ export class BatchNorm extends Layer {
       }
     }
     return [outputs[0]];
+  }
+}
+
+export class LayerNorm extends Layer {
+  readonly eps: number;
+  readonly elementwiseAffine: boolean;
+  // weight, bias for affine transformation
+  weight?: Parameter;
+  bias?: Parameter;
+
+  constructor(
+    public readonly normalizedShape: number[],
+    params: {
+      eps?: number;
+      elementwiseAffine?: boolean;
+    }
+  ) {
+    super();
+    const { eps = 1e-5, elementwiseAffine = true } = params;
+    this.eps = eps;
+    this.elementwiseAffine = elementwiseAffine;
+    if (elementwiseAffine) {
+      this.weight = new Parameter(CPUTensor.ones(normalizedShape), 'weight');
+      this.bias = new Parameter(CPUTensor.zeros(normalizedShape), 'bias');
+    }
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    const batch_norm = new LayerNormFunction({
+      eps: this.eps,
+      normalizedShape: this.normalizedShape,
+    });
+    const args: Variable[] = [inputs[0]];
+    if (this.elementwiseAffine) {
+      args.push(this.weight as Variable);
+      args.push(this.bias as Variable);
+    } else {
+      throw new Error();
+    }
+    const output = await batch_norm.c(...args);
+    return [output];
+  }
+}
+
+export class Embedding extends Layer {
+  weight: Parameter;
+
+  constructor(
+    public readonly numEmbeddings: number,
+    public readonly embeddingDim: number
+  ) {
+    super();
+    const rnd = Random.getDefault();
+    const normal = rnd.normal(numEmbeddings * embeddingDim);
+    this.weight = new Parameter(
+      CPUTensor.fromArray(normal, [numEmbeddings, embeddingDim]),
+      'weight'
+    );
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    const emb = new EmbeddingFunction(this.numEmbeddings, this.embeddingDim);
+    const output = await emb.c(inputs[0], this.weight);
+    return [output];
+  }
+}
+
+export class Dropout extends Layer {
+  constructor(public readonly p?: number) {
+    super();
+  }
+
+  async forward(inputs: Variable[]): Promise<Variable[]> {
+    if (this.training) {
+      return [await dropout(inputs[0], this.p)];
+    } else {
+      return [inputs[0]];
+    }
   }
 }
 

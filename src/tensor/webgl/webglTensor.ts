@@ -1,5 +1,10 @@
 import { Backend } from '../../backend';
-import { DType, DTypeDefault, TypedArrayTypes } from '../../dtype';
+import {
+  DType,
+  DTypeDefault,
+  TypedArrayForDType,
+  TypedArrayTypes,
+} from '../../dtype';
 import { arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import {
@@ -996,5 +1001,15 @@ export class WebGLTensor extends Tensor {
 
   static unsqueeze(input: WebGLTensor, dim: number): WebGLTensor {
     return input.alias(calcUnsqueeze(input.shape, dim));
+  }
+
+  static full(
+    shape: ArrayLike<number>,
+    fillValue: number,
+    dtype: DType = DTypeDefault
+  ): WebGLTensor {
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
+    data.fill(fillValue);
+    return WebGLTensor.fromArray(data, shape, dtype);
   }
 }

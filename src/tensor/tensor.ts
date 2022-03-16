@@ -95,4 +95,5 @@ export interface TensorStatic<B extends Tensor> {
   ravel: (x: B) => B;
   squeeze: (input: B, dim?: number) => B;
   unsqueeze: (input: B, dim: number) => B;
+  full: (shape: ArrayLike<number>, fillValue: number, dtype?: DType) => B;
 }

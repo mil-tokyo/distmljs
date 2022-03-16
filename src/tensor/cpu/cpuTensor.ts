@@ -7,7 +7,7 @@ import {
 } from '../../dtype';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
-import { sum, sumTo } from './core/reduction';
+import { argmax, argmin, max, min, sum, sumTo } from './core/reduction';
 import {
   coreabs,
   coreacos,
@@ -43,9 +43,12 @@ import { WebGLTensor } from '../webgl/webglTensor';
 import { Ellipsis, Slice } from '..';
 import { gets, sets } from './core/indexing';
 import { WebGPUTensor } from '../webgpu/webgpuTensor';
-import { cat, repeat, tile } from './core/manipulation';
-import { gemm } from './core/gemm';
 import { fromArrayND, toArrayND } from './core/arraynd';
+import { cat, chunk, repeat, tile, split } from './core/manipulation';
+import { gemm_cpu } from './core/gemm';
+import { sort, topk } from './core/sort';
+import { arrayProd } from '../../util';
+import { tril, triu } from './core/tri';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
@@ -350,7 +353,7 @@ export class CPUTensor extends Tensor {
     transa = false,
     transb = false
   ): CPUTensor {
-    return gemm(a, b, transa, transb);
+    return gemm_cpu(a, b, transa, transb);
   }
 
   static dot(a: CPUTensor, b: CPUTensor): CPUTensor {
@@ -438,6 +441,10 @@ export class CPUTensor extends Tensor {
     return tile(x, reps);
   }
 
+  static chunk(x: CPUTensor, chunks: number, dim?: number): CPUTensor[] {
+    return chunk(x, chunks, dim);
+  }
+
   static cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
     return cat(tensors, axis);
   }
@@ -448,5 +455,92 @@ export class CPUTensor extends Tensor {
 
   static unsqueeze(input: CPUTensor, dim: number): CPUTensor {
     return input.alias(calcUnsqueeze(input.shape, dim));
+  }
+
+  static sort(
+    input: CPUTensor,
+    dim = -1,
+    descending = false
+  ): [CPUTensor, CPUTensor] {
+    return sort(input, dim, descending);
+  }
+
+  static full(
+    shape: ArrayLike<number>,
+    fillValue: number,
+    dtype: DType = DTypeDefault
+  ): CPUTensor {
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
+    data.fill(fillValue);
+    return CPUTensor.fromArray(data, shape, dtype);
+  }
+
+  static split(
+    x: CPUTensor,
+    split_size_or_sections: number | number[],
+    dim = 0
+  ): CPUTensor[] {
+    return split(x, split_size_or_sections, dim);
+  }
+
+  static max(input: CPUTensor): CPUTensor;
+  static max(
+    input: CPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [CPUTensor, CPUTensor];
+
+  static max(
+    input: CPUTensor,
+    dim?: number,
+    keepdim = false
+  ): CPUTensor | [CPUTensor, CPUTensor] {
+    return max(input, dim, keepdim);
+  }
+
+  static min(input: CPUTensor): CPUTensor;
+  static min(
+    input: CPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [CPUTensor, CPUTensor];
+
+  static min(
+    input: CPUTensor,
+    dim?: number,
+    keepdim = false
+  ): CPUTensor | [CPUTensor, CPUTensor] {
+    return min(input, dim, keepdim);
+  }
+
+  static argmax(input: CPUTensor): CPUTensor;
+  static argmax(input: CPUTensor, dim: number, keepdim?: boolean): CPUTensor;
+
+  static argmax(input: CPUTensor, dim?: number, keepdim = false): CPUTensor {
+    return argmax(input, dim, keepdim);
+  }
+
+  static argmin(input: CPUTensor): CPUTensor;
+  static argmin(input: CPUTensor, dim: number, keepdim?: boolean): CPUTensor;
+
+  static argmin(input: CPUTensor, dim?: number, keepdim = false): CPUTensor {
+    return argmin(input, dim, keepdim);
+  }
+
+  static tril(input: CPUTensor, diagonal = 0): CPUTensor {
+    return tril(input, diagonal);
+  }
+
+  static triu(input: CPUTensor, diagonal = 0): CPUTensor {
+    return triu(input, diagonal);
+  }
+
+  static topk(
+    input: CPUTensor,
+    k: number,
+    dim = -1,
+    largest = true
+  ): [CPUTensor, CPUTensor] {
+    return topk(input, k, dim, largest);
   }
 }

@@ -569,6 +569,66 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(await y.toArrayAsync(), arange(2 * 3 * 4));
       });
     });
+
+    describe('full', () => {
+      it('0d', async () => {
+        const x = T.full([], 2);
+        assert.deepEqual(x.shape, []);
+        assert.deepEqual(await x.toArrayAsync(), [2]);
+        assert.equal(x.dtype, 'float32');
+      });
+      it('1d', async () => {
+        const x = T.full([4], 2);
+        assert.deepEqual(x.shape, [4]);
+        assert.deepEqual(await x.toArrayAsync(), [2, 2, 2, 2]);
+        assert.equal(x.dtype, 'float32');
+      });
+      it('2d', async () => {
+        const x = T.full([2, 3], 100);
+        assert.deepEqual(x.shape, [2, 3]);
+        assert.deepEqual(
+          await x.toArrayAsync(),
+          [100, 100, 100, 100, 100, 100]
+        );
+        assert.equal(x.dtype, 'float32');
+      });
+      it('3d int', async () => {
+        const x = T.full([2, 3, 4], 3, 'int32');
+        assert.deepEqual(x.shape, [2, 3, 4]);
+        assert.deepEqual(
+          await x.toArrayAsync(),
+          [
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3,
+          ]
+        );
+        assert.equal(x.dtype, 'int32');
+      });
+      it('3d float', async () => {
+        const x = T.full([2, 3, 4], 3, 'float32');
+        assert.deepEqual(x.shape, [2, 3, 4]);
+        assert.deepEqual(
+          await x.toArrayAsync(),
+          [
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3,
+          ]
+        );
+        assert.equal(x.dtype, 'float32');
+      });
+      it('3d uint', async () => {
+        const x = T.full([2, 3, 4], 3, 'uint8');
+        assert.deepEqual(x.shape, [2, 3, 4]);
+        assert.deepEqual(
+          await x.toArrayAsync(),
+          [
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            3,
+          ]
+        );
+        assert.equal(x.dtype, 'uint8');
+      });
+    });
   });
 }
 
