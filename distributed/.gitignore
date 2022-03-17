@@ -1,4 +1,5 @@
+/build
+/docs/_build
+/sample/pytorch_data
 *.egg-info
 __pycache__
-/sample/pytorch_data
-/docs/_build

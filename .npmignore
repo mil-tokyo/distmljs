@@ -80,7 +80,6 @@ typings/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -108,5 +107,13 @@ dist
 /test/kakiage-test.js
 /webpack
 pytorch_data
-kakiage-document.zip
 /shader/webgpu/autogen
+/distributed
+/docs
+/dist/test
+/sample
+/shader
+/src
+/test
+/tools
+tmp

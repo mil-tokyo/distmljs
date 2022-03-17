@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kakiage hello world sample</title>
+    <script src="../../webpack/kakiage.js"></script>
+    <script>
+      function log(message) {
+        document.getElementById('result').innerText += message + '\n';
+      }
+
+      function print2dTensor(t, name) {
+        const lines = [];
+        if (name) {
+          lines.push(`${name} =`);
+        }
+        for (let row = 0; row < t.shape[0]; row++) {
+          let line = row === 0 ? '[[' : ' [';
+          for (let col = 0; col < t.shape[1]; col++) {
+            if (col > 0) {
+              line += ', ';
+            }
+            // CPUTensor.get: get single element as number
+            line += `${t.get(row, col)}`;
+          }
+          line += row === t.shape[0] - 1 ? ']]' : '],';
+          lines.push(line);
+        }
+        log(lines.join('\n'));
+      }
+
+      function run() {
+        // global variable kakiage is set by kakiage.js
+        const CPUTensor = kakiage.tensor.CPUTensor;
+        // make 2x2 tensor
+        const a = CPUTensor.fromArrayND([
+          [1, 2],
+          [3, 4],
+        ]);
+        print2dTensor(a, 'a');
+        const b = CPUTensor.fromArrayND([
+          [10, 20],
+          [30, 40],
+        ]);
+        print2dTensor(b, 'b');
+        log('c = a + b');
+        const c = CPUTensor.add(a, b);
+        print2dTensor(c, 'c');
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Kakiage hello world sample</h1>
+    <button type="button" onclick="run()">Run</button>
+    <div>
+      <pre id="result"></pre>
+    </div>
+  </body>
+</html>

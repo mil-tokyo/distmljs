@@ -1,8 +1,10 @@
 """
-Webブラウザを接続した分散計算を行う。
+Webブラウザを接続した分散計算を行う。学習したモデルはONNX形式で出力され、推論用フレームワークで使用できる。
 環境変数で設定を行う。
-MODEL: mlp, convのいずれか。モデルの種類を指定する。
+MODEL: mlp, conv, resnet18のいずれか。モデルの種類を指定する。
 N_CLIENTS: 分散計算に参加するクライアント数。1以上の整数を指定する。指定しない場合は1が指定されたとみなす。
+EPOCH: 学習エポック数。デフォルトは2。
+BATCH_SIZE: バッチサイズ。全クライアントの合計。デフォルトは32。
 
 実行はuvicorn経由で行う。コマンド例(Mac/Linuxの場合):
 MODEL=conv N_CLIENTS=2 npm run train
@@ -19,6 +21,7 @@ from uuid import uuid4
 import numpy as np
 import os
 import pickle
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -50,20 +53,49 @@ def test(model, loader):
     return {"loss": loss_sum / count, "accuracy": correct / count}
 
 
+def snake2camel(name):
+    """
+    running_mean -> runningMean
+    """
+    upper = False
+    cs = []
+    for c in name:
+        if c == "_":
+            upper = True
+            continue
+        if upper:
+            c = c.upper()
+        cs.append(c)
+        upper = False
+    return "".join(cs)
+
+
+def is_trainable_key(name):
+    if "running" in name:
+        # runningMean, runningVar
+        return False
+    if "numBatchesTracked" in name:
+        return False
+    return True
+
+
 async def main():
     print("MNIST / CIFAR data parallel training sample")
     n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
+    n_epoch = int(os.environ.get("EPOCH", "2"))
     dataset_name = os.environ.get("DATASET", "mnist")
     model_name = os.environ.get("MODEL", "mlp")
+    batch_size = int(os.environ.get("BATCH_SIZE", "32"))
     input_shape, n_classes = get_io_shape(dataset_name)
     output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
 
     torch.manual_seed(0)
     lr = 0.01
-    print(f"Model: {model_name}")
+    print(
+        f"Model: {model_name}, dataset: {dataset_name}, batch size: {batch_size}")
     model = make_net(model_name, input_shape, n_classes)
-    train_loader, test_loader = get_dataset_loader(dataset_name)
+    train_loader, test_loader = get_dataset_loader(dataset_name, batch_size)
     client_ids = []
     print(f"Waiting {n_client_wait} clients to connect")
 
@@ -77,22 +109,29 @@ async def main():
                 return event
     while len(client_ids) < n_client_wait:
         await get_event()
+        print(f"{len(client_ids)} / {n_client_wait} clients connected")
 
     test_results = []
-    for epoch in range(2):
-        print(f"epoch {epoch}")
+    start_time = time.time()
+    for epoch in range(n_epoch):
+        print(f"epoch {epoch} / {n_epoch}")
         with torch.no_grad():
             weights = {}
             for k, v in model.state_dict().items():
                 # fc1.weight, fc1.bias, ...
-                weights[k] = v.detach().numpy()
-            for image, label in train_loader:
+                vnum = v.detach().numpy()
+                if vnum.dtype == np.int64:
+                    vnum = vnum.astype(np.int32)
+                weights[snake2camel(k)] = vnum
+            for i, (image, label) in enumerate(train_loader):
+                print(
+                    f"\riter {i} / {len(train_loader)} elapsed={int(time.time() - start_time)}s", end="")
                 item_ids_to_delete = []
                 weight_item_id = uuid4().hex
                 kakiage_server.blobs[weight_item_id] = serialize_tensors_to_bytes(
                     weights)
                 item_ids_to_delete.append(weight_item_id)
-                # TODO: 切断対応(今は切断されると待ち続ける)
+                # 切断・クライアントの動的追加への対応はなされていない(今は切断されると待ち続ける)
                 batch_size = len(image)
                 n_clients = len(client_ids)
                 chunk_size = math.ceil(batch_size / n_clients)
@@ -144,11 +183,17 @@ async def main():
                             grad_arrays[k] = v * chunk_weight
                 for k, v in weights.items():
                     grad = grad_arrays[k]
-                    v -= lr * grad
+                    if is_trainable_key(k):
+                        v -= lr * grad
+                    else:
+                        # not trainable = BN stats = average latest value
+                        v[...] = grad
                 for item_id in item_ids_to_delete:
                     del kakiage_server.blobs[item_id]
+        print()
+        print("Running validation on server...")
         for k, v in model.state_dict().items():
-            v[:] = torch.from_numpy(weights[k])
+            v[...] = torch.from_numpy(weights[snake2camel(k)])
         test_result = test(model, test_loader)
         print(test_result)
         test_results.append(test_result)
@@ -156,10 +201,12 @@ async def main():
         output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
-    torch.onnx.export(model, torch.zeros(1, *input_shape), os.path.join(
-        output_dir, "kakiage_trained_model.onnx"),
-        input_names=["input"],
-        output_names=["output"])
+    onnx_path = os.path.join(
+        output_dir, "kakiage_trained_model.onnx")
+    print("exporting trained model with ONNX format: " + onnx_path)
+    torch.onnx.export(model, torch.zeros(1, *input_shape), onnx_path,
+                      input_names=["input"],
+                      output_names=["output"])
     print("training ended. You can close the program by Ctrl-C.")
     # TODO: exit program (sys.exit(0) emits long error message)
 

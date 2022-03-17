@@ -12,6 +12,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "chart.js": "^3.7.1",
     "kakiage": "file:../.."
   },
   "devDependencies": {

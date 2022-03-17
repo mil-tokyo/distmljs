@@ -15,8 +15,14 @@
       <label><input type="radio" name="backend" value="cpu" />CPU</label>
       <label
         ><input type="radio" name="backend" value="webgl" checked />WebGL</label
-      ><label><input type="radio" name="backend" value="webgpu" />WebGPU</label>
+      >
+      Batch size:
+      <input type="number" max="1000" min="2" value="32" name="batch-size" />
     </div>
+    <div style="width: 400px">
+      <canvas id="myChart" width="400" height="400"></canvas>
+    </div>
+    <div id="status"></div>
     <div id="result"></div>
   </body>
 </html>

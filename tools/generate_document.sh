@@ -31,3 +31,13 @@ cd distributed/docs
 make html
 cd ../..
 cp -r distributed/docs/_build _docbuild/server
+
+# zip
+rm -rf /tmp/kakiage-document
+cp -a _docbuild /tmp/kakiage-document
+pushd /tmp
+rm kakiage-document.zip
+zip -r kakiage-document.zip kakiage-document
+rm -rf kakiage-document
+popd
+mv /tmp/kakiage-document.zip .
