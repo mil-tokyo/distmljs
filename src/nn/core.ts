@@ -5,9 +5,13 @@ import { Tensor } from '../tensor/tensor';
 import { genCall } from '../tensor/tensorTypeUtil';
 import { arrayEqual, nonNull } from '../util';
 
+/**
+ * Variable in neural network. Holds link for backpropagation.
+ */
 export class Variable {
-  // TODO: requies_grad
-  // TODO: detach(): Variableをコピーしてchainを切る
+  /**
+   * Gradient of the variable. Computed by Variable.backward().
+   */
   grad?: Variable;
   creator?: NNFunction;
   generation: number;
@@ -31,6 +35,11 @@ export class Variable {
     this.grad = undefined;
   }
 
+  /**
+   * Runs backpropagation.
+   * @param retainGrad retains gradient of non-leaf variable.
+   * @param createGraph create backpropagation graph in backpropagation (e.g. second-order derivative)
+   */
   async backward(retainGrad = false, createGraph = false): Promise<void> {
     if (!this.grad) {
       const t = this.data.getClass().ones(this.data.shape, this.data.dtype);
@@ -115,6 +124,9 @@ export class Variable {
   }
 }
 
+/**
+ * Variable that is holded in Layer.
+ */
 export class Parameter extends Variable {
   constructor(
     public data: Tensor,
@@ -228,7 +240,6 @@ export class Add extends NNFunction {
     const lhsShape = nonNull(this.inputs)[0].data.shape;
     const rhsShape = nonNull(this.inputs)[1].data.shape;
     if (arrayEqual(lhsShape, rhsShape)) {
-      // TODO: インスタンス共有してよいか確認
       return [gy, gy];
     } else {
       let glhs: Variable, grhs: Variable;
@@ -333,6 +344,10 @@ export abstract class Layer {
 
   abstract forward(inputs: Variable[]): Promise<Variable[]>;
 
+  /**
+   * Moves backend of tensor inside the Layer. This is in-place operation.
+   * @param backend backend to move to.
+   */
   async to(backend: Backend): Promise<void> {
     for (const param of this.parameters(true, false)) {
       param.data = await param.data.to(backend);

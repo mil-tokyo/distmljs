@@ -222,12 +222,14 @@ function makeModel(
   }
 }
 
-function writeLog(message: string) {
-  document.getElementById('messages')!.innerText += message + '\n';
-}
-
 const writeState = throttle((message: string) => {
   document.getElementById('state')!.innerText = message;
+}, 1000);
+
+const writeBatchInfo = throttle((processedBatches: number, lastLoss: number, batchSize: number) => {
+  document.getElementById('table-batches')!.innerText = processedBatches.toString();
+  document.getElementById('table-loss')!.innerText = lastLoss.toString();
+  document.getElementById('table-batchsize')!.innerText = batchSize.toString();
 }, 1000);
 
 async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
@@ -285,23 +287,21 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
   }
   await sendBlob(msg.grad, new TensorSerializer().serialize(grads));
   totalBatches += 1;
-  writeState(
-    `total batch: ${totalBatches}, last loss: ${lossValue}, last batch size: ${y.data.shape[0]}`
-  );
+  writeBatchInfo(totalBatches, lossValue, y.data.shape[0]);
 }
 
 async function run() {
-  writeState('Connecting');
+  writeState('Connecting to distributed training server...');
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
       window.location.host +
       '/kakiage/ws'
   );
   ws.onopen = () => {
-    writeState('Connected to WS server');
+    writeState('Connected to server');
   };
   ws.onclose = () => {
-    writeState('Disconnected from WS server');
+    writeState('Disconnected from server');
   };
   ws.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
@@ -320,7 +320,6 @@ async function run() {
 window.addEventListener('load', async () => {
   backend = (new URLSearchParams(window.location.search).get('backend') ||
     'webgl') as K.Backend;
-  writeLog(`backend: ${backend}`);
   if (backend === 'webgl') {
     await K.tensor.initializeNNWebGLContext();
   }

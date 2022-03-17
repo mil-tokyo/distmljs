@@ -1,18 +1,18 @@
-# サンプル: テンソルの定数倍
+# Sample: Constant times the tensor
 
-テンソルを定数倍にして返す、シンプルなサンプル
+Simple sample that returns a tensor times a constant
 
-# ビルド
+# Build
 
 ```
 npm install
 npm run build
 ```
 
-# 学習実行
+# Run
 
 ```
 npm run train
 ```
 
-ブラウザで[http://localhost:8081/](http://localhost:8081/)を開く。
+Open [http://localhost:8081/](http://localhost:8081/) with web browser.

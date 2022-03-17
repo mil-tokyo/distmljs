@@ -9,6 +9,8 @@ This sample describes how to
 - train and evaluate the model
 - save and load the model
 
+See comments in the source code.
+
 # Build
 
 ```

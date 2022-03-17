@@ -29,12 +29,9 @@ from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEv
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
 from sample_net import make_net, get_io_shape, get_dataset_loader
 
-# スクリプトの配布
+# setup server to distribute javascript and communicate
 kakiage_server = setup_server()
 app = kakiage_server.app
-
-# PyTorchを用いた初期モデルの作成、学習したモデルのサーバサイドでの評価
-
 
 def test(model, loader):
     model.eval()
@@ -56,6 +53,7 @@ def test(model, loader):
 def snake2camel(name):
     """
     running_mean -> runningMean
+    PyTorch uses snake_case, kakiage uses camelCase
     """
     upper = False
     cs = []
@@ -99,6 +97,7 @@ async def main():
     client_ids = []
     print(f"Waiting {n_client_wait} clients to connect")
 
+    # Gets server event
     async def get_event():
         while True:
             event = await kakiage_server.event_queue.get()
@@ -137,11 +136,13 @@ async def main():
                 chunk_size = math.ceil(batch_size / n_clients)
                 chunk_sizes = []
                 grad_item_ids = []
+                # split batch into len(client_ids) chunks
                 for c, client_id in enumerate(client_ids):
                     image_chunk = image[c*chunk_size:(c+1)*chunk_size]
                     label_chunk = label[c*chunk_size:(c+1)*chunk_size]
                     chunk_sizes.append(len(image_chunk))
                     dataset_item_id = uuid4().hex
+                    # set blob (binary data) in server so that client can download by spceifying id
                     kakiage_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(
                         {
                             "image": image_chunk.detach().numpy().astype(np.float32),
@@ -150,6 +151,7 @@ async def main():
                     )
                     item_ids_to_delete.append(dataset_item_id)
                     grad_item_id = uuid4().hex
+                    # send client to calculate gradient given the weight and batch
                     await kakiage_server.send_message(client_id, {
                         "model": model_name,
                         "inputShape": list(input_shape),
@@ -161,6 +163,9 @@ async def main():
                     grad_item_ids.append(grad_item_id)
                     item_ids_to_delete.append(grad_item_id)
                 complete_count = 0
+                # Wait for all clients to complete
+                # No support for disconnection and dynamic addition of clients (this implementation waits disconnected client forever)
+                # To support, handle event such as KakiageServerWSConnectEvent
                 while True:
                     event = await get_event()
                     if isinstance(event, KakiageServerWSReceiveEvent):
@@ -184,6 +189,7 @@ async def main():
                 for k, v in weights.items():
                     grad = grad_arrays[k]
                     if is_trainable_key(k):
+                        # update weight using SGD (no momentum)
                         v -= lr * grad
                     else:
                         # not trainable = BN stats = average latest value

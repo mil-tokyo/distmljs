@@ -22,7 +22,9 @@ function print(message: string, time = false): void {
   div?.appendChild(elem);
 }
 
+// define model by extending K.nn.core.Layer
 class MLPModel extends K.nn.core.Layer {
+  // trainable layers have to be stored as property
   l1: K.nn.layers.Linear;
   l2: K.nn.layers.Linear;
 
@@ -32,6 +34,7 @@ class MLPModel extends K.nn.core.Layer {
     this.l2 = new K.nn.layers.Linear(hidden, outFeatures);
   }
 
+  // forward defines control flow
   async forward(inputs: Variable[]): Promise<Variable[]> {
     let y = inputs[0];
     y = await this.l1.c(y);
@@ -51,6 +54,7 @@ let model: MLPModel;
 
 async function train(backend: K.Backend) {
   status(`Loading dataset`);
+  // load dataset file created by prepare_dataset.py
   const trainDataset = new FetchDataset(
     './dataset/mnist_preprocessed_flatten_train.bin'
   );
@@ -59,6 +63,7 @@ async function train(backend: K.Backend) {
     './dataset/mnist_preprocessed_flatten_test.bin'
   );
   await testDataset.load();
+  // create dataset iterator
   const trainLoader = new DataLoader(trainDataset, { batchSize: 32 });
   const testLoader = new DataLoader(testDataset, { batchSize: 32 });
 
@@ -66,6 +71,7 @@ async function train(backend: K.Backend) {
   await model.to(backend);
   const optimizer = new K.nn.optimizers.SGD(model.parameters(), lr);
 
+  // for loss curve visualization
   const ctx = (
     document.getElementById('myChart')! as HTMLCanvasElement
   ).getContext('2d')!;
@@ -117,8 +123,14 @@ async function train(backend: K.Backend) {
     const epochStartTime = Date.now();
     print(`epoch ${epoch}`);
     let trainIter = 0;
+    // training loop.
     for await (const [images, labels] of trainLoader) {
+      // K.tidy: takes function, and releases tensor allocated in the function after it ends.
+      // it is needed because GPU memory cannot be garbage collected.
       await K.tidy(async () => {
+        // model (K.nn.core.Layer) can be called with model.c
+        // model receives Variable, which can be constructed with new Variable(Tensor)
+        // Tensor.to(backend) copies tensor data to another backend (CPUTensor/WebGLTensor/WebGPUTensor)
         const y = await model.c(new K.nn.Variable(await images.to(backend)));
         const loss = await K.nn.functions.softmaxCrossEntropy(
           y,
@@ -129,20 +141,27 @@ async function train(backend: K.Backend) {
           const speed = (now - epochStartTime) / (trainIter + 1);
           // note: this is not precise because it includes wait
           status(`Training iter: ${trainIter}, ${speed.toFixed(2)} ms / iter`);
-          // plot loss
+          // only CPUTensor has get method.
           const lossScalar = (await loss.data.to('cpu')).get(0);
+          // plot loss
           chart.data.datasets[0].data.push({
             x: totalTrainIter,
             y: lossScalar,
           });
           chart.update('none');
+          // insert wait to process UI event.
           await wait();
         }
+
+        // remove gradient of Parameter in model.
         optimizer.zeroGrad();
+        // backpropagation
         await loss.backward();
+        // update Parameter in model using gradient.
         await optimizer.step();
         trainIter++;
         totalTrainIter++;
+        // Tensors inside them are kept after tidy.
         return [model, optimizer];
       });
     }
@@ -151,6 +170,7 @@ async function train(backend: K.Backend) {
     let nCorrect = 0;
     let sumLoss = 0;
     status(`Running validation`);
+    // don't keep tensor needed for backpropagation
     await K.context.defaultNNContext.withValue(
       'enableBackprop',
       false,
@@ -249,6 +269,8 @@ window.addEventListener('load', () => {
   document.getElementById('save-inside-browser')!.onclick = async () => {
     try {
       const ser = new K.tensor.TensorSerializer();
+      // model.stateMap() returns model parameters with its keys
+      // toLocalStorage saves to localStorage (inside browser)
       await ser.toLocalStorage(await model.stateMap(), localStorageKey);
     } catch (error) {
       console.error(error);
@@ -259,6 +281,7 @@ window.addEventListener('load', () => {
   document.getElementById('download-to-file')!.onclick = async () => {
     try {
       const ser = new K.tensor.TensorSerializer();
+      // download file as if right-click on link and click save link as
       await ser.toFile(await model.stateMap(), 'mnisttrain.bin');
     } catch (error) {
       console.error(error);

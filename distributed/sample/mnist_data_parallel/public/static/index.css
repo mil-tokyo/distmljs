@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+}
+
+h1 {
+  background: linear-gradient(180deg, orange, white);
+  margin: 0;
+  padding: 1em;
+}
+
+main {
+  padding: 1em;
+}
