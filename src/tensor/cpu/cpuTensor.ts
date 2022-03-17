@@ -186,6 +186,11 @@ export class CPUTensor extends Tensor {
     return this.buffer;
   }
 
+  /**
+   * Get single element of tensor.
+   * @param idxs
+   * @returns
+   */
   get(...idxs: number[]): number {
     // TODO: negative index
     const buffer = this.getBuffer();
@@ -197,6 +202,12 @@ export class CPUTensor extends Tensor {
     return buffer.data[idx];
   }
 
+  /**
+   * Set single element of tensor.
+   * @param value value to write to the tensor.
+   * @param idxs
+   * @returns
+   */
   set(value: number, ...idxs: number[]): void {
     // TODO: negative index
     const buffer = this.getBuffer();
@@ -211,8 +222,8 @@ export class CPUTensor extends Tensor {
 
   /**
    * Get slice of tensor. Currently supports basic indexing (as in numpy manual) only.
-   * @param idxs index
-   * @returns
+   * @param idxs index. You can use number, {@link tensor.slice}, {@link tensor.ellipsis}, {@link tensor.newaxis}.
+   * @returns Slice of tensor. Data is copied.
    */
   gets(...idxs: IndexingArg[]): CPUTensor {
     return gets(this, idxs);
@@ -220,8 +231,8 @@ export class CPUTensor extends Tensor {
 
   /**
    * Set value into a slice of tensor
-   * @param value
-   * @param idxs
+   * @param value Value to be written on the tensor. Broadcasting is supported.
+   * @param idxs You can use number, {@link tensor.slice}, {@link tensor.ellipsis}, {@link tensor.newaxis}.
    */
   sets(value: CPUTensor | number, ...idxs: IndexingArg[]): void {
     sets(this, value, idxs);

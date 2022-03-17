@@ -1,3 +1,6 @@
+/**
+ * Means slice (e.g."array[2:5]") as in numpy. Use `slice` function to construct.
+ */
 export class Slice {
   constructor(
     public start: number | null = null,
@@ -17,6 +20,13 @@ export class Slice {
   }
 }
 
+/**
+ * Creates slice object used in {@link tensor.CPUTensor.gets}
+ * @param start
+ * @param stop
+ * @param step
+ * @returns slice object.
+ */
 export function slice(
   start: number | null = null,
   stop: number | null = null,
@@ -25,12 +35,21 @@ export function slice(
   return new Slice(start, stop, step);
 }
 
+/**
+ * Means "..." as in numpy. Use `ellipsis` constant.
+ */
 export class Ellipsis {
   toString() {
     return '...';
   }
 }
 
+/**
+ * Means "..." as in numpy. Used in CPUTensor.gets().
+ */
 export const ellipsis = new Ellipsis();
 
+/**
+ * Means np.newaxis as in numpy. Used in CPUTensor.gets().
+ */
 export const newaxis = null;

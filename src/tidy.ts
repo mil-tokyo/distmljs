@@ -12,6 +12,12 @@ import {
 
 type TensorKind = Tensor | Variable | Layer | Optimizer;
 type TidyResult = TensorKind[];
+
+/**
+ * takes function, and releases tensor allocated in the function after it ends.
+ * @param fn async function to run. Tensor in the returned value is not released.
+ * @returns returned value of fn.
+ */
 export function tidy<T extends TidyResult>(fn: () => Promise<T>): Promise<T>;
 export function tidy<T extends TidyResult>(
   name: string,
@@ -73,6 +79,12 @@ export async function tidy<T extends TidyResult>(
 
   return returned;
 }
+
+/**
+ * takes function, and releases tensor allocated in the function after it ends.
+ * @param fn function to run. Tensor in the returned value is not released.
+ * @returns returned value of fn.
+ */
 export function tidySync<T extends TidyResult>(fn: () => T): T;
 export function tidySync<T extends TidyResult>(name: string, fn: () => T): T;
 export function tidySync<T extends TidyResult>(
