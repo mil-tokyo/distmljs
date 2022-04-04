@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</title>
-    <script src="index.js"></script>
-  </head>
-  <body>
-    <h1>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</h1>
-    <div>
-      <button type="button" id="start-training">Start training</button>
-      Backend:
-      <label><input type="radio" name="backend" value="cpu" />CPU</label>
-      <label
-        ><input type="radio" name="backend" value="webgl" checked />WebGL</label
-      >
-      Batch size:
-      <input type="number" max="1000" min="2" value="32" name="batch-size" />
-    </div>
-    <div style="width: 400px">
-      <canvas id="myChart" width="400" height="400"></canvas>
-    </div>
-    <div id="status"></div>
-    <div id="result"></div>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</title>
+  <script src="index.js"></script>
+</head>
+
+<body>
+  <h1>Kakiage Standalone ResNet-18 CIFAR-10 Training Sample</h1>
+  <div>
+    <button type="button" id="start-training">Start training</button>
+    Backend:
+    <label><input type="radio" name="backend" value="cpu" />CPU</label>
+    <label><input type="radio" name="backend" value="webgl" checked />WebGL</label>
+    Batch size:
+    <input type="number" max="1000" min="2" value="8" name="batch-size" />
+  </div>
+  <div style="width: 400px">
+    <canvas id="myChart" width="400" height="400"></canvas>
+  </div>
+  <div id="status"></div>
+  <div id="result"></div>
+</body>
+
 </html>

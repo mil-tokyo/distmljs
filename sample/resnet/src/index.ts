@@ -40,7 +40,7 @@ async function train(backend: K.Backend, batchSize: number) {
   const trainLoader = new DataLoader(trainDataset, { batchSize });
   const testLoader = new DataLoader(testDataset, { batchSize });
 
-  const lr = 0.01;
+  const lr = 0.01 * (batchSize / 32); // lower learning rate when batch size is small
   const model = new ResNet18(10);
   await model.to(backend);
   const optimizer = new K.nn.optimizers.SGD(model.parameters(), lr);
@@ -120,9 +120,9 @@ async function train(backend: K.Backend, batchSize: number) {
         const speed = (now - epochStartTime) / (trainIter + 1);
         // note: this is not precise because it includes wait
         status(
-          `Training iter: ${trainIter}, ${speed.toFixed(
+          `Training iter: ${trainIter} / ${trainLoader.length}, ${speed.toFixed(
             2
-          )} ms / iter, loss: ${lossScalar}`
+          )} ms / iter, loss: ${lossScalar}, learning rate: ${lr}`
         );
 
         if (trainIter % 100 === 0) {

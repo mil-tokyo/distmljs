@@ -4,9 +4,9 @@ from torchvision import datasets, transforms
 from kakiage.tensor_serializer import serialize_tensors
 
 
-def serialize_save(dataset, path):
+def serialize_save(dataset, path, max_size=100000):
     tostack = [[], []]
-    for i in range(len(dataset)):
+    for i in range(min(len(dataset), max_size)):
         data, target = dataset[i]
         tostack[0].append(data.numpy())
         tostack[1].append(np.int32(target))
@@ -29,9 +29,9 @@ def main():
     test_dataset = datasets.CIFAR10('../pytorch_data', train=False,
                                     transform=transform)
     serialize_save(train_dataset, os.path.join(
-        output_dir, "cifar10_preprocessed_train.bin"))
+        output_dir, "cifar10_preprocessed_train.bin"), 10000)
     serialize_save(test_dataset, os.path.join(
-        output_dir, "cifar10_preprocessed_test.bin"))
+        output_dir, "cifar10_preprocessed_test.bin"), 1000)
 
 
 if __name__ == "__main__":
