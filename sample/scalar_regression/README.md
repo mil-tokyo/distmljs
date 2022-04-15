@@ -14,4 +14,4 @@ cd ../..
 npm run serve
 ```
 
-Open [http://localhost:8080/sample/mnist_train/output/](http://localhost:8080/sample/mnist_train/output/) with web browser.
+Open [http://localhost:8080/sample/scalar_regression/output/](http://localhost:8080/sample/scalar_regression/output/) with web browser.
