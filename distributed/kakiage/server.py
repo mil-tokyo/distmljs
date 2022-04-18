@@ -59,6 +59,14 @@ class KakiageServer:
 server = KakiageServer(app, blobs, event_queue)
 
 
+# avoid cache to force update js file when reloaded
+@app.middleware("http")
+async def add_my_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store"
+    return response
+
+
 @app.put("/kakiage/blob/{item_id}")
 async def binary_put(item_id: str, request: Request):
     raw_data = await request.body()  # bytes
