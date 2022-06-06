@@ -13,9 +13,6 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "kakiage": "file:../../.."
-  },
   "devDependencies": {
     "ts-loader": "^9.2.6",
     "ts-node": "^10.4.0",

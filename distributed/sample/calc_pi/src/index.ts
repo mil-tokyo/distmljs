@@ -1,6 +1,3 @@
-import * as K from 'kakiage';
-import T = K.tensor.CPUTensor;
-
 let ws: WebSocket;
 
 function writeLog(message: string) {
