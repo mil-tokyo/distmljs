@@ -219,7 +219,7 @@ export class Sum extends NNFunction {
   }
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
-      all: (c, [t]) => [c.sum(t)],
+      all: (c, [t]) => [c.sum(t, this.axis, this.keepdims)],
     });
   }
 
