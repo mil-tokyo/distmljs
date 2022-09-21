@@ -1,3 +1,4 @@
+import { Random } from '../math';
 import { CPUTensor } from '../tensor';
 import { Dataset } from './dataset';
 
@@ -11,19 +12,21 @@ export class DataLoader {
 
   constructor(public dataset: Dataset, public options: DataLoaderOptions) {
     this.length = Math.floor(dataset.length / options.batchSize);
-    if (options.shuffle) {
-      console.warn('Dataset shuffle is not yet implemented');
-    }
   }
 
   async *[Symbol.asyncIterator]() {
     // usage: for await (const [images, labels] of this)
+    let perm: Int32Array | undefined = undefined;
+    if (this.options.shuffle) {
+      perm = Random.getDefault().randperm(this.dataset.length);
+    }
     for (let batch = 0; batch < this.length; batch++) {
       const bottom = batch * this.options.batchSize;
       const top = (batch + 1) * this.options.batchSize;
       const elems: CPUTensor[][] = [];
       for (let sample = bottom; sample < top; sample++) {
-        const elem = await this.dataset.getAsync(sample);
+        const idx = perm ? perm[sample] : sample;
+        const elem = await this.dataset.getAsync(idx);
         elems.push(elem);
       }
       const allStacked: CPUTensor[] = [];
