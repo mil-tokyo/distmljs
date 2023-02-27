@@ -16,7 +16,7 @@ DATA_TYPE_TO_NUMPY = {
     5: np.int16,  # onnx.TensorProto.INT16
     6: np.int32,  # onnx.TensorProto.INT32
     7: np.int64,  # onnx.TensorProto.INT64
-    9: np.bool,  # onnx.TensorProto.BOOL
+    9: np.bool_,  # onnx.TensorProto.BOOL
     10: np.float16,  # onnx.TensorProto.FLOAT16
     11: np.float64,  # onnx.TensorProto.DOUBLE
     12: np.uint32,  # onnx.TensorProto.UINT32
