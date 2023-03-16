@@ -139,6 +139,74 @@ export class Random {
       return v;
     }
   }
+
+  private randIntScalar(max: number): number {
+    const ceil = Math.floor(4294967296 / max) * max;
+    let v: number;
+    do {
+      v = this.randomRaw() >>> 0; // to unsigned int
+    } while (v >= ceil);
+    return v % max;
+  }
+
+  private randintArray(max: number, size: number): Int32Array {
+    const ret = new Int32Array(size);
+    const ceil = Math.floor(4294967296 / max) * max;
+    for (let i = 0; i < size; i++) {
+      let v: number;
+      do {
+        v = this.randomRaw() >>> 0; // to unsigned int
+      } while (v >= ceil);
+      ret[i] = v % max;
+    }
+
+    return ret;
+  }
+
+  /**
+   * Generates random integer between [range.low, range.high)
+   * @param size spceify number to specify vector length
+   */
+  randint(range: { low: number; high: number }, size?: null): number;
+  randint(range: { low: number; high: number }, size: number): Int32Array;
+  randint(
+    range: { low: number; high: number },
+    size?: null | number
+  ): number | Int32Array {
+    const low = range.low;
+    const scale = range.high - range.low;
+    if (size == null) {
+      // scalar number
+      const raw = this.randIntScalar(scale);
+      return raw + low;
+    } else {
+      // Int32Array
+      const v = this.randintArray(scale, size);
+      if (low !== 0) {
+        for (let i = 0; i < size; i++) {
+          v[i] += low;
+        }
+      }
+      return v;
+    }
+  }
+
+  randperm(size: number): Int32Array {
+    const v = new Int32Array(size);
+    for (let i = 0; i < size; i++) {
+      v[i] = i;
+    }
+
+    // Fisher-Yates shuffle
+    for (let i = 0; i < size - 1; i++) {
+      const j = i + this.randIntScalar(size - i);
+      const tmp = v[j];
+      v[j] = v[i];
+      v[i] = tmp;
+    }
+
+    return v;
+  }
 }
 
 const defaultInstance = new Random();
