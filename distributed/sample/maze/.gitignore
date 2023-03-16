@@ -1,0 +1,8 @@
+public/static/*.js
+results
+node_modules
+dist
+__pycache__
+**/__pycache__
+wandb
+

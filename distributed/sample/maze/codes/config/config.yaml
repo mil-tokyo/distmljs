@@ -1,0 +1,28 @@
+"experiment_config": 
+  "n_actor_client_wait": 1 # number of initinal actors
+  "n_learner_client_wait" : 1 # number of initial learners
+  "dataset_name": "maze" # available: ["maze"]
+  "model_name": "dmlp" # available: ["dmlp"]
+  "batch_size": 128 # minibatch size
+  "adam": 1 # 1 for Adam, 0 for SGD
+  "use_wandb": 1 # 1 for using wandb, 0 for skip all process for wandb
+  "prioritized": "LAP" # available: ["rand" | "PER" | "LAP"]
+
+"hyperparameters":
+  "training_options":
+    "seed": 0
+    "lr": 0.0003
+    "discount": 0.99
+    "target_update": 10 # freqency for updating target model to global model
+    "train_step_num": 20000 # number of max iteration
+    "start_timesteps": 10000 # number of initial random data
+    "update_freq": 1 # not in use, always set to 1
+    "weight_remain_epochs": 5 # number of iterations for keeping old weights in server 
+
+  "testing_options":
+    "test_freq": 200 # frequency for testing
+    "n_test_trials": 10 # number of episodes for each testing
+    "n_trials": 5 # number of experiments
+
+"visualization_config":
+
