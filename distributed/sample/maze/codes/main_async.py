@@ -64,7 +64,7 @@ class Arguments():
             setattr(self, key, value)
             
         self.env = "3x3U" # don't forget to change here
-        self.experiment_name = "save_test4"
+        self.experiment_name = "maze-3x3-05"
         
     def wandb_init(self, trials_id):
         
@@ -236,6 +236,16 @@ async def get_gradient():
     while len(complete_learner_grad_id) < len(sv.learner_ids):
         event = await sv.get_event()
         
+        # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 3
+        step_elapsed_time = time.time() - step_start_time
+        if step_elapsed_time > 30:
+            print('\nERROR. BREAK! some of learners have got lost.\n')
+            learners_all_alive = False
+            break
+        else:
+            learners_all_alive = True
+        # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 3 ここまで
+        
         if isinstance(event, KakiageServerWSReceiveEvent):
             
             # TODO: 動的な割り当て
@@ -288,6 +298,11 @@ async def get_gradient():
 
             # No support for disconnection and dynamic addition of clients (in this implementation, server waits for disconnected client forever)
             # To support, handle event such as KakiageServerWSConnectEvent
+    
+    # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 4
+    if not learners_all_alive:
+        return False
+    # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 4 ここまで
     
     # Update priorities of ReplayBuffer    
     for client_id, td_item_id in zip(sv.learner_ids, sv.td_item_ids):
@@ -386,6 +401,11 @@ async def get_test_results():
 
 async def main():
     global opt, sv, replay_buffer
+    
+    # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 1
+    global step_start_time
+    # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 1 ここまで
+    
     print("Maze2D reinforcement learning data parallel training sample")
     
     # args
@@ -398,7 +418,7 @@ async def main():
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1
         if trials_id > 0:
             previous_worker_ids = sv.worker_ids
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1ここまで
+        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1 ここまで
         
         # initial settings
         fix_seed(opt.seed + trials_id)
@@ -421,7 +441,7 @@ async def main():
         if trials_id > 0:
             for client_id in previous_worker_ids:
                 await sv.send_msg_reload(client_id)
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2ここまで
+        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2 ここまで
         
         # Wait for clients to join
         await wait_for_clients()
@@ -456,28 +476,59 @@ async def main():
             print(f"Iter: {training.iter}")
             training.iter += 1
             
+            # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 2
+            step_start_time = time.time()
+            learners_all_alive = True
+            # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 2 ここまで
+            
             with torch.no_grad():
                 
                 # training
-                for i in range(opt.update_freq):
-                    training.total_it += 1
+                # for i in range(opt.update_freq):
+                training.total_it += 1
 
-                    # Update weights
-                    grad = await get_gradient()
-                    optimizer.step(grad)
+                # Update weights
+                grad = await get_gradient()
+                # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 5
+                if not grad:
+                    training.iter -= 1
                     
-                    # Remove used ids except weight ids
-                    # weight ids are removed in function "upload_weights"
-                    for item_id in sv.learner_item_ids_to_delete:
-                        del kakiage_server.blobs[item_id]
-                    sv.learner_item_ids_to_delete = []
+                    previous_worker_ids = sv.worker_ids
+                    sv.reset_clients()
+                    for client_id in previous_worker_ids:
+                        await sv.send_msg_reload(client_id)
+                    
+                    while len(sv.worker_ids) < opt.n_actor_client_wait + opt.n_learner_client_wait:
+                        event = await sv.get_event()
+                        if isinstance(event, KakiageServerWSReceiveEvent):
+                            if event.message['type']=='worker':
+                                if len(sv.init_learners) < int(opt.n_learner_client_wait):
+                                    sv.init_learners.add(event.client_id)
+                                print(f"{len(sv.worker_ids)} / {opt.n_actor_client_wait + opt.n_learner_client_wait} clients connected")
+                            
+                    for client_id in sv.worker_ids:
+                        if client_id in sv.init_learners:
+                            sv.learner_ids.add(client_id)
+                        else:
+                            sv.actor_ids.add(client_id)
+                            await sv.send_msg_to_actor_for_collecting_samples(client_id)
+                            
+                    continue
+                # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 5 ここまで
+                optimizer.step(grad)
+                
+                # Remove used ids except weight ids
+                # weight ids are removed in function "upload_weights"
+                for item_id in sv.learner_item_ids_to_delete:
+                    del kakiage_server.blobs[item_id]
+                sv.learner_item_ids_to_delete = []
 
-                    # Update target weights
-                    if training.total_it % opt.target_update == 0:
-                        sv.weights['target'] = copy.deepcopy(sv.weights['global'])
-                    
-                    # Upload global and target weights to blob
-                    upload_weights(['global', 'target'])
+                # Update target weights
+                if training.total_it % opt.target_update == 0:
+                    sv.weights['target'] = copy.deepcopy(sv.weights['global'])
+                
+                # Upload global and target weights to blob
+                upload_weights(['global', 'target'])
                 
                 # testing and reassignment
                 if training.iter == 1 or training.iter % opt.test_freq == 0 or training.iter == opt.train_step_num:
@@ -488,7 +539,6 @@ async def main():
                     
                     # update test plot
                     stats = training.update_test_log(replay_buffer.size, save_reward, elapsed_time)
-                    pprint(stats)
                     last_stats = {key: value[-1] for key, value in stats.items()}
                     if opt.use_wandb:
                         wandb.log(last_stats)
@@ -558,10 +608,10 @@ async def main():
                 #             await sv.send_msg_to_actor_for_collecting_samples(client_id, global_weight_item_id)
                 # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装ここまで
             
-            if opt.save_weights:
-                if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
-                    save_path = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"/f"{training.iter:05}iter_{last_stats['reward']:.3f}reward"
-                    sv.save_weights(save_path)
+                if opt.save_weights:
+                    if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
+                        save_path = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"/f"{training.iter:05}iter_{last_stats['reward']:.3f}reward"
+                        sv.save_weights(save_path)
                         
         if opt.use_wandb:
             wandb.finish()
