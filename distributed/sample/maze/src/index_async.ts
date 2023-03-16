@@ -140,8 +140,7 @@ async function compute_learner(msg: {
   await loss[0].backward();
   await loss[1].backward();
 
-  // let tdloss = T.add(await td[0].data.to('cpu'), await td[1].data.to('cpu')).reshape([batch_size]);
-  let tdloss = T.full([batch_size], 1);
+  let tdloss = T.add(await td[0].data.to('cpu'), await td[1].data.to('cpu')).reshape([batch_size]);
   const td_buffer = new Map<string, T>();
   td_buffer.set("td_for_update", tdloss);
   await sendBlob(msg.td, new TensorSerializer().serialize(td_buffer));

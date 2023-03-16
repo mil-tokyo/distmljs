@@ -49,58 +49,30 @@ class Arguments():
     def __init__(self):
         
         # args
-        # self.n_actor_client_wait = int(os.environ.get("N_ACTOR_CLIENTS", "1")) # 初期actor数
-        # self.n_learner_client_wait = int(os.environ.get("N_LEARNER_CLIENTS", "1")) # 初期learner数
-        # self.dataset_name = os.environ.get("DATASET", "maze")
-        # self.model_name = os.environ.get("MODEL", "dmlp")
-        # self.batch_size = int(os.environ.get("BATCH_SIZE", "128"))
-        # self.adam = int(os.environ.get("ADAM", "1"))
-        # # self.fix_assignment = int(os.environ.get("FIX_ASSIGN", "1")) # 0にしたときに正しく動く保証がない
-        # self.use_wandb = int(os.environ.get("USE_WANDB", "1"))
-        # self.prioritized = os.environ.get("PRIORITIZED", "LAP") # ["rand", "PER", "LAP", "PAL"]から選ぶ
-
-        # # Hyperparameters # hardcode yokunai
-        
-        # ## training opts
-        # self.seed = 0
-        # self.lr = 3e-4
-        # self.discount = 0.99
-        # self.target_update = 10
-        # self.train_step_num = int(1e+4) # 最大訓練エポック数
-        # self.start_timesteps = int(1e+5) # 初期ランダムデータの収集数
-        # self.update_freq = 1 # モデル更新頻度とサンプル収集速度のバランスをとるために存在するが、使ってない
-        # self.weight_remain_epochs = 5 # 重みをblobから削除するためにかかるエポック数
-        
-        # # test opts
-        # self.test_freq = 200
-        # self.n_test_trials = 10
-        # self.n_trials = 1
-        
         with open('codes/config/config.yaml') as f:
             cfg = yaml.safe_load(f)
         
-        self.opt = dict(
+        opt = dict(
             **cfg["experiment_config"], 
             **cfg["hyperparameters"]["training_options"], 
             **cfg["hyperparameters"]["testing_options"])
         
-        # TODO: bug, dictじゃなくてattrにしないと読めない
-        
-        pprint(self.opt)
+        for key, value in opt.items():
+            setattr(self, key, value)
         
     def wandb_init(self, trials_id):
         
         import wandb
         init_config = {
-            "learning_rate": self.opt.lr,
-            "architecture": self.opt.model_name,
-            "dataset": self.opt.dataset_name,
-            "max_epochs": self.opt.train_step_num,
+            "learning_rate": self.lr,
+            "architecture": self.model_name,
+            "dataset": self.dataset_name,
+            "max_epochs": self.train_step_num,
             
             # for grouping in wandb
             "env": "3x3U",
-            "method": self.opt.prioritized,
-            "n_clients": f"L{self.opt.n_learner_client_wait:02}A{self.opt.n_actor_client_wait:02}",
+            "method": self.prioritized,
+            "n_clients": f"L{self.n_learner_client_wait:02}A{self.n_actor_client_wait:02}",
             "trials_id": f"{trials_id:02}",
         }
         init_config["name"] = "/".join([init_config[key] for key in ["method", "n_clients", "trials_id"]])
@@ -109,7 +81,7 @@ class Arguments():
         
         wandb.init(
             # set the wandb project where this run will be logged
-            project="maze-3x3_02",
+            project="maze-3x3_03",
             
             # track hyperparameters and run metadata
             config=init_config
@@ -411,8 +383,7 @@ async def main():
     print("Maze2D reinforcement learning data parallel training sample")
     
     # args
-    args = Arguments()
-    opt = args.opt
+    opt = Arguments()
     if opt.use_wandb:
         import wandb
     
@@ -438,7 +409,7 @@ async def main():
         
         # use wandb for visualization
         if opt.use_wandb:
-            args.wandb_init(trials_id)
+            opt.wandb_init(trials_id)
         
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2
         if trials_id > 0:
