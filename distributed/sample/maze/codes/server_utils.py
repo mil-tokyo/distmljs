@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 from uuid import uuid4
 from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent
 
@@ -64,8 +65,13 @@ class Server():
                 return id_to_remove
             else:
                 return None
-              
-              
+            
+    def save_weights(self, save_path):
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(str(save_path)+".pkl", "wb") as tf:
+            pickle.dump(self.weights['global'], tf)
+        print(f"model saved to: {str(save_path)}.pkl")
+            
     # async processes
     
     async def get_event(self):

@@ -6,11 +6,14 @@ import time
 import copy
 import math
 from uuid import uuid4
+from pathlib import Path
 from pprint import pprint
 import yaml
 
 import numpy as np
 import torch
+
+sys.path.append('../..')
 from kakiage.server import KakiageServerWSReceiveEvent, setup_server
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
 
@@ -59,6 +62,9 @@ class Arguments():
         
         for key, value in opt.items():
             setattr(self, key, value)
+            
+        self.env = "3x3U" # don't forget to change here
+        self.experiment_name = "save_test4"
         
     def wandb_init(self, trials_id):
         
@@ -70,7 +76,7 @@ class Arguments():
             "max_epochs": self.train_step_num,
             
             # for grouping in wandb
-            "env": "3x3U",
+            "env": self.env,
             "method": self.prioritized,
             "n_clients": f"L{self.n_learner_client_wait:02}A{self.n_actor_client_wait:02}",
             "trials_id": f"{trials_id:02}",
@@ -81,7 +87,7 @@ class Arguments():
         
         wandb.init(
             # set the wandb project where this run will be logged
-            project="maze-3x3_03",
+            project=self.experiment_name,
             
             # track hyperparameters and run metadata
             config=init_config
@@ -474,7 +480,7 @@ async def main():
                     upload_weights(['global', 'target'])
                 
                 # testing and reassignment
-                if training.iter % opt.test_freq == 1 or training.iter == opt.train_step_num:
+                if training.iter == 1 or training.iter % opt.test_freq == 0 or training.iter == opt.train_step_num:
                     elapsed_time = time.time() - start_time
                     
                     # Get test results. Here, only collecting rewards. 
@@ -488,12 +494,26 @@ async def main():
                         wandb.log(last_stats)
                     
                     # reassignment # important
+                    
+                    print('\ndebug')
+                    print("sv.tester_ids")
+                    pprint(sv.tester_ids)
+                    print("sv.init_learners")
+                    pprint(sv.init_learners)
+                    print("sv.actor_ids")
+                    pprint(sv.actor_ids)
+                    
                     for client_id in list(sv.tester_ids):
                         if client_id in sv.init_learners:
                             sv.learner_ids.add(client_id)
                         else:
                             sv.actor_ids.add(client_id)
                             await sv.send_msg_to_actor_for_collecting_samples(client_id)
+                    
+                    print("sv.learner_ids")
+                    pprint(sv.learner_ids)
+                    print("sv.actor_ids")
+                    pprint(sv.actor_ids)
                     
                     # reassignmentに関する手軽な実装
                     # 今後どこかで生きそうだから残しておく
@@ -537,6 +557,11 @@ async def main():
                 #             sv.actor_ids.add(client_id)
                 #             await sv.send_msg_to_actor_for_collecting_samples(client_id, global_weight_item_id)
                 # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装ここまで
+            
+            if opt.save_weights:
+                if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
+                    save_path = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"/f"{training.iter:05}iter_{last_stats['reward']:.3f}reward"
+                    sv.save_weights(save_path)
                         
         if opt.use_wandb:
             wandb.finish()
