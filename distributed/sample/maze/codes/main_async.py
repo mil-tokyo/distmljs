@@ -77,7 +77,7 @@ class Arguments():
         }
         init_config["name"] = "/".join([init_config[key] for key in ["method", "n_clients", "trials_id"]])
         pprint(init_config)
-        project_name = init_config["env"]
+        # project_name = init_config["env"]
         
         wandb.init(
             # set the wandb project where this run will be logged
