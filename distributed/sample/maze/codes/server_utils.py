@@ -93,6 +93,7 @@ class Server():
     
     
     async def send_msg_reload(self, client_id):
+        print(f"Send msg reload to: {client_id}")
         await self.kakiage_server.send_message(client_id, {
             "type": "reload",
         })

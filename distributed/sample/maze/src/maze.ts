@@ -46,24 +46,24 @@ export class Env {
     // const maze = [
     //   ['o', 'o', 'o'],
     // ];
+    // const maze = [
+    //   ['o', 'o', 'o'],
+    //   ['o', 'x', 'o'],
+    //   ['o', 'x', 'o'],
+    // ];
+    // const maze = [
+    //   ['o', 'o', 'o', 'o'],
+    //   ['o', 'x', 'x', 'o'],
+    //   ['o', 'x', 'x', 'o'],
+    //   ['o', 'o', 'o', 'o'],
+    // ];
     const maze = [
-      ['o', 'o', 'o'],
-      ['o', 'x', 'o'],
-      ['o', 'x', 'o'],
+      ['o', 'o', 'x', 'o', 'o'],
+      ['o', 'o', 'o', 'x', 'o'],
+      ['x', 'x', 'o', 'o', 'o'],
+      ['o', 'x', 'o', 'x', 'o'],
+      ['o', 'o', 'o', 'o', 'o'],
     ];
-    // const maze = [
-    //   ['o', 'o', 'o', 'o'],
-    //   ['o', 'x', 'x', 'o'],
-    //   ['o', 'x', 'x', 'o'],
-    //   ['o', 'o', 'o', 'o'],
-    // ];
-    // const maze = [
-    //   ['o', 'o', 'x', 'o', 'o'],
-    //   ['o', 'o', 'o', 'x', 'o'],
-    //   ['x', 'x', 'o', 'o', 'o'],
-    //   ['o', 'x', 'o', 'x', 'o'],
-    //   ['o', 'o', 'o', 'o', 'o'],
-    // ];
     // const maze = [
     //   ['o', 'x', 'o', 'o', 'o', 'o', 'x'],
     //   ['o', 'x', 'x', 'o', 'x', 'o', 'o'],
@@ -121,10 +121,6 @@ export class Env {
         x = Math.random() * w + 1;
         y = Math.random() * h + 1;
         // for debug, fix spawn position
-        // x = 5/6 * w + 1;
-        // y = 3/4 * h + 1;
-        // x = 2/3 * w + 1;
-        // y = 1/2 * h + 1;
         x_dot = (Math.random() * 2 - 1) * 0.05; // max init x speed is 0.05
         y_dot = (Math.random() * 2 - 1) * 0.05; // max init y speed is 0.05
         
@@ -144,10 +140,6 @@ export class Env {
         goal_x = Math.random() * w + 1;
         goal_y = Math.random() * h + 1;
         // for debug, fix spawn position
-        // goal_x = 1/6 * w + 1;
-        // goal_y = 3/4 * h + 1;
-        // goal_x = 1/3 * w + 1;
-        // goal_y = 1/2 * h + 1;
         if (this.maze[Math.floor(goal_y)][Math.floor(goal_x)] == 'o') {
           break;
         }
@@ -274,7 +266,7 @@ export class Env {
       reward_reach = 2;
     }
 
-    const reward: number = reward_reach + constant_reward + reward_distance + reward_collision;
+    const reward: number = constant_reward + reward_reach + reward_collision// + reward_distance;
     return [[this.x, this.y, this.x_dot, this.y_dot, this.goal_x, this.goal_y], reward, terminated]
   }
 

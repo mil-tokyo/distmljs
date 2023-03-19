@@ -291,7 +291,9 @@ async function run() {
     writeIdInfo(msg.client_id)
     if (msg.type === "visualizer.weight") {
       if (!model) {
+        console.log('making model')
         model = makeModel(msg.model, msg.inputShape, msg.nClasses);
+        console.log('finish making model')
         await model.to(backend);
       }
       await K.tidy(async () => {

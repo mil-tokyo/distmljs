@@ -128,7 +128,8 @@ async function compute_learner(msg: {
   
   if (msg.prioritized === "PER" || msg.prioritized === "rand") {
     // conventional MSE // PER
-    loss = [await my_mse(td[0]), await my_mse(td[1])]; // [await K.nn.functions.mseLoss(y[0], labelV), await K.nn.functions.mseLoss(y[1], labelV)];
+    // loss = [await my_mse(td[0]), await my_mse(td[1])];
+    loss = [await K.nn.functions.mseLoss(y[0], labelV), await K.nn.functions.mseLoss(y[1], labelV)];
   } else if (msg.prioritized === "LAP") {
     loss = [await my_huber(td[0]), await my_huber(td[1])];
   } else {
@@ -340,7 +341,7 @@ async function compute_tester(msg: {
 
   // Initialize buffer
   let buffer_reward = T.zeros([max_episode_len, 1]);
-  let mean_reward;
+  let sum_reward;
 
   // Start episode
   for (let step=0; step<max_episode_len; step++) {
@@ -363,12 +364,12 @@ async function compute_tester(msg: {
 
     // if terminated, upload buffer and send message to the server
     if (step >= max_episode_len-1 || done) {
-      mean_reward = T.sum(buffer_reward.gets(new K.Slice(0,step+1, 1))).get(0) / (step+1);
+      sum_reward = T.sum(buffer_reward.gets(new K.Slice(0,step+1, 1))).get(0) // / (step+1); // ここをコメントアウトすると平均になる
       break;
     }
   }
 
-  return [true, mean_reward]
+  return [true, sum_reward]
 }
 
 
@@ -424,8 +425,8 @@ async function run() {
           await model.to(backend);
         }
         await K.tidy(async () => {
-          let [success, mean_reward] = await compute_tester(msg);
-          ws.send(JSON.stringify({"type": msg.type, "id": msg.buffer_id, "success": success, "reward": mean_reward})); // TODO
+          let [success, sum_reward] = await compute_tester(msg);
+          ws.send(JSON.stringify({"type": msg.type, "id": msg.buffer_id, "success": success, "reward": sum_reward})); // TODO
           return [];
         });
       } 

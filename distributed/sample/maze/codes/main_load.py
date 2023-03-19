@@ -7,6 +7,7 @@ import copy
 import math
 from uuid import uuid4
 from pathlib import Path
+import pickle
 from pprint import pprint
 import yaml
 
@@ -403,252 +404,23 @@ async def main():
     
     # args
     opt = Arguments()
-    if opt.use_wandb:
-        import wandb
+    sv = Server(opt, kakiage_server)
     
-    for trials_id in range(opt.n_trials):
-        
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1
-        if trials_id > 0:
-            previous_worker_ids = sv.worker_ids
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1 ここまで
-        
-        # initial settings
-        fix_seed(opt.seed + trials_id)
-        sv = Server(opt, kakiage_server)
-        training = Trainings()
-        
-        # Make neural network model
-        print(f"Model: {opt.model_name}, dataset: {opt.dataset_name}, batch size: {opt.batch_size}")
-        sv.input_dim, sv.n_classes = get_io_shape(opt.dataset_name)
-        model = make_net(opt.model_name, sv.input_dim, sv.n_classes)
-        
-        # Initialize Replay Buffer
-        replay_buffer = ReplayBuffer(opt=opt, state_dim=sv.input_dim, action_dim=1)
-        
-        # use wandb for visualization
-        if opt.use_wandb:
-            opt.wandb_init(trials_id)
-        
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2
-        if trials_id > 0:
-            for client_id in previous_worker_ids:
-                try:
-                    await sv.send_msg_reload(client_id)
-                except KeyError:
-                    time.sleep(3)
-                    print(f"Failed to reload clients: {client_id}. Try again.")
-                    await sv.send_msg_reload(client_id)
-        # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2 ここまで
-        
-        # Wait for clients to join
-        await wait_for_clients()
-        
-        # clock
-        start_time = time.time()
+    # load model 
+    sv.input_dim, sv.n_classes = get_io_shape(opt.dataset_name)
+    # model = make_net(opt.model_name, sv.input_dim, sv.n_classes)
+    with open('checkpoints/maze-5x5-sparse-01/5x5_PER_L02A10/04/18000iter_1.060reward.pkl', 'rb') as f:
+        sv.weights['global'] = pickle.load(f)
 
-        # Collect random data
-        await collect_random_data()
+    upload_weights(['global'])
+    
+    while True:
+        event = await sv.get_event()
         
-        # initial assignment # important
-        for client_id in sv.worker_ids:
-            if client_id in sv.init_learners:
-                sv.learner_ids.add(client_id)
-            else:
-                sv.actor_ids.add(client_id)
-                
-        # Read weights and upload them to blob
-        sv.weights['global'] = training.get_weights(model)
-        sv.weights['target'] = copy.deepcopy(sv.weights['global'])
-        upload_weights(['global', 'target'])
-        
-        # Define optimizer
-        optimizer = Optimizer(opt, sv.weights['global'])
-        
-        # Send message to actors and start collecting data
-        for actor_id in sv.actor_ids:
-            await sv.send_msg_to_actor_for_collecting_samples(actor_id)
-            
-        # training main loop
-        while training.iter < opt.train_step_num:
-            print(f"Iter: {training.iter}")
-            training.iter += 1
-            
-            # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 2
-            step_start_time = time.time()
-            # learners_all_alive = True
-            # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 2 ここまで
-            
-            with torch.no_grad():
-                
-                # training
-                # for i in range(opt.update_freq):
-                training.total_it += 1
-
-                # Update weights
-                grad = await get_gradient()
-                # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 5
-                if not grad:
-                    training.iter -= 1
-                    
-                    print("sv.worker_ids")
-                    pprint(sv.worker_ids)
-                    print("sv.client_ids")
-                    pprint(sv.client_ids)
-                    print("sv.learner_ids")
-                    pprint(sv.learner_ids)
-                    print("sv.actor_ids")
-                    pprint(sv.actor_ids)
-                    
-                    previous_worker_ids = sv.worker_ids
-                    sv.reset_clients()
-                    
-                    print("previous_worker_ids")
-                    pprint(previous_worker_ids)
-                    
-                    for client_id in previous_worker_ids:
-                        try:
-                            await sv.send_msg_reload(client_id)
-                        except KeyError:
-                            time.sleep(3)
-                            print(f"Failed to send msg to actor: {client_id}. Try again.")
-                            await sv.send_msg_reload(client_id)
-                                
-                    
-                    while len(sv.worker_ids) < opt.n_actor_client_wait + opt.n_learner_client_wait:
-                        event = await sv.get_event()
-                        if isinstance(event, KakiageServerWSReceiveEvent):
-                            if event.message['type']=='worker':
-                                if len(sv.init_learners) < int(opt.n_learner_client_wait):
-                                    sv.init_learners.add(event.client_id)
-                                print(f"{len(sv.worker_ids)} / {opt.n_actor_client_wait + opt.n_learner_client_wait} clients connected")
-                            
-                    for client_id in sv.worker_ids:
-                        if client_id in sv.init_learners:
-                            sv.learner_ids.add(client_id)
-                        else:
-                            sv.actor_ids.add(client_id)
-                            await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                    
-                    continue
-                # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 5 ここまで
-                optimizer.step(grad)
-                
-                # Remove used ids except weight ids
-                # weight ids are removed in function "upload_weights"
-                for item_id in sv.learner_item_ids_to_delete:
-                    if item_id in kakiage_server.blobs.keys(): # bug? なんか勝手に消えたり残ったりする
-                        del kakiage_server.blobs[item_id]
-                sv.learner_item_ids_to_delete = []
-
-                # Update target weights
-                if training.total_it % opt.target_update == 0:
-                    sv.weights['target'] = copy.deepcopy(sv.weights['global'])
-                
-                # Upload global and target weights to blob
-                upload_weights(['global', 'target'])
-                
-                # testing and reassignment
-                if training.iter == 1 or training.iter % opt.test_freq == 0 or training.iter == opt.train_step_num:
-                    elapsed_time = time.time() - start_time
-                    
-                    # Get test results. Here, only collecting rewards. 
-                    save_reward = await get_test_results()
-                    
-                    # update test plot
-                    stats = training.update_test_log(replay_buffer.size, save_reward, elapsed_time)
-                    last_stats = {key: value[-1] for key, value in stats.items()}
-                    if opt.use_wandb:
-                        wandb.log(last_stats)
-                    
-                    # reassignment # important
-                    
-                    print('\ndebug')
-                    print("sv.worker_ids")
-                    pprint(sv.worker_ids)
-                    print("sv.client_ids")
-                    pprint(sv.client_ids)
-                    print("sv.tester_ids")
-                    pprint(sv.tester_ids)
-                    print("sv.init_learners")
-                    pprint(sv.init_learners)
-                    print("sv.actor_ids")
-                    pprint(sv.actor_ids)
-                    
-                    for client_id in list(sv.tester_ids):
-                        if client_id in sv.init_learners:
-                            sv.learner_ids.add(client_id)
-                        else:
-                            sv.actor_ids.add(client_id)
-                            # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す
-                            try:
-                                await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                            except KeyError:
-                                time.sleep(3)
-                                print(f"Failed to send msg to actor: {client_id}. Try again.")
-                                await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                            # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す ここまで
-                                    
-                                
-                    
-                    print("sv.learner_ids")
-                    pprint(sv.learner_ids)
-                    print("sv.actor_ids")
-                    pprint(sv.actor_ids)
-                    
-                    sv.tester_ids = set()
-                    
-                    # reassignmentに関する手軽な実装
-                    # 今後どこかで生きそうだから残しておく
-                    # for client_id in list(sv.tester_ids):
-                    #     if opt.fix_assignment:
-                    #         if client_id in sv.init_learners:
-                    #             sv.learner_ids.add(client_id)
-                    #         else:
-                    #             sv.actor_ids.add(client_id)
-                    #             await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                                
-                    #     else:
-                    #         if i < len(sv.init_learners):
-                    #             sv.learner_ids.add(client_id)
-                    #         else:
-                    #             sv.actor_ids.add(client_id)
-                    #             await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                    # reassignmentに関する手軽な実装ここまで
-                                
-                
-                
-                # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装
-                # 今後どこかで生きそうだから残しておく
-                # if training.iter % opt.learner_shuffle_freq == opt.learner_shuffle_freq - 1:
-                #     previous_worker_ids = sv.worker_ids
-                #     sv.reset_clients()
-                #     for client_id in previous_worker_ids:
-                #         await sv.send_msg_reload(client_id)
-                    
-                #     while len(sv.worker_ids) < opt.n_actor_client_wait + opt.n_learner_client_wait:
-                #         event = await sv.get_event()
-                #         if event.message['type']=='worker':
-                #             if len(sv.init_learners) < int(opt.n_learner_client_wait):
-                #                 sv.init_learners.add(event.client_id)
-                #             print(f"{len(sv.worker_ids)} / {opt.n_actor_client_wait + opt.n_learner_client_wait} clients connected")
-                            
-                #     for client_id in sv.worker_ids:
-                #         if client_id in sv.init_learners:
-                #             sv.learner_ids.add(client_id)
-                #         else:
-                #             sv.actor_ids.add(client_id)
-                #             await sv.send_msg_to_actor_for_collecting_samples(client_id, global_weight_item_id)
-                # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装ここまで
-            
-                if opt.save_weights:
-                    if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
-                        save_path = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"/f"{training.iter:05}iter_{last_stats['reward']:.3f}reward"
-                        sv.save_weights(save_path)
-                        
-        if opt.use_wandb:
-            wandb.finish()
-        
+        if isinstance(event, KakiageServerWSReceiveEvent) and event.message['type']=='visualizer':
+            print('Got connected by Visualizer')
+            await sv.send_weight_msg_to_visualizer(event.client_id)
+    
     print("training ended. You can close the program by Ctrl-C.")
     # TODO: exit program (sys.exit(0) emits long error message)
 
