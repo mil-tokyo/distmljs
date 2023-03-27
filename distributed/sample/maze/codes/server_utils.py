@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 from uuid import uuid4
+import time
 from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent
 
 
@@ -73,6 +74,14 @@ class Server():
         print(f"model saved to: {str(save_path)}.pkl")
             
     # async processes
+    
+    async def twice(self, async_func, client_id, *, sleep_time=3):
+        try:
+            await async_func(client_id)
+        except KeyError:
+            time.sleep(sleep_time)
+            print(f"Failed to send msg to actor: {client_id}. Try again.")
+            await async_func(client_id)
     
     async def get_event(self):
         while True:
@@ -177,7 +186,7 @@ class Server():
         
 # replay buffer for asynchronous training
 class ReplayBuffer(object):
-    def __init__(self, opt, state_dim, action_dim, max_size=int(1e6)):
+    def __init__(self, opt, state_dim, action_dim, max_size=int(1e7)):
         self.opt = opt
         self.max_size = max_size
         self.ptr = 0

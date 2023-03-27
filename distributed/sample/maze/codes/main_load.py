@@ -409,7 +409,10 @@ async def main():
     # load model 
     sv.input_dim, sv.n_classes = get_io_shape(opt.dataset_name)
     # model = make_net(opt.model_name, sv.input_dim, sv.n_classes)
-    with open('checkpoints/maze-5x5-sparse-01/5x5_PER_L02A10/04/18000iter_1.060reward.pkl', 'rb') as f:
+    # with open('checkpoints/maze-5x5-sparse-01/5x5_PER_L02A10/04/18000iter_1.060reward.pkl', 'rb') as f:
+    # with open('checkpoints/maze-5x5-sparse-01/5x5_PER_L02A10/04/18000iter_1.060reward.pkl', 'rb') as f:
+    # with open('checkpoints/maze-5x5-sparse-01/5x5_PER_L02A10/04/18000iter_1.060reward.pkl', 'rb') as f:
+    with open('checkpoints/maze-5x5-sparse-01/5x5_LAP_L02A10/00_00/80000iter_1.185reward.pkl', 'rb') as f:
         sv.weights['global'] = pickle.load(f)
 
     upload_weights(['global'])

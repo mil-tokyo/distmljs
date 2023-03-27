@@ -63,8 +63,8 @@ class Arguments():
         for key, value in opt.items():
             setattr(self, key, value)
             
-        self.env = "5x5" # don't forget to change here
-        self.experiment_name = "maze-5x5-sparse-01"
+        self.env = "7x7" # don't forget to change here
+        self.experiment_name = "maze-7x7-sparse-02"
         if self.seed == "rand":
             self.seed = int(np.random.rand()*1000)
         
@@ -433,12 +433,7 @@ async def main():
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2
         if trials_id > 0:
             for client_id in previous_worker_ids:
-                try:
-                    await sv.send_msg_reload(client_id)
-                except KeyError:
-                    time.sleep(3)
-                    print(f"Failed to reload clients: {client_id}. Try again.")
-                    await sv.send_msg_reload(client_id)
+                await sv.twice(sv.send_msg_reload, client_id)
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2 ここまで
         
         # Wait for clients to join
@@ -507,13 +502,7 @@ async def main():
                     pprint(previous_worker_ids)
                     
                     for client_id in previous_worker_ids:
-                        try:
-                            await sv.send_msg_reload(client_id)
-                        except KeyError:
-                            time.sleep(3)
-                            print(f"Failed to send msg to actor: {client_id}. Try again.")
-                            await sv.send_msg_reload(client_id)
-                                
+                        await sv.twice(sv.send_msg_reload, client_id)
                     
                     while len(sv.worker_ids) < opt.n_actor_client_wait + opt.n_learner_client_wait:
                         event = await sv.get_event()
@@ -581,12 +570,7 @@ async def main():
                         else:
                             sv.actor_ids.add(client_id)
                             # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す
-                            try:
-                                await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                            except KeyError:
-                                time.sleep(3)
-                                print(f"Failed to send msg to actor: {client_id}. Try again.")
-                                await sv.send_msg_to_actor_for_collecting_samples(client_id)
+                            await sv.twice(sv.send_msg_to_actor_for_collecting_samples, client_id)
                             # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す ここまで
                                     
                                 
