@@ -4,7 +4,7 @@ class Trainings():
     def __init__(self):
         # training
         self.iter = 0
-        self.total_it = 0
+        # self.total_it = 0
         
         # visualization
         self.save_iters = []

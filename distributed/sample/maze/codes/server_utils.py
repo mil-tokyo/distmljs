@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import pickle
 from uuid import uuid4
 import time
@@ -67,11 +68,30 @@ class Server():
             else:
                 return None
             
-    def save_weights(self, save_path):
+    def save_weights(self, save_path, weights):
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(str(save_path)+".pkl", "wb") as tf:
-            pickle.dump(self.weights['global'], tf)
-        print(f"model saved to: {str(save_path)}.pkl")
+            pickle.dump(weights, tf)
+        print(f"model is saved to: {str(save_path)}.pkl")
+        
+    def load_weights(self, save_path):
+        with open(str(save_path), "rb") as tf:
+            weight = pickle.load(tf)
+        print(f"model is loaded from: {str(save_path)}")
+        self.weights['global'] = copy.deepcopy(weight)
+        self.weights['target'] = copy.deepcopy(weight)
+        
+    def save_buffers(self, save_path, replay_buffer):
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(str(save_path)+".pkl", "wb") as tf:
+            pickle.dump(replay_buffer, tf)
+        print(f"Replay Buffer is saved to: {str(save_path)}.pkl")
+        
+    def load_buffers(self, save_path):
+        with open(str(save_path)+".pkl", "rb") as tf:
+            replay_buffer = pickle.load(tf)
+        print(f"replay_buffer is loaded from: {str(save_path)}.pkl")
+        return replay_buffer
             
     # async processes
     
@@ -81,7 +101,15 @@ class Server():
         except KeyError:
             time.sleep(sleep_time)
             print(f"Failed to send msg to actor: {client_id}. Try again.")
-            await async_func(client_id)
+            try:
+                await async_func(client_id)
+            except KeyError:
+                time.sleep(sleep_time)
+                print(f"Failed to send msg to actor: {client_id}. Try again.")
+                try:
+                    await async_func(client_id)
+                except KeyError:
+                    pass
     
     async def get_event(self):
         while True:

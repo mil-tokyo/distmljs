@@ -27,5 +27,10 @@
     "n_test_trials": 100                         # number of episodes for each testing
     "n_trials": 5                               # number of experiments
 
+"load_checkpoint":
+  "continue_train": 1
+  "start_trial_id": 0
+  "start_iter": 450000
+
 "visualization_config":
 

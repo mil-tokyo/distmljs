@@ -58,13 +58,16 @@ class Arguments():
         opt = dict(
             **cfg["experiment_config"], 
             **cfg["hyperparameters"]["training_options"], 
-            **cfg["hyperparameters"]["testing_options"])
+            **cfg["hyperparameters"]["testing_options"],
+            **cfg["load_checkpoint"]
+            )
+        
         
         for key, value in opt.items():
             setattr(self, key, value)
             
         self.env = "7x7" # don't forget to change here
-        self.experiment_name = "maze-7x7-sparse-02"
+        self.experiment_name = "maze-7x7-sparse-05"
         if self.seed == "rand":
             self.seed = int(np.random.rand()*1000)
         
@@ -92,7 +95,11 @@ class Arguments():
             project=self.experiment_name,
             
             # track hyperparameters and run metadata
-            config=init_config
+            config=init_config,
+            
+            resume="allow",
+            
+            id = f"{trials_id:02}",
         )
 
 
@@ -408,6 +415,11 @@ async def main():
     
     for trials_id in range(opt.n_trials):
         
+        # skip previous trials
+        if opt.continue_train:
+            if trials_id < opt.start_trial_id:
+                break
+        
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 1
         if trials_id > 0:
             previous_worker_ids = sv.worker_ids
@@ -417,6 +429,8 @@ async def main():
         fix_seed(opt.seed + trials_id)
         sv = Server(opt, kakiage_server)
         training = Trainings()
+        if opt.continue_train:
+            training.iter = opt.start_iter
         
         # Make neural network model
         print(f"Model: {opt.model_name}, dataset: {opt.dataset_name}, batch size: {opt.batch_size}")
@@ -426,9 +440,14 @@ async def main():
         # Initialize Replay Buffer
         replay_buffer = ReplayBuffer(opt=opt, state_dim=sv.input_dim, action_dim=1)
         
+        # set dir name for save
+        root_dir = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"
+        if opt.continue_train:
+            replay_buffer = sv.load_buffers(root_dir/f"replay_buffer")
+            
         # use wandb for visualization
         if opt.use_wandb:
-            opt.wandb_init(trials_id)
+            opt.wandb_init(trials_id, )
         
         # ----- 何度も手動でページをリフレッシュするのが面倒なので暫定的な実装でお茶を濁す 2
         if trials_id > 0:
@@ -440,7 +459,12 @@ async def main():
         await wait_for_clients()
         
         # clock
-        start_time = time.time()
+        if not opt.continue_train:
+            start_time = time.time()
+            with open(root_dir/f"start_{start_time}", "w"):
+                pass
+        else:
+            start_time = float(str(list(root_dir.glob("start_*"))[0]).split("_")[-1])
 
         # Collect random data
         await collect_random_data()
@@ -455,6 +479,9 @@ async def main():
         # Read weights and upload them to blob
         sv.weights['global'] = training.get_weights(model)
         sv.weights['target'] = copy.deepcopy(sv.weights['global'])
+        if opt.continue_train:
+            save_path = sorted(list(root_dir.glob(f"*{opt.start_iter}*.pkl")))[-1]
+            sv.load_weights(save_path)
         upload_weights(['global', 'target'])
         
         # Define optimizer
@@ -478,7 +505,7 @@ async def main():
                 
                 # training
                 # for i in range(opt.update_freq):
-                training.total_it += 1
+                # training.total_it += 1
 
                 # Update weights
                 grad = await get_gradient()
@@ -531,7 +558,7 @@ async def main():
                 sv.learner_item_ids_to_delete = []
 
                 # Update target weights
-                if training.total_it % opt.target_update == 0:
+                if training.iter % opt.target_update == 0:
                     sv.weights['target'] = copy.deepcopy(sv.weights['global'])
                 
                 # Upload global and target weights to blob
@@ -627,8 +654,14 @@ async def main():
             
                 if opt.save_weights:
                     if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
-                        save_path = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"/f"{training.iter:05}iter_{last_stats['reward']:.3f}reward"
-                        sv.save_weights(save_path)
+                        
+                        # save global weight
+                        save_path = root_dir/f"{training.iter:08}iter_{last_stats['reward']:.3f}reward"
+                        sv.save_weights(save_path, sv.weights['global'])
+                        
+                        # save replay buffer
+                        save_path = root_dir/f"replay_buffer"
+                        sv.save_buffers(save_path, replay_buffer)
                         
         if opt.use_wandb:
             wandb.finish()
