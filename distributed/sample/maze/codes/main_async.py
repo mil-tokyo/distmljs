@@ -429,7 +429,7 @@ async def main():
         fix_seed(opt.seed + trials_id)
         sv = Server(opt, kakiage_server)
         training = Trainings()
-        if opt.continue_train:
+        if opt.continue_train and trials_id==opt.start_trial_id:
             training.iter = opt.start_iter
         
         # Make neural network model
@@ -442,7 +442,7 @@ async def main():
         
         # set dir name for save
         root_dir = Path(opt.save_weights_root_dir)/opt.experiment_name/f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"
-        if opt.continue_train:
+        if opt.continue_train and trials_id==opt.start_trial_id:
             replay_buffer = sv.load_buffers(root_dir/f"replay_buffer")
             
         # use wandb for visualization
@@ -459,12 +459,12 @@ async def main():
         await wait_for_clients()
         
         # clock
-        if not opt.continue_train:
+        if opt.continue_train and trials_id==opt.start_trial_id:
+            start_time = float(str(list(root_dir.glob("start_*"))[0]).split("_")[-1])
+        else:
             start_time = time.time()
             with open(root_dir/f"start_{start_time}", "w"):
                 pass
-        else:
-            start_time = float(str(list(root_dir.glob("start_*"))[0]).split("_")[-1])
 
         # Collect random data
         await collect_random_data()
@@ -479,7 +479,7 @@ async def main():
         # Read weights and upload them to blob
         sv.weights['global'] = training.get_weights(model)
         sv.weights['target'] = copy.deepcopy(sv.weights['global'])
-        if opt.continue_train:
+        if opt.continue_train and trials_id==opt.start_trial_id:
             save_path = sorted(list(root_dir.glob(f"*{opt.start_iter}*.pkl")))[-1]
             sv.load_weights(save_path)
         upload_weights(['global', 'target'])

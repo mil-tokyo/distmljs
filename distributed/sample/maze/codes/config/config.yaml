@@ -30,7 +30,7 @@
 "load_checkpoint":
   "continue_train": 1
   "start_trial_id": 0
-  "start_iter": 950000
+  "start_iter": 1000000
 
 "visualization_config":
 
