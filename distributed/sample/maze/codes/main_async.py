@@ -305,7 +305,7 @@ async def get_gradient():
             # No support for disconnection and dynamic addition of clients (in this implementation, server waits for disconnected client forever)
             # To support, handle event such as KakiageServerWSConnectEvent
     
-    # Update priorities of ReplayBuffer    
+    # Update priorities of ReplayBuffer
     for client_id, td_item_id in zip(sv.learner_ids, sv.td_item_ids):
         ind, priority = data_ind[client_id], deserialize_tensor_from_bytes(kakiage_server.blobs[td_item_id])['td_for_update']
         replay_buffer.update_priority(ind, priority)
@@ -314,7 +314,11 @@ async def get_gradient():
     grad_arrays = {}
     for chunk_size, grad_item_id in zip(sv.chunk_sizes, sv.grad_item_ids):
         chunk_weight = chunk_size / opt.batch_size
-        chunk_grad_arrays = deserialize_tensor_from_bytes(kakiage_server.blobs[grad_item_id])
+        try:
+            chunk_grad_arrays = deserialize_tensor_from_bytes(kakiage_server.blobs[grad_item_id])
+        except KeyError:
+            print(f"\nid: {grad_item_id} has somehow disappeared. Goodbye!\n")
+            continue
         for k, v in chunk_grad_arrays.items():
             if k in grad_arrays: 
                 grad_arrays[k] += v * chunk_weight
@@ -462,9 +466,10 @@ async def main():
         if opt.continue_train and trials_id==opt.start_trial_id:
             start_time = float(str(list(root_dir.glob("start_*"))[0]).split("_")[-1])
         else:
-            start_time = time.time()
-            with open(root_dir/f"start_{start_time}", "w"):
-                pass
+            if opt.save_weights:
+                start_time = time.time()
+                with open(root_dir/f"start_{start_time}", "w"):
+                    pass
 
         # Collect random data
         await collect_random_data()

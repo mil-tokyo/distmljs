@@ -14,11 +14,22 @@
   <h1>Kakiage Distributed Training Async</h1>
   <main>
     <p id="state"></p>
+    <div>
+      Backend:
+      <label><input type="radio" name="backend" value="cpu" />CPU</label>
+      <label><input type="radio" name="backend" value="webgl" checked />WebGL</label>
+      <label><input type="radio" name="backend" value="webgpu" />WebGPU</label>
+    </div><br>
+
     <table>
       <tbody>
         <tr>
           <td>Client id : </td>
           <td id="table-id"></td>
+        </tr>
+        <tr>
+          <td>Backend : </td>
+          <td id="table-backend"></td>
         </tr>
         <tr>
           <td>Exe type</td>
@@ -40,7 +51,7 @@
     </table>
   </main>
   <div id="canvas_wrapper"></div>
-    <canvas id="maze_canvas" width="640" height="640"></canvas>
+  <canvas id="maze_canvas" width="640" height="640"></canvas>
   </div>
 </body>
 

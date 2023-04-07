@@ -1,13 +1,13 @@
 "experiment_config": 
-  "n_actor_client_wait": 10                      # number of initinal actors
+  "n_actor_client_wait": 1                      # number of initinal actors
   "n_learner_client_wait" : 2                   # number of initial learners
   "dataset_name": "maze"                        # [ "maze" ]
   "model_name": "dmlp"                          # [ "dmlp" ]
   "batch_size": 256                             # minibatch size
   "adam": 1                                     # 1 for Adam, 0 for SGD
-  "use_wandb": 1                                # 1 for using wandb, 0 for skip all process for wandb
+  "use_wandb": 0                                # 1 for using wandb, 0 for skip all process for wandb
   "prioritized": "LAP"                          # [ "rand" | "PER" | "LAP" ]
-  "save_weights": 1                             # 1 for save weights
+  "save_weights": 0                             # 1 for save weights
   "save_weights_root_dir": "checkpoints"        # save dir
   "save_freq": 50000                             # frequency of saveing model
 
@@ -18,7 +18,7 @@
     "discount": 0.99
     "target_update": 30                         # freqency for updating target model to global model
     "train_step_num": 2000000                     # number of max iteration
-    "start_timesteps": 100000                    # number of initial random data
+    "start_timesteps": 100                    # number of initial random data
     "update_freq": 1                            # not in use, always set to 1
     "weight_remain_epochs": 5                   # number of iterations for keeping old weights in server 
 
@@ -28,7 +28,7 @@
     "n_trials": 5                               # number of experiments
 
 "load_checkpoint":
-  "continue_train": 1
+  "continue_train": 0
   "start_trial_id": 0
   "start_iter": 1000000
 

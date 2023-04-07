@@ -10,8 +10,8 @@ import { makeModel } from './models';
 import { CPUTensor } from '../../../../dist/tensor';
 
 let ws: WebSocket;
-let backend: K.Backend = 'webgl';
-
+let backend: K.Backend
+  
 function nonNull<T>(v: T | null | undefined): T {
   if (!v) {
     throw new Error();
@@ -35,6 +35,10 @@ const writeTypeInfo = throttle((type: String) => {
 
 const writeIdInfo = throttle((type: String) => {
   document.getElementById('table-id')!.innerText = type.toString();
+}, 1000);
+
+const writeBackendInfo = throttle((type: K.Backend) => {
+  document.getElementById('table-backend')!.innerText = String(type).toString();
 }, 1000);
 
 async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
@@ -75,6 +79,7 @@ async function compute_learner(msg: {
   td: string; 
 }) {
   writeTypeInfo(msg.type);
+  writeBackendInfo(backend);
   
   // Load trainable model weights
   const weights_learner = new TensorDeserializer().deserialize(
@@ -197,7 +202,8 @@ async function compute_actor(msg: {
     buffer_id: string;
   }) {
 
-  writeTypeInfo(msg.type+" : "+String(msg.random_sample));
+  writeTypeInfo(msg.type + " : " + String(msg.random_sample));
+  writeBackendInfo(backend);
 
   if (msg.random_sample === 0) {
     
@@ -317,6 +323,7 @@ async function compute_tester(msg: {
 }) {
 
   writeTypeInfo(msg.type);
+  writeBackendInfo(backend);
 
   // Load model weights
   let weight: Uint8Array
@@ -434,11 +441,29 @@ async function run() {
   };
 }
 
-window.addEventListener('load', async () => {
-  backend = (new URLSearchParams(window.location.search).get('backend') ||
-    'webgl') as K.Backend;
-  if (backend === 'webgl') {
-    await K.tensor.initializeNNWebGLContext();
+async function getBackend() {
+  backend =
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    (
+      document.querySelector(
+        'input[name="backend"]:checked'
+      )! as HTMLInputElement
+    ).value as K.Backend;
+  try {
+    if (backend === 'webgl') {
+      await K.tensor.initializeNNWebGLContext();
+    }
+    if (backend === 'webgpu') {
+      await K.tensor.initializeNNWebGPUContext();
+    }
+  } catch (error) {
+    alert(`Failed to initialize backend ${backend}. ${error}`);
+    return;
   }
+}
+
+window.addEventListener('load', async () => {
+  await getBackend();
+  console.log(backend);
   await run();
 });
