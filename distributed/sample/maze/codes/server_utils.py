@@ -21,10 +21,10 @@ class Server():
         self.reset_weights()
         
         # data and grads
-        self.chunk_sizes = []
-        self.dataset_item_ids = []
-        self.grad_item_ids = []
-        self.td_item_ids = []
+        self.chunk_sizes = {}
+        self.dataset_item_ids = {}
+        self.grad_item_ids = {}
+        self.td_item_ids = {}
         
         # blob ids
         self.buffer_ids_queue = {} # type : dict # 何のためにあるのかあんまりわかってない
@@ -39,6 +39,7 @@ class Server():
         self.actor_ids = set()
         self.tester_ids = set()
         self.visualizer_ids = set()
+        self.working_ids = {} # type: dict
         
     def reset_weights(self):
         self.weights = {
@@ -95,19 +96,19 @@ class Server():
             
     # async processes
     
-    async def twice(self, async_func, client_id, *, sleep_time=3):
+    async def twice(self, async_func, client_id, *, kwargs={}, sleep_time=3):
         try:
-            await async_func(client_id)
+            await async_func(client_id, **kwargs)
         except KeyError:
             time.sleep(sleep_time)
-            print(f"Failed to send msg to actor: {client_id}. Try again.")
+            print(f"Failed to send msg to client: {client_id}. Try again.")
             try:
-                await async_func(client_id)
+                await async_func(client_id, **kwargs)
             except KeyError:
                 time.sleep(sleep_time)
-                print(f"Failed to send msg to actor: {client_id}. Try again.")
+                print(f"Failed to send msg to client: {client_id}. Try again.")
                 try:
-                    await async_func(client_id)
+                    await async_func(client_id, **kwargs)
                 except KeyError:
                     pass
     
@@ -168,10 +169,10 @@ class Server():
         
     async def send_msg_to_learner_for_collecting_grads(self, client_id, dataset_item_id):
         grad_item_id = uuid4().hex
-        self.grad_item_ids.append(grad_item_id)
+        self.grad_item_ids[client_id] = grad_item_id
         self.learner_item_ids_to_delete.append(grad_item_id)
         td_item_id = uuid4().hex
-        self.td_item_ids.append(td_item_id)
+        self.td_item_ids[client_id] = td_item_id
         self.learner_item_ids_to_delete.append(td_item_id)
         await self.kakiage_server.send_message(client_id, {
             "client_id": client_id,

@@ -379,7 +379,8 @@ async function compute_tester(msg: {
   return [true, sum_reward]
 }
 
-
+let timer_start = Date.now(); // ミリ秒
+let client_type : String;
 async function run() {
   writeState('Connecting to distributed training server...');
   ws = new WebSocket(
@@ -397,6 +398,8 @@ async function run() {
   };
   ws.onmessage = async (ev) => {
     const msg = JSON.parse(ev.data);
+    timer_start = Date.now();
+    client_type = msg.type;
 
     if (msg.type === "reload") {
       window.location.reload();
@@ -461,6 +464,15 @@ async function getBackend() {
     return;
   }
 }
+
+setInterval(() => {
+  const millis = Date.now() - timer_start;
+  console.log(`${Math.floor(millis / 1000)} since last onmessage`);
+  if (millis > 30000) {
+    console.log(`seconds elapsed = ${Math.floor(millis / 1000)}, msg.type = ${client_type}`);
+    window.location.reload();
+  }
+}, 30000);
 
 window.addEventListener('load', async () => {
   await getBackend();

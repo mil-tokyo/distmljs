@@ -136,7 +136,7 @@ async def collect_random_data():
     
     # Send messages
     for client_id in sv.worker_ids:
-        await sv.send_msg_for_collecting_random_samples(client_id)
+        await sv.twice(sv.send_msg_for_collecting_random_samples, client_id)
 
     print('Start collecting init data in each actor.')
     
@@ -147,7 +147,7 @@ async def collect_random_data():
         
             # new worker
             if event.message['type']=='worker':
-                await sv.send_msg_for_collecting_random_samples(event.client_id)
+                await sv.twice(sv.send_msg_for_collecting_random_samples, event.client_id)
             
             # known worker, finished collecting data
             elif event.message['type']=='actor':
@@ -163,7 +163,7 @@ async def collect_random_data():
                 print(f"Get connection from client: {event.client_id}. Buffer size: {replay_buffer.size} / {opt.start_timesteps}")
                 
                 # Send message for next
-                await sv.send_msg_for_collecting_random_samples(event.client_id)
+                await sv.twice(sv.send_msg_for_collecting_random_samples, event.client_id)
             
         else:
             print("unexpected event")
@@ -209,8 +209,8 @@ async def get_gradient():
     indices, minibatch = replay_buffer.sample(opt.batch_size, sv.n_classes)
     
     # Give training data to learners
-    sv.chunk_sizes = []; sv.dataset_item_ids = []; sv.grad_item_ids = []; sv.td_item_ids = [];
-    data_ind = dict()
+    sv.chunk_sizes = {}; sv.dataset_item_ids = {}; sv.grad_item_ids = {}; sv.td_item_ids = {}
+    data_ind = dict() # {}
     chunk_size = math.ceil(opt.batch_size / len(sv.learner_ids))
     for c, learner_id in enumerate(sv.learner_ids):
         
@@ -229,27 +229,28 @@ async def get_gradient():
         
         # Record data size for each learners
         assert len(data_size) == 1, f'Data size must be same among all types of data. Got {", ".join(map(str, data_size))}.'
-        sv.chunk_sizes.append(list(data_size)[0])
+        sv.chunk_sizes[learner_id] = list(data_size)[0]
 
         # Upload chunks
         dataset_item_id = uuid4().hex
         kakiage_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(data_chunk)
-        sv.dataset_item_ids.append(dataset_item_id)
+        sv.dataset_item_ids[learner_id] = dataset_item_id
         sv.learner_item_ids_to_delete.append(dataset_item_id)
         
         # Send msg to each actor
-        await sv.send_msg_to_learner_for_collecting_grads(learner_id, dataset_item_id)
-            
+        await sv.twice(sv.send_msg_to_learner_for_collecting_grads, learner_id, kwargs={"dataset_item_id": dataset_item_id})
+    
     # Wait for all learners to complete
-    complete_learner_grad_id = []
-    while len(complete_learner_grad_id) < len(sv.learner_ids):
+    complete_learner_grad_ids = {}
+    connect_actor_ids = set()
+    while len(complete_learner_grad_ids) < len(sv.learner_ids):
         event = await sv.get_event()
         
         # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 3
         step_elapsed_time = time.time() - step_start_time
         if step_elapsed_time > 30:
             print('\nERROR. BREAK! some of learners have got lost.\n')
-            return False
+            break
         # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 3 ここまで
         
         if isinstance(event, KakiageServerWSReceiveEvent):
@@ -264,8 +265,9 @@ async def get_gradient():
             
             # learners
             elif event.message['type']=='learner':
-                complete_learner_grad_id.append(event.message['id'])
-                print(f"[{len(complete_learner_grad_id)}/{len(sv.learner_ids)}] Got connected by learner: {event.client_id}.")
+                complete_learner_grad_ids[event.client_id] = event.message['id']
+                sv.working_ids[event.client_id] = time.time()
+                print(f"[{len(complete_learner_grad_ids)}/{len(sv.learner_ids)}] Got connected by learner: {event.client_id}.")
                 # TODO: まだ来ていないlearnerに割り当てられていたデータを配って計算させる？
                 # TODO: 役割を終えたので重みを配ってactorとして働かせる？
                 # TODO: データ配り直すのがめんどい
@@ -289,6 +291,8 @@ async def get_gradient():
                 # 最初のランダム探索結果を遅れて受信したとき、learnerに割り当てられたclientにはactor用のメッセージは送らない
                 if event.client_id in sv.actor_ids:
                     await sv.send_msg_to_actor_for_collecting_samples(event.client_id)
+                    connect_actor_ids.add(event.client_id)
+                    sv.working_ids[event.client_id] = time.time()
             
             # testers
             elif event.message['type']=='tester':
@@ -305,14 +309,20 @@ async def get_gradient():
             # No support for disconnection and dynamic addition of clients (in this implementation, server waits for disconnected client forever)
             # To support, handle event such as KakiageServerWSConnectEvent
     
-    # Update priorities of ReplayBuffer
-    for client_id, td_item_id in zip(sv.learner_ids, sv.td_item_ids):
+    # server side updates
+    grad_arrays = {}
+    # print(sv.chunk_sizes, sv.dataset_item_ids, sv.grad_item_ids, sv.td_item_ids)
+    # print("complete_learner_grad_ids", complete_learner_grad_ids)
+
+    for client_id in complete_learner_grad_ids.keys():
+            
+        # Update priorities of ReplayBuffer
+        td_item_id = sv.td_item_ids[client_id]
         ind, priority = data_ind[client_id], deserialize_tensor_from_bytes(kakiage_server.blobs[td_item_id])['td_for_update']
         replay_buffer.update_priority(ind, priority)
-    
-    # Compute weighted average of gradients
-    grad_arrays = {}
-    for chunk_size, grad_item_id in zip(sv.chunk_sizes, sv.grad_item_ids):
+        
+        # Compute weighted average of gradients
+        chunk_size, grad_item_id = sv.chunk_sizes[client_id], sv.grad_item_ids[client_id]
         chunk_weight = chunk_size / opt.batch_size
         try:
             chunk_grad_arrays = deserialize_tensor_from_bytes(kakiage_server.blobs[grad_item_id])
@@ -325,7 +335,7 @@ async def get_gradient():
             else: 
                 grad_arrays[k] = v * chunk_weight
     
-    return grad_arrays
+    return complete_learner_grad_ids, connect_actor_ids, grad_arrays
 
 
 async def get_test_results():
@@ -470,7 +480,10 @@ async def main():
                 start_time = time.time()
                 with open(root_dir/f"start_{start_time}", "w"):
                     pass
-
+        
+        # ここに、デバイスのパラメータを推定するコードを入れる！！！！！！！！
+        
+        
         # Collect random data
         await collect_random_data()
         
@@ -513,9 +526,24 @@ async def main():
                 # training.total_it += 1
 
                 # Update weights
-                grad = await get_gradient()
+                try:
+                    connecting_learners, connecting_actors, grad = await get_gradient()
+                except KeyError: # 絶妙なタイミングでlearnerが死ぬと、ここでエラーになるので例外処理する
+                    print("KeyError in 'get_gradient()'")
+                    connecting_learners = {}
+                    
+                # Remove offline clients
+                timeout_ids_to_remove = []
+                for client_id, last_connect in sv.working_ids.items():
+                    if time.time() - last_connect > 30:
+                        timeout_ids_to_remove.append(client_id)
+                for client_id in timeout_ids_to_remove:
+                    del sv.working_ids[client_id]
+                
                 # ----- 低確率でlearnerが死ぬバグがあるが、理由がわからないので適当に対処 5
-                if not grad:
+                if len(connecting_learners) == 0:
+                    print("ERROR: All learners are disconnected. Reload.")
+                    
                     training.iter -= 1
                     
                     print("sv.worker_ids")
@@ -527,7 +555,8 @@ async def main():
                     print("sv.actor_ids")
                     pprint(sv.actor_ids)
                     
-                    previous_worker_ids = sv.worker_ids
+                    # previous_worker_ids = sv.worker_ids
+                    previous_worker_ids = list(sv.working_ids.keys())
                     sv.reset_clients()
                     
                     print("previous_worker_ids")
@@ -543,7 +572,7 @@ async def main():
                                 if len(sv.init_learners) < int(opt.n_learner_client_wait):
                                     sv.init_learners.add(event.client_id)
                                 print(f"{len(sv.worker_ids)} / {opt.n_actor_client_wait + opt.n_learner_client_wait} clients connected")
-                            
+                    
                     for client_id in sv.worker_ids:
                         if client_id in sv.init_learners:
                             sv.learner_ids.add(client_id)
@@ -569,17 +598,33 @@ async def main():
                 # Upload global and target weights to blob
                 upload_weights(['global', 'target'])
                 
+                # reassignment
+                if len(connecting_learners) < len(sv.init_learners):
+                    # 足りない分は、actorから補充する # なくなったら足していくだけやから
+                    missing_learners = sv.init_learners - set(connecting_learners.keys())
+                    print(f"missing learners: {missing_learners}")
+                    for client_id in missing_learners:
+                        sv.init_learners.remove(client_id)
+                        sv.learner_ids.remove(client_id)
+                    for i, client_id in enumerate(connecting_actors):
+                        if i < len(missing_learners):
+                            print(f"reassignment: new learner is '{client_id}'")
+                            sv.init_learners.add(client_id)
+                            sv.learner_ids.add(client_id)
+                            sv.actor_ids.remove(client_id)
+                
                 # testing and reassignment
                 if training.iter == 1 or training.iter % opt.test_freq == 0 or training.iter == opt.train_step_num:
-                    elapsed_time = time.time() - start_time
+                    if opt.save_weights or opt.continue_train:
+                        elapsed_time = time.time() - start_time
                     
                     # Get test results. Here, only collecting rewards. 
                     save_reward = await get_test_results()
                     
                     # update test plot
-                    stats = training.update_test_log(replay_buffer.size, save_reward, elapsed_time)
-                    last_stats = {key: value[-1] for key, value in stats.items()}
                     if opt.use_wandb:
+                        stats = training.update_test_log(replay_buffer.size, save_reward, elapsed_time)
+                        last_stats = {key: value[-1] for key, value in stats.items()}
                         wandb.log(last_stats)
                     
                     # reassignment # important
@@ -601,9 +646,7 @@ async def main():
                             sv.learner_ids.add(client_id)
                         else:
                             sv.actor_ids.add(client_id)
-                            # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す
                             await sv.twice(sv.send_msg_to_actor_for_collecting_samples, client_id)
-                            # ------ なんか腹立たしいことにActorまで死ぬことがあるから、その場合にはもう一回試す ここまで
                                     
                                 
                     
@@ -613,49 +656,6 @@ async def main():
                     pprint(sv.actor_ids)
                     
                     sv.tester_ids = set()
-                    
-                    # reassignmentに関する手軽な実装
-                    # 今後どこかで生きそうだから残しておく
-                    # for client_id in list(sv.tester_ids):
-                    #     if opt.fix_assignment:
-                    #         if client_id in sv.init_learners:
-                    #             sv.learner_ids.add(client_id)
-                    #         else:
-                    #             sv.actor_ids.add(client_id)
-                    #             await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                                
-                    #     else:
-                    #         if i < len(sv.init_learners):
-                    #             sv.learner_ids.add(client_id)
-                    #         else:
-                    #             sv.actor_ids.add(client_id)
-                    #             await sv.send_msg_to_actor_for_collecting_samples(client_id)
-                    # reassignmentに関する手軽な実装ここまで
-                                
-                
-                
-                # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装
-                # 今後どこかで生きそうだから残しておく
-                # if training.iter % opt.learner_shuffle_freq == opt.learner_shuffle_freq - 1:
-                #     previous_worker_ids = sv.worker_ids
-                #     sv.reset_clients()
-                #     for client_id in previous_worker_ids:
-                #         await sv.send_msg_reload(client_id)
-                    
-                #     while len(sv.worker_ids) < opt.n_actor_client_wait + opt.n_learner_client_wait:
-                #         event = await sv.get_event()
-                #         if event.message['type']=='worker':
-                #             if len(sv.init_learners) < int(opt.n_learner_client_wait):
-                #                 sv.init_learners.add(event.client_id)
-                #             print(f"{len(sv.worker_ids)} / {opt.n_actor_client_wait + opt.n_learner_client_wait} clients connected")
-                            
-                #     for client_id in sv.worker_ids:
-                #         if client_id in sv.init_learners:
-                #             sv.learner_ids.add(client_id)
-                #         else:
-                #             sv.actor_ids.add(client_id)
-                #             await sv.send_msg_to_actor_for_collecting_samples(client_id, global_weight_item_id)
-                # メモリの問題が解決できなかった時代に実装していた、ページリフレッシュに関する実装ここまで
             
                 if opt.save_weights:
                     if training.iter == 1 or training.iter % opt.save_freq == 0 or training.iter == opt.train_step_num:
@@ -667,7 +667,16 @@ async def main():
                         # save replay buffer
                         save_path = root_dir/f"replay_buffer"
                         sv.save_buffers(save_path, replay_buffer)
-                        
+            
+            print("sv.learner_ids")
+            pprint(sv.learner_ids)
+            print("sv.actor_ids")
+            pprint(sv.actor_ids)
+            print("sv.working_ids")
+            pprint(sv.working_ids)
+            print()
+            
+            
         if opt.use_wandb:
             wandb.finish()
         

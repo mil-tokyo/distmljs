@@ -24,7 +24,7 @@
 
   "testing_options": 
     "test_freq": 5000                            # frequency for testing
-    "n_test_trials": 100                         # number of episodes for each testing
+    "n_test_trials": 10                         # number of episodes for each testing
     "n_trials": 5                               # number of experiments
 
 "load_checkpoint":
