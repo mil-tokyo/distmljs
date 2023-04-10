@@ -66,8 +66,8 @@ class Arguments():
         for key, value in opt.items():
             setattr(self, key, value)
             
-        self.env = "7x7" # don't forget to change here
-        self.experiment_name = "maze-7x7-sparse-05"
+        self.env = "6x6" # don't forget to change here
+        self.experiment_name = "maze-6x6-sparse-00"
         if self.seed == "rand":
             self.seed = int(np.random.rand()*1000)
         
@@ -478,6 +478,7 @@ async def main():
         else:
             if opt.save_weights:
                 start_time = time.time()
+                root_dir.mkdir(parents=True, exist_ok=True)
                 with open(root_dir/f"start_{start_time}", "w"):
                     pass
         
