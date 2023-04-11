@@ -17,7 +17,7 @@
     "lr": 0.0006
     "discount": 0.99
     "target_update": 25                         # freqency for updating target model to global model
-    "train_step_num": 2000000                   # number of max iteration
+    "train_step_num": 1000000                   # number of max iteration
     "start_timesteps": 100000                   # number of initial random data
     "update_freq": 1                            # not in use, always set to 1
     "weight_remain_epochs": 5                   # number of iterations for keeping old weights in server 
@@ -28,7 +28,7 @@
     "n_trials": 5                               # number of experiments
 
 "load_checkpoint":
-  "continue_train": 1
+  "continue_train": 0
   "start_trial_id": 0
   "start_iter": 0
 

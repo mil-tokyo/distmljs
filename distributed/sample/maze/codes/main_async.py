@@ -67,7 +67,7 @@ class Arguments():
             setattr(self, key, value)
             
         self.env = "6x6" # don't forget to change here
-        self.experiment_name = "maze-6x6-sparse-00"
+        self.experiment_name = "maze-6x6-sparse-01"
         if self.seed == "rand":
             self.seed = int(np.random.rand()*1000)
         

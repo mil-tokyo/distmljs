@@ -303,7 +303,7 @@ export class Env {
     this.running_potential = distance_potential;
     let reward_collision: number = 0;
     if (this.collide) {
-      reward_collision = -0.30;
+      reward_collision = -0.60;
     }
     let constant_reward = -0.05;
     
@@ -312,7 +312,7 @@ export class Env {
     let reward_reach: number = 0;
     if (distance_to_goal < this.radius * 2) {
       terminated = 1;
-      reward_reach = 2;
+      reward_reach = 10;
     }
 
     const reward: number = constant_reward + reward_reach + reward_collision// + reward_distance;
