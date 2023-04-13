@@ -227,7 +227,6 @@ async function compute_actor(msg: {
   let env = new Env();
   let state = T.fromArray(env.reset(false, false));
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => {return state.get(d)}));
-  // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
   const max_episode_len = env.max_episode_len;
 
   // Initialize buffer
@@ -278,7 +277,6 @@ async function compute_actor(msg: {
     let tdloss: number
     if (msg.random_sample === 0) {
       let next_state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => {return T.fromArray(next_state).get(d)}));
-      // let next_state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return T.fromArray(next_state).get(d)})));
       let next_state_input = new K.nn.Variable(await next_state_norm.reshape([1, msg.inputShape]).to(backend));
       let target_output = await model.call(next_state_input); // TODO: ターゲットモデルを使う
       let target_Q = T.max(T.min(T.cat([await target_output[0].data.to('cpu'), await target_output[1].data.to('cpu')], 0), 0)[0], 0)[0].get(0);
@@ -298,7 +296,6 @@ async function compute_actor(msg: {
 
     state = T.fromArray(next_state);
     state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => {return state.get(d)}));
-    // state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
 
     // if terminated, upload buffer and send message to the server
     if (done) {
@@ -347,7 +344,6 @@ async function compute_tester(msg: {
   let env = new Env();
   let state = T.fromArray(env.reset(false, false));
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => {return state.get(d)}));
-  // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
   const max_episode_len = env.max_episode_len;
 
   // Initialize buffer
@@ -369,7 +365,6 @@ async function compute_tester(msg: {
       );
     state = T.fromArray([x, y, x_dot, y_dot, goal_x, goal_y]);
     state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => {return state.get(d)}));
-    // state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
 
     // save to buffer
     buffer_reward.set(reward, step);
