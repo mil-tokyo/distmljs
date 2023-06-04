@@ -110,3 +110,6 @@ dist
 pytorch_data
 kakiage-document.zip
 /shader/webgpu/autogen
+
+# Mac file
+.DS_Store
