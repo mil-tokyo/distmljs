@@ -7,6 +7,7 @@ import F = K.nn.functions;
 import L = K.nn.layers;
 import { Env } from './cartpole';
 import { makeModel } from './models';
+import { tensorTextureShapeFormatDefault } from '../../../../dist/tensor/webgl/webglTensor';
 
 let ws: WebSocket;
 let backend: K.Backend = 'cpu';
@@ -43,11 +44,11 @@ const writeIdInfo = throttle((type: String) => {
 }, 1000);
 
 async function recvBlob(itemId: string): Promise<Uint8Array> {
-  const f = await fetch(`/kakiage/blob/${itemId}`, { method: 'GET' });
-  if (!f.ok) {
+  const force_value = await fetch(`/kakiage/blob/${itemId}`, { method: 'GET' });
+  if (!force_value.ok) {
     throw new Error('Server response to save is not ok');
   }
-  const resp = await f.arrayBuffer();
+  const resp = await force_value.arrayBuffer();
   return new Uint8Array(resp);
 }
 
@@ -85,27 +86,25 @@ async function compute_visualizer(msg: {
 
   // Initialize environment
   let env = new Env();
-  // let state = T.fromArray(env.reset(true, false));
-  // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
-  let state: T, state_norm: T; 
+  let state = T.fromArray(env.reset(true, false));
   let ep_reward: number;
   const max_episode_len = env.max_episode_len;
 
   // for visualization
-  // const maze_canvas = document.getElementById("maze_canvas") as HTMLCanvasElement | null;
-  // const maze_field_len: number = 320;
-  // const h: number = Math.floor(maze_field_len / env.maze.length); // y
-  // const w: number = Math.floor(maze_field_len / env.maze[0].length); // x
-  // const b: number = Math.min(h,w)
-  // const radius: number = env.radius * b
+  const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
+  const field_w: number = 160; // half size
+  const field_h: number = 160; // half size
+  const cart_w = 20; // half size
+  const cart_h = 10; // half size
+  const scale = 100;
+  const pole_len = scale * env.pole_length;
+  let force_value = 20; // TODO: env.forceを使う
 
   btn_flag = true;
   while (btn_flag) {
     
     console.log('start new episode.')
     state = T.fromArray(env.reset(true, false));
-    state_norm = T.fromArray([...Array(6).keys()].map((d) => {return state.get(d)}));
-    // state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
     ep_reward = 0;
 
     // Start episode
@@ -119,21 +118,20 @@ async function compute_visualizer(msg: {
         let rand_tmp = Math.random()
         action = Math.floor(rand_tmp * msg.nClasses);
       } else {
-        let state_input = new K.nn.Variable(await state_norm.reshape([1, msg.inputShape]).to(backend));
+        let state_input = new K.nn.Variable(await state.reshape([1, msg.inputShape]).to(backend));
         action = T.argmax((await (await model.call(state_input))[0].data.to('cpu')).reshape([msg.nClasses])).get(0);
       }
 
       // one step
-      let [[x, y, x_dot, y_dot], reward, done]: 
+      let [[x, x_dot, theta, theta_dot], reward, done]: 
         [number[], number, number] = env.step(
           [state.get(0), state.get(1), state.get(2), state.get(3)] // 同期用のコードのため、状態を入力するようになっている
           , action
         );
-      state = T.fromArray([x, y, x_dot, y_dot]);
-      state_norm = T.fromArray([x, y, x_dot, y_dot]);
-      // state_norm = T.fromArray(env.normalize([x, y, x_dot, y_dot, goal_x, goal_y]));
-      ep_reward = ep_reward + reward;
+      state = T.fromArray([x, x_dot, theta, theta_dot]);
+      ep_reward += reward;
       
+      // 正負で桁がずれること嫌ったが、もっとましな実装にする
       if (reward < 0) {
         writeRewardInfo("- "+String(-reward.toFixed(2)));
       } else {
@@ -146,62 +144,66 @@ async function compute_visualizer(msg: {
         writeEpRewardInfo("+"+String(ep_reward.toFixed(2)));
       }
       
-      // if (maze_canvas !== null && maze_canvas.getContext) {
-      //   const maze_context = maze_canvas.getContext("2d"); //2次元描画
-      //   if (maze_context !== null) {
-
-      //     // initialize field
-      //     maze_context.clearRect(0,0,maze_field_len,maze_field_len);
-
-      //     maze_context.fillStyle = "#a9a9a9";
-      //     maze_context.beginPath();
-      //     maze_context.moveTo(0, 0);
-      //     maze_context.lineTo(200, 200);
-      //     maze_context.strokeStyle = "red";
-      //     maze_context.lineWidth = 10;
-      //     maze_context.stroke();
-          
-      //     maze_context.fillStyle = "#a9a9a9";
-      //     for (let i=0; i<env.maze.length; i++) { // y
-      //       for (let j=0; j<env.maze[0].length; j++) { // x
-      //         if (env.maze[i][j] == 'x') {
-      //           maze_context.fillRect(j * b, i * b, b, b);
-      //         }
-      //       }
-      //     }
-
-      //     // draw goal
-      //     maze_context.fillStyle = 'red';
-      //     maze_context.beginPath();
-      //     maze_context.arc(env.goal_x * b, env.goal_y * b, radius, 0, Math.PI*2, false);
-      //     maze_context.fill();
-
-      //     // draw player
-      //     if (env.collide) {
-      //       maze_context.fillStyle = '#daa520';
-      //     } else {
-      //       maze_context.fillStyle = 'blue';
-      //     }
-      //     maze_context.beginPath();
-      //     maze_context.arc(x * b, y * b, radius, 0, Math.PI*2, false);
-      //     maze_context.fill();
-
-      //     // draw force
-      //     maze_context.beginPath();
-      //     maze_context.moveTo(x * b, y * b) ;
-      //     maze_context.lineTo(x * b + env.x_acc * 20, y * b + env.y_acc * 20)
-      //     if (rnd_move) {
-      //       maze_context.strokeStyle = '#ff0000';
-      //     } else {
-      //       maze_context.strokeStyle = '#87ceeb';
-      //     }
-      //     maze_context.lineWidth = 5;
-      //     maze_context.stroke();
 
 
-      //   }
-      // }
-      await sleep(50);
+
+      if (canvas !== null && canvas.getContext) {
+        const ctx = canvas.getContext("2d"); //2次元描画
+        if (ctx !== null) {
+
+          // initialize field
+          ctx.clearRect(0, 0, field_w*2, field_h*2);
+
+          // draw horizontal rail
+          ctx.beginPath();
+          ctx.moveTo(0, field_h);
+          ctx.lineTo(field_w*2, field_h);
+          ctx.strokeStyle = "#d3d3d3";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // draw cart
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(field_w+x*scale-cart_w, field_h-cart_h, cart_w*2, cart_h*2);
+
+          // draw pole
+          ctx.beginPath();
+          ctx.moveTo(field_w+x*scale, field_h);
+          ctx.lineTo(field_w+x*scale+pole_len*Math.sin(theta), field_h-pole_len*Math.cos(theta));
+          ctx.strokeStyle = "#cd853f";
+          ctx.lineWidth = 10;
+          ctx.stroke();
+
+
+          // draw joint 
+          ctx.fillStyle = '#c0c0c0';
+          ctx.beginPath();
+          ctx.arc(field_w+x*scale, field_h, 4, 0, Math.PI*2, false);
+          ctx.fill();
+
+          // draw force
+          let direction;
+          ctx.beginPath();
+          if (action === 0) {
+            direction = -1;
+          } else {
+            direction = +1;
+          }
+          force_value = 10;
+          ctx.moveTo(field_w+x*scale-force_value, field_h+cart_h*2);
+          ctx.lineTo(field_w+x*scale+force_value, field_h+cart_h*2);
+          ctx.moveTo(field_w+x*scale+direction*(force_value-5), field_h+cart_h*2-5);
+          ctx.lineTo(field_w+x*scale+direction*(force_value), field_h+cart_h*2);
+          ctx.moveTo(field_w+x*scale+direction*(force_value-5), field_h+cart_h*2+5);
+          ctx.lineTo(field_w+x*scale+direction*(force_value), field_h+cart_h*2);
+          ctx.strokeStyle = "#000000";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+        }
+      }
+
+      await sleep(20);
 
       if (!btn_flag) {
         break

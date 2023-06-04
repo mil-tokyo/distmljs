@@ -14,7 +14,7 @@ main {
   padding: 1em;
 }
 
-#maze_canvas_wrapper{
+#canvas_wrapper{
 	width:320px;
   padding: 0px;
 	/* margin:100px; */
