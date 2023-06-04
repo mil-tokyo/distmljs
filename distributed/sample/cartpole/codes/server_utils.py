@@ -95,25 +95,9 @@ class Server():
         return replay_buffer
             
     # async processes
-    
-    async def twice(self, async_func, client_id, *, kwargs={}, sleep_time=3):
-        try:
-            await async_func(client_id, **kwargs)
-        except KeyError:
-            time.sleep(sleep_time)
-            print(f"Failed to send msg to client: {client_id}. Try again.")
-            try:
-                await async_func(client_id, **kwargs)
-            except KeyError:
-                time.sleep(sleep_time)
-                print(f"Failed to send msg to client: {client_id}. Try again.")
-                try:
-                    await async_func(client_id, **kwargs)
-                except KeyError:
-                    pass
                 
-    def twice2(self, async_func, sleep_time=3):
-        # async_funcの引数の1つ目はclient_idじゃないといけない
+    def twice(self, async_func, sleep_time=3):
+        # first arg of async_funcmust be client_id
         async def try_3_times(client_id, *args):
             try:
                 await async_func(client_id, *args)
