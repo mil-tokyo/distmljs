@@ -12,7 +12,7 @@ class Env {
         Kikyo.activeEnv[name + "_" + index.toString()] = this
     }
 
-    UnityPromise(method: KikyoUnityMethod, action?: number[]): Promise<Observation> {
+    UnityPromise(method: KikyoUnityMethod, action?: number[], config?: object): Promise<Observation> {
         return new Promise<Observation>((resolve) => {
             const token = Math.random().toString(32).substring(2)
             console.log('send CreateEnvironment with token:' + token)
@@ -22,14 +22,15 @@ class Env {
                 delete Kikyo.callback[token]
                 console.log('finish promise of createAsync with token:' + token)
             }
-            const sendValue: SendValue = { EnvName: this.name, Index: this.index, Token: token, Action: action }
+            const sendValue: SendValue = { EnvName: this.name, Index: this.index, Token: token, Action: action, Config: config }
             Kikyo.getOrCreateUnityInstance().then(u => u.SendMessage('KikyoManager', method, JSON.stringify(sendValue)));
             console.log("SendValue:" + JSON.stringify(sendValue))
         });
     }
 
-    async init(): Promise<Observation> {
-        return this.UnityPromise('CreateEnvironment')
+    // todo: handle multiple call -> resetとConstructerだけでいいのでは？
+    async init(config?: object): Promise<Observation> {
+        return this.UnityPromise('CreateEnvironment', undefined, config)
             .then(r => {
                 this.initialized = true;
                 return r
@@ -40,7 +41,7 @@ class Env {
         if (this.initialized == false) {
             console.error("env not initialised. please call env.init() before calling env.step()")
         }
-        return this.UnityPromise('StepEnvironment', action = action)
+        return this.UnityPromise('StepEnvironment', action)
     }
 
     async reset(): Promise<Observation> {

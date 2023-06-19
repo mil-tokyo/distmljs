@@ -38,7 +38,8 @@ interface SendValue {
     EnvName: string,
     Index?: number,
     Token: string,
-    Action?: number[]
+    Action?: number[],
+    Config?: object,
 }
 type KikyoUnityMethod = 'CreateEnvironment' | 'StepEnvironment' | 'ResetEnvironment'
 

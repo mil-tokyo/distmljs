@@ -232,7 +232,7 @@ async function compute_actor(msg: {
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
-  const max_episode_len = 100;
+  const max_episode_len = 200;
 
   // Initialize buffer
   let buffer_state = T.zeros([max_episode_len, msg.inputShape]);
@@ -353,7 +353,7 @@ async function compute_tester(msg: {
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
-  const max_episode_len = 100; //todo
+  const max_episode_len = 200; //todo
 
   // Initialize buffer
   let buffer_reward = T.zeros([max_episode_len, 1]);

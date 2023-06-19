@@ -5,8 +5,10 @@ import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
 import F = K.nn.functions;
 import L = K.nn.layers;
-import { Env } from './cartpole';
+import { Kikyo } from './Kikyo/exports';
+import { Observation } from './Kikyo/source/Kikyo_interface';
 import { makeModel } from './models';
+import { config } from 'chai';
 
 let ws: WebSocket;
 let backend: K.Backend = 'cpu';
@@ -57,15 +59,15 @@ async function sleep(ms: number) {
 
 let model: K.nn.core.Layer;
 
-async function compute_visualizer(msg: { 
-    type: String;
-    inputShape: number; 
-    nClasses: number; 
-    weight_actor_item_id: string; 
-  }) {
+async function compute_visualizer(msg: {
+  type: String;
+  inputShape: number;
+  nClasses: number;
+  weight_actor_item_id: string;
+}) {
   writeTypeInfo('visualizer');
   console.log('visualizer episode start')
-    
+
   // Load model weights
   let weight: Uint8Array
   try {
@@ -84,12 +86,13 @@ async function compute_visualizer(msg: {
   }
 
   // Initialize environment
-  let env = new Env();
+  let env = Kikyo.getEnvironment('CartPole', 0);
+  await env.init({ EnableView: true })
   // let state = T.fromArray(env.reset(true, false));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
-  let state: T, state_norm: T; 
+  let state: T, state_norm: T;
   let ep_reward: number;
-  const max_episode_len = env.max_episode_len;
+  const max_episode_len = 200;
 
   // for visualization
   // const maze_canvas = document.getElementById("maze_canvas") as HTMLCanvasElement | null;
@@ -101,16 +104,16 @@ async function compute_visualizer(msg: {
 
   btn_flag = true;
   while (btn_flag) {
-    
+
     console.log('start new episode.')
-    state = T.fromArray(env.reset(true, false));
-    state_norm = T.fromArray([...Array(6).keys()].map((d) => {return state.get(d)}));
+    state = T.fromArray(((await env.reset()).state));
+    state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
     // state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
     ep_reward = 0;
 
     // Start episode
-    for (let step=0; step<max_episode_len; step++) {
-      
+    for (let step = 0; step < max_episode_len; step++) {
+
       // Action
       let rnd_sample = Math.random();
       let rnd_move = Number(rnd_sample < epsilon)
@@ -124,28 +127,27 @@ async function compute_visualizer(msg: {
       }
 
       // one step
-      let [[x, y, x_dot, y_dot], reward, done]: 
-        [number[], number, number] = env.step(
-          [state.get(0), state.get(1), state.get(2), state.get(3)] // 同期用のコードのため、状態を入力するようになっている
-          , action
-        );
-      state = T.fromArray([x, y, x_dot, y_dot]);
-      state_norm = T.fromArray([x, y, x_dot, y_dot]);
+      let observation: Observation = await env.step([action]);
+      let reward = Object.values(observation.reward_dict).reduce((s, v) => s + v, 0)
+      let done = observation.terminated ? 1 : 0
+
+      state = T.fromArray(observation.state);
+      state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
       // state_norm = T.fromArray(env.normalize([x, y, x_dot, y_dot, goal_x, goal_y]));
       ep_reward = ep_reward + reward;
-      
+
       if (reward < 0) {
-        writeRewardInfo("- "+String(-reward.toFixed(2)));
+        writeRewardInfo("- " + String(-reward.toFixed(2)));
       } else {
-        writeRewardInfo("+"+String(reward.toFixed(2)));
+        writeRewardInfo("+" + String(reward.toFixed(2)));
       }
 
       if (ep_reward < 0) {
-        writeEpRewardInfo("- "+String(-ep_reward.toFixed(2)));
+        writeEpRewardInfo("- " + String(-ep_reward.toFixed(2)));
       } else {
-        writeEpRewardInfo("+"+String(ep_reward.toFixed(2)));
+        writeEpRewardInfo("+" + String(ep_reward.toFixed(2)));
       }
-      
+
       // if (maze_canvas !== null && maze_canvas.getContext) {
       //   const maze_context = maze_canvas.getContext("2d"); //2次元描画
       //   if (maze_context !== null) {
@@ -160,7 +162,7 @@ async function compute_visualizer(msg: {
       //     maze_context.strokeStyle = "red";
       //     maze_context.lineWidth = 10;
       //     maze_context.stroke();
-          
+
       //     maze_context.fillStyle = "#a9a9a9";
       //     for (let i=0; i<env.maze.length; i++) { // y
       //       for (let j=0; j<env.maze[0].length; j++) { // x
@@ -207,12 +209,12 @@ async function compute_visualizer(msg: {
         break
       }
 
-      if (done || step >= max_episode_len-1) {
+      if (done || step >= max_episode_len - 1) {
         break
       }
     }
   }
-  ws.send(JSON.stringify({"type":"visualizer"}));
+  ws.send(JSON.stringify({ "type": "visualizer" }));
   return []
 }
 
@@ -220,9 +222,9 @@ let btn_flag = false
 function set_button() {
   let btn = document.getElementById('btn');
   if (btn !== null) {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
       if (!btn_flag) {
-        ws.send(JSON.stringify({"type":"visualizer"}));
+        ws.send(JSON.stringify({ "type": "visualizer" }));
       }
       btn_flag = false
     })
@@ -246,7 +248,7 @@ function set_random_slider() {
       }
       txt.innerText = `ランダム行動選択の割合： ${toprint}`;
     }
-    const rangeOnChange = (e: Event) =>{
+    const rangeOnChange = (e: Event) => {
       const { target } = e;
       if (!(target instanceof HTMLInputElement)) {
         return
@@ -260,7 +262,7 @@ function set_random_slider() {
     // init_random button
     let randbtn = document.getElementById('init-random');
     if (randbtn !== null) {
-      randbtn.addEventListener('click', function() {
+      randbtn.addEventListener('click', function () {
         slider.value = '0';
         setCurrentValue(slider.value);
       })
@@ -269,12 +271,12 @@ function set_random_slider() {
 }
 
 
-async function update_stats(msg: { 
+async function update_stats(msg: {
   type: String;
-  iters: number; 
-  bfsize: number; 
-  reward_mean: number; 
-  reward_std: number; 
+  iters: number;
+  bfsize: number;
+  reward_mean: number;
+  reward_std: number;
   time: number;
 }) {
   console.log(msg);
@@ -284,8 +286,8 @@ async function run() {
   writeState('Connecting to distributed training server...');
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-      window.location.host +
-      '/kakiage/ws'
+    window.location.host +
+    '/kakiage/ws'
   );
   ws.onopen = () => {
     writeState('Connected to server');
