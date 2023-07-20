@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from fastapi.middleware.gzip import GZipMiddleware
+
 
 @dataclass
 class KakiageServerEvent:
@@ -34,6 +36,8 @@ class KakiageServerWSDisconnectEvent(KakiageServerWSEvent):
 
 
 app = FastAPI()
+# app.add_middleware(GZipMiddleware, minimum_size=1000)
+print("-------------------------------------------------------------------------------------------")
 blobs = {}
 event_queue: 'asyncio.Queue[KakiageServerEvent]' = asyncio.Queue()
 ws_clients: Dict[str, WebSocket] = {}
@@ -98,15 +102,23 @@ async def websocket_endpoint(websocket: WebSocket):
         await event_queue.put(KakiageServerWSDisconnectEvent(client_id))
 
 
+# staticファイルの配信設定
+@app.get("/static/{file_path:path}")
+async def function(file_path: str):
+    response = FileResponse(f"public/static/{file_path}")
+    if file_path.endswith(".gz"):
+        response.headers["Content-Encoding"] = "gzip"
+    return response
+
+
 def setup_server(default_static=True) -> KakiageServer:
     # 今はグローバルオブジェクトを返すだけだが、将来的にはグローバルな状態を持たないようにする
 
-    # staticファイルの配信設定
     # / で public/index.html
     # /static/* で public/static/*
     # を配信
     if default_static:
-        app.mount("/static", StaticFiles(directory="public/static"), name="static")
+        # app.mount("/static", StaticFiles(directory="public/static"), name="static")
 
         @app.get("/")
         async def read_index():
