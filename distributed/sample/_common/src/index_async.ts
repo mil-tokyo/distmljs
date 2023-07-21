@@ -225,6 +225,8 @@ async function compute_actor(msg: {
     }
   }
 
+  console.log(msg)
+
   // Initialize environment
   let env = await getEnv(msg.env_id);
   let state = T.fromArray((await env.reset()).state);

@@ -1,4 +1,8 @@
 # import
+import sys
+sys.path.append('../..')
+sys.path.append('./codes')
+
 from training_utils import Trainings, Optimizer
 from server_utils import Server, ReplayBuffer
 from models import make_net, get_io_shape
@@ -6,7 +10,6 @@ from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_te
 from kakiage.server import KakiageServerWSReceiveEvent, setup_server
 import asyncio
 import os
-import sys
 import time
 import copy
 import math
@@ -18,9 +21,6 @@ import yaml
 import numpy as np
 import torch
 
-sys.path.append('../..')
-
-sys.path.append('./codes')
 
 # setup server to distribute javascript and communicate
 kakiage_server = setup_server()
@@ -68,7 +68,7 @@ class Arguments():
         # self.env = "cartpole" # don't forget to change here
         # self.experiment_name = "cartpole-00"
         if self.seed == "rand":
-            self.seed = int(np.random.rand()*1000)
+            self.seed = int(np.random.rand() * 1000)
 
     def wandb_init(self, trials_id):
 
@@ -224,13 +224,13 @@ async def get_gradient():
     for c, learner_id in enumerate(sv.learner_ids):
 
         # Record indices in ReplayBuffer of each data
-        data_ind[learner_id] = indices[c*chunk_size:(c+1)*chunk_size]
+        data_ind[learner_id] = indices[c * chunk_size:(c + 1) * chunk_size]
 
         # Split data into chunks
         data_chunk = dict()
         data_size = set()
         for key, value in minibatch.items():
-            data_chunk[key] = value[c*chunk_size:(c+1)*chunk_size]
+            data_chunk[key] = value[c * chunk_size:(c + 1) * chunk_size]
             data_size.add(len(data_chunk[key]))
 
         # Add hyperparameters
@@ -475,10 +475,10 @@ async def main():
             opt=opt, state_dim=sv.input_dim, action_dim=1)
 
         # set dir name for save
-        root_dir = Path(opt.save_weights_root_dir)/opt.experiment_name / \
-            f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}"/f"{trials_id:02}"
+        root_dir = Path(opt.save_weights_root_dir) / opt.experiment_name / \
+            f"{opt.env}_{opt.prioritized}_L{opt.n_learner_client_wait:02}A{opt.n_actor_client_wait:02}" / f"{trials_id:02}"
         if opt.continue_train and trials_id == opt.start_trial_id:
-            replay_buffer = sv.load_buffers(root_dir/f"replay_buffer")
+            replay_buffer = sv.load_buffers(root_dir / f"replay_buffer")
 
         # use wandb for visualization
         if opt.use_wandb:
@@ -501,7 +501,7 @@ async def main():
             if opt.save_weights:
                 start_time = time.time()
                 root_dir.mkdir(parents=True, exist_ok=True)
-                with open(root_dir/f"start_{start_time}", "w"):
+                with open(root_dir / f"start_{start_time}", "w"):
                     pass
 
         # ここに、デバイスのパラメータを推定するコードを入れる！！！！！！！！
@@ -692,7 +692,7 @@ async def main():
                         sv.save_weights(save_path, sv.weights['global'])
 
                         # save replay buffer
-                        save_path = root_dir/f"replay_buffer"
+                        save_path = root_dir / f"replay_buffer"
                         sv.save_buffers(save_path, replay_buffer)
 
             print("sv.learner_ids")

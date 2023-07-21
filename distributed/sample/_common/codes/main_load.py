@@ -1,12 +1,14 @@
 # import
-from training_utils import Trainings, Optimizer
+import sys
+sys.path.append('../..')
+sys.path.append('./codes')
+
 from server_utils import Server, ReplayBuffer
 from models import make_net, get_io_shape
 from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
 from kakiage.server import KakiageServerWSReceiveEvent, setup_server
 import asyncio
 import os
-import sys
 import time
 import copy
 import math
@@ -19,9 +21,6 @@ import yaml
 import numpy as np
 import torch
 
-sys.path.append('../..')
-
-sys.path.append('./codes')
 
 # setup server to distribute javascript and communicate
 kakiage_server = setup_server()
@@ -67,7 +66,7 @@ class Arguments():
         self.env = "5x5"  # don't forget to change here
         self.experiment_name = "maze-5x5-sparse-01"
         if self.seed == "rand":
-            self.seed = int(np.random.rand()*1000)
+            self.seed = int(np.random.rand() * 1000)
 
     def wandb_init(self, trials_id):
 
@@ -220,13 +219,13 @@ async def get_gradient():
     for c, learner_id in enumerate(sv.learner_ids):
 
         # Record indices in ReplayBuffer of each data
-        data_ind[learner_id] = indices[c*chunk_size:(c+1)*chunk_size]
+        data_ind[learner_id] = indices[c * chunk_size:(c + 1) * chunk_size]
 
         # Split data into chunks
         data_chunk = dict()
         data_size = set()
         for key, value in minibatch.items():
-            data_chunk[key] = value[c*chunk_size:(c+1)*chunk_size]
+            data_chunk[key] = value[c * chunk_size:(c + 1) * chunk_size]
             data_size.add(len(data_chunk[key]))
 
         # Add hyperparameters

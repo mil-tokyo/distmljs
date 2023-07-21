@@ -5,7 +5,7 @@ import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
 import F = K.nn.functions;
 import L = K.nn.layers;
-import { Kikyo } from './Kikyo/exports';
+import { Kikyo, getEnv } from './Kikyo/exports';
 import { Observation } from './Kikyo/source/Kikyo_interface';
 import { makeModel } from './models';
 import { config } from 'chai';
@@ -64,6 +64,7 @@ async function compute_visualizer(msg: {
   inputShape: number;
   nClasses: number;
   weight_actor_item_id: string;
+  env_id: string;
 }) {
   writeTypeInfo('visualizer');
   console.log('visualizer episode start')
@@ -86,8 +87,8 @@ async function compute_visualizer(msg: {
   }
 
   // Initialize environment
-  let env = Kikyo.getEnvironment('MultiplePendulum', 0);
-  await env.init({ EnableView: true })
+  let env = await getEnv(msg.env_id);
+  env.set_config({ EnableView: true })
   // let state = T.fromArray(env.reset(true, false));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
   let state: T, state_norm: T;

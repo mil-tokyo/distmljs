@@ -1,6 +1,6 @@
 import { UnityEnv } from "./Kikyo_Env";
 import { KikyoGlobal, UnityInstance, UnityArguments } from "./Kikyo_interface";
-import { waitUntil } from "./Kikyo_utility";
+import { waitForClick, waitUntil } from "./Kikyo_utility";
 
 var Kikyo: KikyoGlobal = {
     callback: {},
@@ -70,11 +70,15 @@ var Kikyo: KikyoGlobal = {
             });
 
         await waitUntil(() => { return Kikyo.unityInstance != null })
+
+        await waitForClick(`waiting click... Kikyo.unityInstance is now non-null: ${Kikyo.unityInstance}`)
+
         return Kikyo.unityInstance as UnityInstance;
     },
 
     getOrCreateUnityInstance: async (): Promise<UnityInstance> => {
         console.log("Kikyo getInstance called")
+        await waitForClick(`waiting click... Kikyo.unityInstance:${Kikyo.unityInstance}`)
 
         if (Kikyo.unityInstance) {
             return Kikyo.unityInstance

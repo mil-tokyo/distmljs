@@ -69,7 +69,7 @@ class Server():
 
     def save_weights(self, save_path, weights):
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(str(save_path)+".pkl", "wb") as tf:
+        with open(str(save_path) + ".pkl", "wb") as tf:
             pickle.dump(weights, tf)
         print(f"model is saved to: {str(save_path)}.pkl")
 
@@ -82,12 +82,12 @@ class Server():
 
     def save_buffers(self, save_path, replay_buffer):
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(str(save_path)+".pkl", "wb") as tf:
+        with open(str(save_path) + ".pkl", "wb") as tf:
             pickle.dump(replay_buffer, tf)
         print(f"Replay Buffer is saved to: {str(save_path)}.pkl")
 
     def load_buffers(self, save_path):
-        with open(str(save_path)+".pkl", "rb") as tf:
+        with open(str(save_path) + ".pkl", "rb") as tf:
             replay_buffer = pickle.load(tf)
         print(f"replay_buffer is loaded from: {str(save_path)}.pkl")
         return replay_buffer
@@ -165,6 +165,7 @@ class Server():
             "inputShape": self.input_dim,  # not in use when random sampling
             "nClasses": self.n_classes,  # not in use when random sampling
             "buffer_id": buffer_id,
+            "env_id": self.opt.env,
         })
 
     async def send_msg_to_actor_for_collecting_samples(self, client_id):
@@ -179,6 +180,7 @@ class Server():
             "nClasses": self.n_classes,
             "weight_actor_item_id": self.weight_item_ids['global'],
             "buffer_id": buffer_id,
+            "env_id": self.opt.env,
         })
 
     async def send_msg_to_learner_for_collecting_grads(self, client_id, dataset_item_id):
@@ -211,6 +213,7 @@ class Server():
             "inputShape": self.input_dim,
             "nClasses": self.n_classes,
             "weight_item_id": self.weight_item_ids['global'],
+            "env_id": self.opt.env,
         })
 
     async def send_weight_msg_to_visualizer(self, client_id):
@@ -224,8 +227,9 @@ class Server():
             "weight_actor_item_id": self.weight_item_ids['global'],
         })
 
-
 # replay buffer for asynchronous training
+
+
 class ReplayBuffer(object):
     def __init__(self, opt, state_dim, action_dim, max_size=int(1e6)):
         self.opt = opt
