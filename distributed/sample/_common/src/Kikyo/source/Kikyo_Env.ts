@@ -1,5 +1,4 @@
 import { KikyoUnityMethod, Observation, SendValue } from "./Kikyo_interface";
-import { waitForClick } from "./Kikyo_utility";
 
 abstract class Env {
     name: string;
@@ -49,38 +48,23 @@ class UnityEnv extends Env {
     UnityPromise(method: KikyoUnityMethod, action?: number[], config?: object): Promise<Observation> {
         return new Promise<Observation>((resolve) => {
             const token = Math.random().toString(32).substring(2)
-            console.log('send CreateEnvironment with token:' + token)
             Kikyo.callback[token] = (observation: Observation) => {
                 console.log(observation);
                 resolve(observation);
                 delete Kikyo.callback[token]
-                console.log('finish promise of createAsync with token:' + token)
             }
             const sendValue: SendValue = { EnvName: this.envName, Index: this.index, Token: token, Action: action, Config: config }
-            console.log("before SendValue:" + JSON.stringify(sendValue))
             Kikyo.getOrCreateUnityInstance().then(u => {
-                console.log(`Kikyo.getOrCreateUnityInstance done. sending message...${method}, ${sendValue}`)
-                console.log(sendValue)
                 u.SendMessage('KikyoManager', method, JSON.stringify(sendValue))
-                console.log(`SendMessage done. sending message...${method}, ${sendValue}`)
             });
-            console.log("SendValue:" + JSON.stringify(sendValue))
         });
     }
 
-    // // todo: handle multiple call -> resetとConstructerだけでいいのでは？
-    // async init(config?: object): Promise<Observation> {
-    //     return this.UnityPromise('CreateEnvironment', undefined, config)
-    // }
-
     async step(action: number[]): Promise<Observation> {
-        await waitForClick(`waiting click... step:${action}`)
         return await this.UnityPromise('StepEnvironment', action)
     }
 
     async reset(): Promise<Observation> {
-        console.log("aaaaaaaaaaaaa")
-        await waitForClick(`waiting click... reset:${this.config}`)
         return await this.UnityPromise('ResetEnvironment', undefined, this.config)
     }
 }

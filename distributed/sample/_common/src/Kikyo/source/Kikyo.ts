@@ -1,6 +1,6 @@
 import { UnityEnv } from "./Kikyo_Env";
 import { KikyoGlobal, UnityInstance, UnityArguments } from "./Kikyo_interface";
-import { waitForClick, waitUntil } from "./Kikyo_utility";
+import { waitUntil } from "./Kikyo_utility";
 
 var Kikyo: KikyoGlobal = {
     callback: {},
@@ -10,10 +10,7 @@ var Kikyo: KikyoGlobal = {
     compress: true,
 
     createUnityInstance: async (): Promise<UnityInstance> => {
-        console.log("Kikyo init called")
-
         const buildUrl = "Build";
-
         // create unity loader
         const loaderUrl = buildUrl + "/Build.loader.js";
         const loaderScript = document.createElement("script");
@@ -38,7 +35,6 @@ var Kikyo: KikyoGlobal = {
             document.body.appendChild(canvas)
             await waitUntil(() => document.querySelector("#unity-canvas") != null)
         }
-        console.log(canvas)
 
         let dataUrl = buildUrl + "/Build.data"
         let frameworkUrl = buildUrl + "/Build.framework.js"
@@ -64,22 +60,16 @@ var Kikyo: KikyoGlobal = {
         createUnityInstance(canvas, config, (progress) => { })
             .then((unityInstance) => {
                 Kikyo.unityInstance = unityInstance;
-                console.log(unityInstance)
             }).catch((message) => {
                 alert(message);
             });
 
         await waitUntil(() => { return Kikyo.unityInstance != null })
 
-        await waitForClick(`waiting click... Kikyo.unityInstance is now non-null: ${Kikyo.unityInstance}`)
-
         return Kikyo.unityInstance as UnityInstance;
     },
 
     getOrCreateUnityInstance: async (): Promise<UnityInstance> => {
-        console.log("Kikyo getInstance called")
-        await waitForClick(`waiting click... Kikyo.unityInstance:${Kikyo.unityInstance}`)
-
         if (Kikyo.unityInstance) {
             return Kikyo.unityInstance
         }
