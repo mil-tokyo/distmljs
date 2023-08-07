@@ -6,6 +6,7 @@
   "scripts": {
     "build": "webpack",
     "build:async": "webpack --config webpack-async.config.js",
+    "build:test": "webpack --config webpack-test.config.js",
     "build:vis": "webpack --config webpack-vis.config.js",
     "build:watch": "webpack --watch",
     "train": "uvicorn codes.main:app --port 8081 --host 0.0.0.0 --no-access-log",
@@ -13,6 +14,7 @@
     "train_gym": "uvicorn codes.main_gym_fake:app --port 8081 --host 0.0.0.0 --no-access-log",
     "train_sync": "uvicorn codes.main_sync:app --port 8081 --host 0.0.0.0 --no-access-log",
     "train_async": "uvicorn codes.main_async:app --port 8083 --host 0.0.0.0 --no-access-log",
+    "test_mujoco": "uvicorn codes.main_async:app --port 8083 --host 0.0.0.0 --no-access-log",
     "load_model": "uvicorn codes.main_load:app --port 8081 --host 0.0.0.0 --no-access-log",
     "train:watch": "uvicorn main:app --port 8081 --host 0.0.0.0 --no-access-log --reload",
     "test": "echo \"Error: no test specified\" && exit 1"
