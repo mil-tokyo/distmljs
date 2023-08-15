@@ -3,7 +3,7 @@ import { KikyoGlobal } from "./source/Kikyo"
 import { Observation } from "./source/Kikyo_interface"
 import { getEnv } from "./environments/env_loader"
 
-window.Kikyo = new KikyoGlobal()
+window.Kikyo = window.Kikyo ?? new KikyoGlobal()
 
 export { Env, Observation, getEnv }
-export type { }
+export type { KikyoGlobal }

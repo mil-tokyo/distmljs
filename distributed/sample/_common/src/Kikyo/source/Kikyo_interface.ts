@@ -1,4 +1,4 @@
-import { mujoco } from "../declaration/mujoco_wasm";
+import { MujocoInstance } from "../declaration/mujoco_wasm";
 import { Env } from "./Kikyo_Env";
 
 interface UnityInstance {
@@ -19,7 +19,9 @@ interface KikyoMudule {
 }
 
 interface KikyoMujocoMudule extends KikyoMudule{
-    instance : mujoco | null
+    instance : MujocoInstance | null
+    createInstance: () => Promise<MujocoInstance>,
+    getOrCreateInstance: () => Promise<MujocoInstance>,
 }
 
 interface KikyoUnityMudule extends KikyoMudule{

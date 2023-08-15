@@ -1,4 +1,8 @@
+import { Model, Simulation, State } from "../declaration/mujoco_wasm";
+import { KikyoGlobal } from "./Kikyo";
 import { KikyoUnityMethod, Observation, SendValue } from "./Kikyo_interface";
+
+window.Kikyo = window.Kikyo ?? new KikyoGlobal()
 
 abstract class Env {
     name: string;
@@ -54,7 +58,7 @@ class UnityEnv extends Env {
                 delete Kikyo.callback[token]
             }
             const sendValue: SendValue = { EnvName: this.envName, Index: this.index, Token: token, Action: action, Config: config }
-            Kikyo.getOrCreateUnityInstance().then(u => {
+            Kikyo.unity.getOrCreateInstance().then(u => {
                 u.SendMessage('KikyoManager', method, JSON.stringify(sendValue))
             });
         });
@@ -69,4 +73,66 @@ class UnityEnv extends Env {
     }
 }
 
-export { Env, UnityEnv }
+class MujocoEnv extends Env {
+    index: number;
+    envName: string;
+    sceneFile: string;
+    model: Model | undefined;
+    state: State | undefined;
+    simulation: Simulation | undefined;
+
+    constructor(envName: string, index: number, action_size: number, state_size: number, config?: object) {
+        super(envName + "_" + index.toString(), action_size, state_size, config);
+        this.index = index
+        this.envName = envName
+        this.sceneFile = envName + ".xml"
+        // example... envName: cartpole, index: 1, name: cartpole_1
+    }
+
+    async getObservation(): Promise<Observation> {
+        if (this.simulation == undefined) {
+            console.error("simulation is null")
+            return {} as Observation
+        }
+
+        const observation: Observation = {
+            terminated: false, state: [], reward_dict: {}
+        }
+
+        observation.state.push(...Array.from(this.simulation.xpos))
+
+        return observation
+    }
+
+    async step(action: number[]): Promise<Observation> {
+        if (this.simulation == undefined) {
+            console.error("simulation is null")
+            return {} as Observation
+        }
+
+        const force = { x: Math.random(), y: Math.random(), z: Math.random() }
+        const point = { x: Math.random(), y: Math.random(), z: Math.random() }
+        const bodyID = Math.floor(Math.random() * this.state_size);
+
+        this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
+        this.simulation.step();
+        return await this.getObservation()
+    }
+
+    async reset(): Promise<Observation> {
+        const mujoco = await Kikyo.mujoco.getOrCreateInstance();
+        
+        mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco2/" + this.sceneFile)).text());
+
+        console.log("/working/" + this.sceneFile)
+        
+        this.model = new mujoco.Model("/working/" + this.sceneFile);
+        console.log(this.model)
+        this.state = new mujoco.State(this.model);
+        console.log(this.state)
+        this.simulation = new mujoco.Simulation(this.model, this.state);
+        console.log(this.simulation)
+        return await this.getObservation()
+    }
+}
+export { Env, UnityEnv, MujocoEnv }

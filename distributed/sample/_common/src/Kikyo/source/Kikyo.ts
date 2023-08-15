@@ -1,16 +1,16 @@
 import { MujocoInstance } from "../declaration/mujoco_wasm";
-import { UnityEnv,Env } from "./Kikyo_Env";
+import { UnityEnv, Env } from "./Kikyo_Env";
 import { KikyoUnityMudule, KikyoMujocoMudule, UnityInstance, UnityArguments, KikyoUnityMethod } from "./Kikyo_interface";
 import { waitUntil } from "./Kikyo_utility";
 
-class KikyoGlobal{
+class KikyoGlobal {
     callback: { [token: string]: Function } = {};
     activeEnv: { [key: string]: Env } = {};
     unity: KikyoUnityMudule = {
-        compress : false,
-        instance : null,
+        compress: false,
+        instance: null,
         loaderReady: false,
-        createInstance : async (): Promise<UnityInstance> => {
+        createInstance: async (): Promise<UnityInstance> => {
             const buildUrl = "Build";
             // create unity loader
             const loaderUrl = buildUrl + "/Build.loader.js";
@@ -20,9 +20,9 @@ class KikyoGlobal{
                 Kikyo.unity.loaderReady = true
             };
             document.body.appendChild(loaderScript);
-    
+
             await waitUntil(() => { return Kikyo.unity.loaderReady })
-    
+
             //create or find canvas
             let canvas = document.querySelector("#unity-canvas") as HTMLCanvasElement;
             if (canvas == null) {
@@ -36,7 +36,7 @@ class KikyoGlobal{
                 document.body.appendChild(canvas)
                 await waitUntil(() => document.querySelector("#unity-canvas") != null)
             }
-    
+
             let dataUrl = buildUrl + "/Build.data"
             let frameworkUrl = buildUrl + "/Build.framework.js"
             let codeUrl = buildUrl + "/Build.wasm"
@@ -45,7 +45,7 @@ class KikyoGlobal{
                 frameworkUrl += ".gz"
                 codeUrl += ".gz"
             }
-    
+
             //create config
             const config: UnityArguments = {
                 dataUrl: dataUrl,
@@ -56,7 +56,7 @@ class KikyoGlobal{
                 productName: "KikyoRL",
                 productVersion: "0.0.1",
             };
-    
+
             // create unity instance
             createUnityInstance(canvas, config, (progress) => { })
                 .then((unityInstance) => {
@@ -64,14 +64,14 @@ class KikyoGlobal{
                 }).catch((message) => {
                     alert(message);
                 });
-    
+
             await waitUntil(() => { return Kikyo.unity.instance != null })
-    
+
             return Kikyo.unity.instance as UnityInstance;
 
         },
 
-        getOrCreateInstance : async (): Promise<UnityInstance> => {
+        getOrCreateInstance: async (): Promise<UnityInstance> => {
             if (Kikyo.unity.instance) {
                 return Kikyo.unity.instance
             }
@@ -81,12 +81,32 @@ class KikyoGlobal{
         },
     }
     mujoco: KikyoMujocoMudule = {
-        loaderReady : false,
-        instance : null,
-        createInstance: async ()  : Promise<MujocoInstance>=> {
-            return {} as MujocoInstance; // todo: fill here
+        loaderReady: false,
+        instance: null,
+        createInstance: async (): Promise<MujocoInstance> => {
+            const buildUrl = "sources/mujoco2";
+            const loaderScript2 = document.createElement("script");
+            loaderScript2.src = buildUrl + "/mujoco_loader.js";
+            loaderScript2.type = 'module';
+            loaderScript2.onload = async () => {
+                await waitUntil(() => { return (window as any).mujoco_ready })
+                const mujoco = (window as any).mujoco
+                mujoco.FS.mkdir('/working');
+                mujoco.FS.mount(mujoco.MEMFS, { root: '.' }, '/working');
+                Kikyo.mujoco.loaderReady = true;
+                Kikyo.mujoco.instance = mujoco as MujocoInstance;
+                delete (window as any).mujoco;
+            }
+            document.body.appendChild(loaderScript2);
+
+            await waitUntil(() => { return Kikyo.mujoco.loaderReady })
+            await waitUntil(() => { return Kikyo.mujoco.instance != null })
+
+            console.log('mujoco instance created !!')
+
+            return Kikyo.mujoco.instance as MujocoInstance;
         },
-        getOrCreateInstance : async () : Promise<MujocoInstance>=> {
+        getOrCreateInstance: async (): Promise<MujocoInstance> => {
             if (Kikyo.mujoco.instance) {
                 return Kikyo.mujoco.instance
             }
@@ -96,5 +116,7 @@ class KikyoGlobal{
         },
     }
 };
+
+window.Kikyo = window.Kikyo ?? new KikyoGlobal()
 
 export { KikyoGlobal }

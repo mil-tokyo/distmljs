@@ -1,6 +1,7 @@
 
 const sleep = (ms: number): Promise<null> => new Promise(resolve => setTimeout(resolve, ms))
 const waitForClick = (msg: string): Promise<unknown> => {
+    console.log('wait for click...: ' + msg)
     return new Promise(resolve => document.body.addEventListener("click", resolve))
 };
 const waitUntil = (flagfunc: () => boolean): Promise<null> => {

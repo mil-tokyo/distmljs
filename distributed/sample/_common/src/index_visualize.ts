@@ -5,7 +5,7 @@ import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
 import F = K.nn.functions;
 import L = K.nn.layers;
-import { Kikyo, getEnv } from './Kikyo/exports';
+import { getEnv } from './Kikyo/exports';
 import { Observation } from './Kikyo/source/Kikyo_interface';
 import { makeModel } from './models';
 import { config } from 'chai';
