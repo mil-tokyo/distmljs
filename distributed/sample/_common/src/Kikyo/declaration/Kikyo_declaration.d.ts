@@ -1,4 +1,5 @@
-import { UnityInstance, UnityArguments, KikyoGlobal } from "../source/Kikyo_interface.js";
+import { UnityInstance, UnityArguments } from "../source/Kikyo_interface.js";
+import { KikyoGlobal } from "../source/Kikyo"
 
 declare global{
     var Kikyo:KikyoGlobal;

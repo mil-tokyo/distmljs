@@ -81,7 +81,6 @@ const testfunc2 = async ()=>{
   }
   document.body.appendChild(loaderScript2);
 
-
   // const module = await import(buildUrl + "/mujoco_wasm.js")
   // const {load_mujoco} = module;
 

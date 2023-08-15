@@ -1,3 +1,4 @@
+import { mujoco } from "../declaration/mujoco_wasm";
 import { Env } from "./Kikyo_Env";
 
 interface UnityInstance {
@@ -10,16 +11,24 @@ interface UnityInstance {
     Quit(): Promise<void>;
 }
 
-interface KikyoGlobal {
-    callback: { [token: string]: Function },
-    unityInstance: UnityInstance | null,
+interface KikyoMudule {
     loaderReady: boolean,
-    activeEnv: { [key: string]: Env }
-    compress: boolean,
-    createUnityInstance: () => Promise<UnityInstance>,
-    getOrCreateUnityInstance: () => Promise<UnityInstance>,
-    // getUnityEnvironment: (name: string, index: number) => UnityEnv,
+    instance: any,
+    createInstance: () => Promise<any>,
+    getOrCreateInstance: () => Promise<any>,
 }
+
+interface KikyoMujocoMudule extends KikyoMudule{
+    instance : mujoco | null
+}
+
+interface KikyoUnityMudule extends KikyoMudule{
+    compress : boolean,
+    instance : UnityInstance | null,
+    createInstance: () => Promise<UnityInstance>,
+    getOrCreateInstance: () => Promise<UnityInstance>,
+}
+
 interface UnityArguments {
     dataUrl: string,
     frameworkUrl: string,
@@ -44,4 +53,4 @@ interface SendValue {
 }
 type KikyoUnityMethod = 'CreateEnvironment' | 'StepEnvironment' | 'ResetEnvironment'
 
-export { KikyoGlobal, UnityInstance, KikyoUnityMethod, SendValue, Observation, UnityArguments }
+export { KikyoMudule, UnityInstance, KikyoMujocoMudule, KikyoUnityMudule, KikyoUnityMethod, SendValue, Observation, UnityArguments }
