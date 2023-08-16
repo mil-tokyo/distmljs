@@ -72,7 +72,7 @@ const testfunc2 = async ()=>{
     await waitUntil(() => { return (window as any).mujoco_ready })
     
     const mujoco = (window as any).mujoco
-    var initialScene = "hammock.xml";
+    var initialScene = "humanoid.xml";
     mujoco.FS.mkdir('/working');
     mujoco.FS.mount(mujoco.MEMFS, { root: '.' }, '/working');
     mujoco.FS.writeFile("/working/" + initialScene, await(await fetch("./sources/mujoco2/" + initialScene)).text());
@@ -85,6 +85,15 @@ const testfunc2 = async ()=>{
   await waitUntil(() => { return ready })
   ready = false;
   console.log('wait finish');
+
+  var initialScene = "humanoid.xml";
+  const mujoco = (window as any).mujoco
+  const model      = new mujoco.Model("/working/" + initialScene);
+  console.log(model)
+  const state      = new mujoco.State(model);
+  console.log(state)
+  const simulation = new mujoco.Simulation(model, state);
+  console.log(simulation)
 
   console.log((window as any).mujoco.Simulation)
 
@@ -105,21 +114,24 @@ const testfunc3 =async () => {
   //test with mujoco env
   console.log("test 3")
 
-  const env = new MujocoEnv('hammock',0,0,10)
+  const env = new MujocoEnv('humanoid',0,0,10)
 
   await waitForClick("wait for clk 1");
-  
-  await env.reset();
+
+  var o = await env.reset();
+  console.log(o)
   
   await waitForClick("wait for clk 2");
 
   for (let i = 0; i < 20; i++) {
-    await env.step([]);
+    o = await env.step([]);
+    console.log(o)
     sleep(100);
   }
   await waitForClick("wait for clk 3");
 
-  await env.reset();
+  o = await env.reset();
+  console.log(o)
   
   await waitForClick("wait for clk 4");
 
