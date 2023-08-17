@@ -1,6 +1,7 @@
 import { Model, Simulation, State } from "../declaration/mujoco_wasm";
 import { KikyoGlobal } from "./Kikyo";
 import { KikyoUnityMethod, Observation, SendValue } from "./Kikyo_interface";
+import { MujocoRenderer } from "../mujoco/mujocoRenderer";
 
 window.Kikyo = window.Kikyo ?? new KikyoGlobal()
 
@@ -80,12 +81,16 @@ class MujocoEnv extends Env {
     model: Model | undefined;
     state: State | undefined;
     simulation: Simulation | undefined;
+    renderer: MujocoRenderer | undefined;
 
-    constructor(envName: string, index: number, action_size: number, state_size: number, config?: object) {
+    constructor(envName: string, index: number, action_size: number, state_size: number, config?: {[key:string]:any}) {
         super(envName + "_" + index.toString(), action_size, state_size, config);
         this.index = index
         this.envName = envName
         this.sceneFile = envName + ".xml"
+        if(config && config.visualize==true){
+            this.renderer = new MujocoRenderer()
+        }
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
 
@@ -132,6 +137,11 @@ class MujocoEnv extends Env {
         console.log(this.state)
         this.simulation = new mujoco.Simulation(this.model, this.state);
         console.log(this.simulation)
+        
+        if(this.renderer){
+            await this.renderer.init(this.model,this.state,this.simulation)
+        }
+
         return await this.getObservation()
     }
 }

@@ -23,7 +23,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "kakiage": "file:../../.."
+    "@types/three": "^0.155.0",
+    "kakiage": "file:../../..",
+    "three": "^0.155.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178",

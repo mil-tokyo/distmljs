@@ -114,7 +114,7 @@ const testfunc3 =async () => {
   //test with mujoco env
   console.log("test 3")
 
-  const env = new MujocoEnv('humanoid',0,0,10)
+  const env = new MujocoEnv('humanoid',0,0,10,{'visualize':true})
 
   await waitForClick("wait for clk 1");
 
