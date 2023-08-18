@@ -11,8 +11,8 @@ import {
 	WebGLRenderTarget,
 	HalfFloatType,
 	NoToneMapping,
-	LinearEncoding,
-    MeshPhysicalMaterial
+    MeshPhysicalMaterial,
+	NoColorSpace
 } from 'three';
 
 class Reflector extends Mesh {
@@ -170,12 +170,12 @@ class Reflector extends Mesh {
 
 			const currentXrEnabled = renderer.xr.enabled;
 			const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-			const currentOutputEncoding = renderer.outputEncoding;
+			const currentOutputColorSpace = renderer.outputColorSpace;
 			const currentToneMapping = renderer.toneMapping;
 
 			renderer.xr.enabled = false; // Avoid camera modification
 			renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
-			renderer.outputEncoding = LinearEncoding;
+			renderer.outputColorSpace = NoColorSpace;
 			renderer.toneMapping = NoToneMapping;
 
 			renderer.setRenderTarget( renderTarget );
@@ -187,7 +187,7 @@ class Reflector extends Mesh {
 
 			renderer.xr.enabled = currentXrEnabled;
 			renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-			renderer.outputEncoding = currentOutputEncoding;
+			renderer.outputColorSpace = currentOutputColorSpace;
 			renderer.toneMapping = currentToneMapping;
 
 			renderer.setRenderTarget( currentRenderTarget );

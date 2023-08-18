@@ -1,7 +1,7 @@
 import * as THREE from 'three'
-// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { getPosition, getQuaternion, loadSceneFromURL, standardNormal, toMujocoPos } from './mujocoUtils';
-import { Model, Simulation, State } from '../declaration/mujoco_wasm';
+import { Model, MujocoInstance, Simulation, State } from '../declaration/mujoco_wasm';
 
 interface Meshes {
     cylinders: THREE.InstancedMesh,
@@ -12,8 +12,7 @@ class MujocoRenderer {
     params: { paused: boolean; help: boolean; ctrlnoiserate: number; ctrlnoisestd: number; keyframeNumber: number; };
     actuators: { [key: number]: number };
     mujoco_time: number;
-    mujocoRoot: THREE.Group | undefined;
-    meshes: Meshes;
+    mujocoRoot: (THREE.Group & Meshes) | undefined;
     bodies: { [key: number]: THREE.Group };
     lights: { [key: number]: THREE.Light };
     tmpVec: any;
@@ -24,7 +23,7 @@ class MujocoRenderer {
     camera: any;
     ambientLight: any;
     renderer: any;
-    // controls: any;
+    controls: any;
     // dragStateManager: any;
     model: Model | undefined;
     state: State | undefined;
@@ -63,31 +62,33 @@ class MujocoRenderer {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
-        // this.renderer.setAnimationLoop(this.render.bind(this));
+        this.renderer.setAnimationLoop(this.render.bind(this));
 
         this.container.appendChild(this.renderer.domElement);
 
-        // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        // this.controls.target.set(0, 0.7, 0);
-        // this.controls.panSpeed = 2;
-        // this.controls.zoomSpeed = 1;
-        // this.controls.enableDamping = true;
-        // this.controls.dampingFactor = 0.10;
-        // this.controls.screenSpacePanning = true;
-        // this.controls.update();
-
-        this.meshes = { cylinders: undefined as any, spheres: undefined as any }
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.target.set(0, 0.7, 0);
+        this.controls.panSpeed = 2;
+        this.controls.zoomSpeed = 1;
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.10;
+        this.controls.screenSpacePanning = true;
+        this.controls.update();
 
         window.addEventListener('resize', this.onWindowResize.bind(this));
     }
 
 
-    async init(model: Model, state: State, simulation: Simulation) {
+    async init(model: Model, state: State, simulation: Simulation, mujoco?: MujocoInstance) {
+        console.log("init called")
         this.setModels(model, state, simulation);
         // Initialize the three.js Scene using the .xml Model in initialScene
+        if (mujoco == undefined) {
+            mujoco = Kikyo.mujoco.instance as MujocoInstance;
+        }
         [this.model, this.state, this.simulation, this.bodies, this.lights, this.mujocoRoot] =
-            await loadSceneFromURL(Kikyo.mujoco.instance, this.model, this.state, this.simulation, this.scene);
-        this.renderer.setAnimationLoop(this.render.bind(this));
+            await loadSceneFromURL(mujoco, this.model, this.state, this.simulation, this.scene);
+        // this.renderer.setAnimationLoop(this.render.bind(this));
     }
 
     setModels(model: Model, state: State, simulation: Simulation) {
@@ -109,7 +110,7 @@ class MujocoRenderer {
             return;
         }
 
-        // this.controls.update();
+        this.controls.update();
 
         if (!this.params["paused"]) {
             let timestep = this.model.getOptions().timestep;
@@ -204,7 +205,7 @@ class MujocoRenderer {
 
         // Update tendon transforms.
         let numWraps = 0;
-        if (this.mujocoRoot && this.meshes.cylinders) {
+        if (this.mujocoRoot && this.mujocoRoot.cylinders) {
             let mat = new THREE.Matrix4();
             for (let t = 0; t < this.model.ntendon; t++) {
                 let startW = this.simulation.ten_wrapadr[t];
@@ -217,21 +218,21 @@ class MujocoRenderer {
                     let validStart = tendonStart.length() > 0.01;
                     let validEnd = tendonEnd.length() > 0.01;
 
-                    if (validStart) { this.meshes.spheres.setMatrixAt(numWraps, mat.compose(tendonStart, new THREE.Quaternion(), new THREE.Vector3(r, r, r))); }
-                    if (validEnd) { this.meshes.spheres.setMatrixAt(numWraps + 1, mat.compose(tendonEnd, new THREE.Quaternion(), new THREE.Vector3(r, r, r))); }
+                    if (validStart) { this.mujocoRoot.spheres.setMatrixAt(numWraps, mat.compose(tendonStart, new THREE.Quaternion(), new THREE.Vector3(r, r, r))); }
+                    if (validEnd) { this.mujocoRoot.spheres.setMatrixAt(numWraps + 1, mat.compose(tendonEnd, new THREE.Quaternion(), new THREE.Vector3(r, r, r))); }
                     if (validStart && validEnd) {
                         mat.compose(tendonAvg, new THREE.Quaternion().setFromUnitVectors(
                             new THREE.Vector3(0, 1, 0), tendonEnd.clone().sub(tendonStart).normalize()),
                             new THREE.Vector3(r, tendonStart.distanceTo(tendonEnd), r));
-                        this.meshes.cylinders.setMatrixAt(numWraps, mat);
+                        this.mujocoRoot.cylinders.setMatrixAt(numWraps, mat);
                         numWraps++;
                     }
                 }
             }
-            this.meshes.cylinders.count = numWraps;
-            this.meshes.spheres.count = numWraps > 0 ? numWraps + 1 : 0;
-            this.meshes.cylinders.instanceMatrix.needsUpdate = true;
-            this.meshes.spheres.instanceMatrix.needsUpdate = true;
+            this.mujocoRoot.cylinders.count = numWraps;
+            this.mujocoRoot.spheres.count = numWraps > 0 ? numWraps + 1 : 0;
+            this.mujocoRoot.cylinders.instanceMatrix.needsUpdate = true;
+            this.mujocoRoot.spheres.instanceMatrix.needsUpdate = true;
         }
 
         // Render!
