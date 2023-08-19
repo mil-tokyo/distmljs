@@ -82,6 +82,7 @@ class MujocoEnv extends Env {
     state: State | undefined;
     simulation: Simulation | undefined;
     renderer: MujocoRenderer | undefined;
+    time: number;
 
     constructor(envName: string, index: number, action_size: number, state_size: number, config?: {[key:string]:any}) {
         super(envName + "_" + index.toString(), action_size, state_size, config);
@@ -91,6 +92,7 @@ class MujocoEnv extends Env {
         if(config && config.visualize==true){
             this.renderer = new MujocoRenderer()
         }
+        this.time = 0
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
 
@@ -115,16 +117,30 @@ class MujocoEnv extends Env {
             return {} as Observation
         }
 
-        const force = { x: Math.random(), y: Math.random(), z: Math.random() }
-        const point = { x: Math.random(), y: Math.random(), z: Math.random() }
-        const bodyID = Math.floor(Math.random() * this.state_size);
+        const f = 1000000;
+        const force = { x: Math.random()*f, y: Math.random()*f, z: Math.random()*f }
+        const point = { x: 0, y: 0, z: 0 }
+        // const point = { x: Math.random(), y: Math.random(), z: Math.random() }
+        const bodyID = 0;
 
         this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
-        this.simulation.step();
+        // todo: forceのやり方を適切に
+        
+        const dt = 33
+        const timeMS = this.time + dt
+        let timestep = this.simulation.model().getOptions().timestep;
+        while (this.time < timeMS) {
+            for (let i = 0; i < this.simulation.qfrc_applied.length; i++) { this.simulation.qfrc_applied[i] = 0.0; }
+            // this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
+            this.simulation.step();
+            this.time += timestep * 1000.0;
+        }
+
         return await this.getObservation()
     }
 
     async reset(): Promise<Observation> {
+        //todo: vis用のMujocoRootのReset
         const mujoco = await Kikyo.mujoco.getOrCreateInstance();
         
         mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco2/" + this.sceneFile)).text());
@@ -141,6 +157,7 @@ class MujocoEnv extends Env {
         if(this.renderer){
             await this.renderer.init(this.model,this.state,this.simulation)
         }
+        this.time = 0
 
         return await this.getObservation()
     }

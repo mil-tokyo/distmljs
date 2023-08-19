@@ -1,4 +1,4 @@
-import { sleep, waitForClick, waitUntil } from "./Kikyo/source/Kikyo_utility";
+import { waitForClick, waitForSecond, waitUntil } from "./Kikyo/source/Kikyo_utility";
 import { MujocoEnv } from "./Kikyo/source/Kikyo_Env";
 import { MujocoRenderer } from "./Kikyo/mujoco/mujocoRenderer";
 
@@ -37,32 +37,8 @@ const testfunc2 = async () => {
   let ready: boolean = false;
   let loadfunc: any;
   const buildUrl = "sources/mujoco2";
-  // const buildUrl = "http://localhost:8083/static/sources/mujoco2";
-  // http://localhost:8083/static
 
-  const window_props = Object.getOwnPropertyNames(window);
-
-  // const loaderScript = document.createElement("script");
-  // loaderScript.src = buildUrl + "/mujoco_wasm.js";
-  // loaderScript.type = 'module';
-  // loaderScript.onload = async ()=>{
-  //   console.log('loaderScript onload');
-  //   console.log((window as any).load_mujoco);
-  //   console.log((window as any).mujoco_wasm);
-  //   console.log((window as any).mujocoWasm);
-  //   console.log(Object.getOwnPropertyNames(window).filter(v=>v.includes('joco')));
-  //   const window_props2 = Object.getOwnPropertyNames(window);
-  //   console.log(window_props.filter(v=>window_props2.includes(v)==false))
-  //   console.log(window_props2.filter(v=>window_props.includes(v)==false))
-  //   loadfunc=(window as any).load_mujoco;
-  //   console.log(loadfunc)
-  //   ready=true;
-  // }
-  // document.body.appendChild(loaderScript);
-
-  // await waitUntil(() => { return ready })
-  // ready = false;
-  // console.log('wait finish')
+  console.log('testfunc2');
 
   const loaderScript2 = document.createElement("script");
   loaderScript2.src = buildUrl + "/mujoco_loader.js";
@@ -73,10 +49,12 @@ const testfunc2 = async () => {
     await waitUntil(() => { return (window as any).mujoco_ready })
 
     const mujoco = (window as any).mujoco
-    var initialScene = "humanoid.xml";
+    console.log('mujoco_ready');
+
     mujoco.FS.mkdir('/working');
     mujoco.FS.mount(mujoco.MEMFS, { root: '.' }, '/working');
-    mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
+
+    console.log('mount');
 
     ready = true;
   }
@@ -89,6 +67,8 @@ const testfunc2 = async () => {
 
   var initialScene = "humanoid.xml";
   const mujoco = (window as any).mujoco
+  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
+
   const model = new mujoco.Model("/working/" + initialScene);
   console.log(model)
   const state = new mujoco.State(model);
@@ -97,18 +77,11 @@ const testfunc2 = async () => {
   console.log(simulation)
 
   console.log((window as any).mujoco.Simulation)
+  await waitForClick('load done. click to start rendering')
 
-  // const module = await import(buildUrl + "/mujoco_wasm.js")
-  // const {load_mujoco} = module;
+  const ren = new MujocoRenderer()
 
-  // const mujoco = await load_mujoco();
-
-
-  // const mujoco = await loadfunc();
-  // const mujoco_instance = await mujoco();
-
-
-  // console.log(mujoco)
+  await ren.init(model, state, simulation, mujoco)
 }
 
 const testfunc3 = async () => {
@@ -124,11 +97,66 @@ const testfunc3 = async () => {
 
   await waitForClick("wait for clk 2");
 
-  for (let i = 0; i < 10; i++) {
-    sleep(4000);
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.033);
     o = await env.step([]);
     console.log(o)
-    await waitForClick("wait for clk ...");
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+  
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.033);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+  
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
   }
   await waitForClick("wait for clk 3");
 
@@ -154,10 +182,8 @@ const testfunc4 = async () => {
     await waitUntil(() => { return (window as any).mujoco_ready })
 
     const mujoco = (window as any).mujoco
-    var initialScene = "flag.xml";
     mujoco.FS.mkdir('/working');
     mujoco.FS.mount(mujoco.MEMFS, { root: '.' }, '/working');
-    mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
 
     ready = true;
   }
@@ -165,8 +191,9 @@ const testfunc4 = async () => {
 
   await waitUntil(() => { return ready })
   ready = false;
-  var initialScene = "flag.xml";
+  var initialScene = "humanoid.xml";
   const mujoco = (window as any).mujoco
+  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
   const model = new mujoco.Model("/working/" + initialScene);
   console.log(model)
   const state = new mujoco.State(model);
@@ -184,11 +211,16 @@ const testfunc4 = async () => {
   await ren.init(model, state, simulation, mujoco)
 
   // await waitForClick('renderer init done. click to step')
-
+  let t = 0
+  for (let i = 0; i < 90; i++) {
+    t += 33
+    ren.step(t)
+    await waitForClick('click to simulate 1/30 sec')
+  }
 
 }
 
 
 window.addEventListener('load', async () => {
-  await testfunc4();
+  await testfunc3();
 });

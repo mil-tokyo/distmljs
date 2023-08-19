@@ -89,6 +89,8 @@ class MujocoRenderer {
         [this.model, this.state, this.simulation, this.bodies, this.lights, this.mujocoRoot] =
             await loadSceneFromURL(mujoco, this.model, this.state, this.simulation, this.scene);
         // this.renderer.setAnimationLoop(this.render.bind(this));
+
+        console.log(`simulation timestep=${this.model?.getOptions().timestep}`)
     }
 
     setModels(model: Model, state: State, simulation: Simulation) {
@@ -103,7 +105,7 @@ class MujocoRenderer {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    render(timeMS: number) {
+    step(timeMS: number){
         console.log(`render called: timeMS=${timeMS}`)
 
         if (this.model == undefined || this.state == undefined || this.simulation == undefined) {
@@ -113,6 +115,7 @@ class MujocoRenderer {
         this.controls.update();
 
         if (!this.params["paused"]) {
+            console.log(`not paused: timestep=${this.model.getOptions().timestep} timeMS=${timeMS}, mujoco_time=${this.mujoco_time}`)
             let timestep = this.model.getOptions().timestep;
             if (timeMS - this.mujoco_time > 35.0) { this.mujoco_time = timeMS; }
             while (this.mujoco_time < timeMS) {
@@ -154,6 +157,7 @@ class MujocoRenderer {
             }
 
         } else if (this.params["paused"]) {
+            console.log(`paused: timestep=${this.model.getOptions().timestep}`)
             // this.dragStateManager.update(); // Update the world-space force origin
             // let dragged = this.dragStateManager.physicsObject;
             // if (dragged && dragged.bodyID) {
@@ -183,6 +187,12 @@ class MujocoRenderer {
             // }
 
             this.simulation.forward();
+        }
+    }
+
+    render() {
+        if (this.model == undefined || this.state == undefined || this.simulation == undefined) {
+            return;
         }
 
         // Update body transforms.

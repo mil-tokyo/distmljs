@@ -13,6 +13,6 @@ var Module=typeof load_mujoco!="undefined"?load_mujoco:{};var readyPromiseResolv
 
 );
 })();
-// export default load_mujoco;
+export default load_mujoco;
 
-export {load_mujoco};
+// export {load_mujoco};
