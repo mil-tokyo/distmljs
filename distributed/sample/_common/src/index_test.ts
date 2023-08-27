@@ -1,6 +1,7 @@
 import { waitForClick, waitForSecond, waitUntil } from "./Kikyo/source/Kikyo_utility";
 import { MujocoEnv } from "./Kikyo/source/Kikyo_Env";
 import { MujocoRenderer } from "./Kikyo/mujoco/mujocoRenderer";
+import { getEnv } from "./Kikyo/exports";
 
 const testfunc = async () => {
   let ready: boolean = false;
@@ -36,7 +37,7 @@ const testfunc = async () => {
 const testfunc2 = async () => {
   let ready: boolean = false;
   let loadfunc: any;
-  const buildUrl = "sources/mujoco2";
+  const buildUrl = "sources/mujoco";
 
   console.log('testfunc2');
 
@@ -67,7 +68,7 @@ const testfunc2 = async () => {
 
   var initialScene = "humanoid.xml";
   const mujoco = (window as any).mujoco
-  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
+  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco/" + initialScene)).text());
 
   const model = new mujoco.Model("/working/" + initialScene);
   console.log(model)
@@ -177,7 +178,7 @@ const testfunc3 = async () => {
 }
 const testfunc4 = async () => {
   let ready: boolean = false;
-  const buildUrl = "sources/mujoco2";
+  const buildUrl = "sources/mujoco";
   const loaderScript2 = document.createElement("script");
   loaderScript2.src = buildUrl + "/mujoco_loader.js";
   loaderScript2.type = 'module';
@@ -198,7 +199,7 @@ const testfunc4 = async () => {
   ready = false;
   var initialScene = "humanoid.xml";
   const mujoco = (window as any).mujoco
-  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco2/" + initialScene)).text());
+  mujoco.FS.writeFile("/working/" + initialScene, await (await fetch("./sources/mujoco/" + initialScene)).text());
   const model = new mujoco.Model("/working/" + initialScene);
   console.log(model)
   const state = new mujoco.State(model);
@@ -226,6 +227,34 @@ const testfunc4 = async () => {
 }
 
 
+const testfunc5 = async () => {
+  //test with mujoco env
+  console.log("test 5")
+
+  const env = await getEnv('Mujoco_InvertedDoublePendulum')
+
+  await waitForClick("wait for clk 1");
+
+  var o = await env.reset();
+  console.log(o)
+
+  await waitForClick("wait for clk 2");
+
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.033);
+    o = await env.step([Math.random()-0.5]);
+    if(o.terminated){
+      console.log(o)
+      await waitForClick("terminated! wait for clk ...");      
+      o = await env.reset();
+    }
+    console.log(o)
+    await waitForClick("wait for clk ...");
+  }
+  // await waitForClick("wait for clk 3");
+}
+
+
 window.addEventListener('load', async () => {
-  await testfunc3();
+  await testfunc5();
 });

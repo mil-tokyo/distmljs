@@ -84,7 +84,7 @@ class KikyoGlobal {
         loaderReady: false,
         instance: null,
         createInstance: async (): Promise<MujocoInstance> => {
-            const buildUrl = "sources/mujoco2";
+            const buildUrl = "sources/mujoco";
             const loaderScript2 = document.createElement("script");
             loaderScript2.src = buildUrl + "/mujoco_loader.js";
             loaderScript2.type = 'module';

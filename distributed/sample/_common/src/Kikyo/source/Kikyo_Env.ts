@@ -85,6 +85,8 @@ class MujocoEnv extends Env {
     time: number;
     action_map: number[];
     dt: number;
+    max_steps: number;
+    steps: number;
 
     constructor(envName: string, index: number, action_size: number, state_size: number, action_map: number[], config?: { [key: string]: any }) {
         super(envName + "_" + index.toString(), action_size, state_size, config);
@@ -97,8 +99,13 @@ class MujocoEnv extends Env {
         this.time = 0
         this.action_map = action_map;
         this.dt = 33
+        this.steps = 0
+        this.max_steps = 1000
         if (config && 'dt' in config) {
             this.dt = config.dt
+        }
+        if (config && 'max_steps' in config) {
+            this.max_steps = config.max_steps
         }
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
@@ -110,7 +117,7 @@ class MujocoEnv extends Env {
         }
 
         const observation: Observation = {
-            terminated: false, state: [], reward_dict: {}
+            terminated: this.steps>=this.max_steps, state: [], reward_dict: {}
         }
 
         observation.state.push(...Array.from(this.simulation.xpos))
@@ -144,12 +151,11 @@ class MujocoEnv extends Env {
             this.simulation.step();
             this.time += timestep * 1000.0;
         }
-
+        this.steps++;
         return await this.getObservation()
     }
 
     async reset(): Promise<Observation> {
-        //todo: vis用のMujocoRootのReset
         const mujoco = await Kikyo.mujoco.getOrCreateInstance();
 
         if (this.simulation) {
@@ -160,7 +166,7 @@ class MujocoEnv extends Env {
             this.simulation = undefined;
         } else {
             //初回
-            mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco2/" + this.sceneFile)).text());
+            mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco/" + this.sceneFile)).text());
             console.log("/working/" + this.sceneFile)
         }
 
@@ -173,6 +179,8 @@ class MujocoEnv extends Env {
             await this.renderer.init(this.model, this.state, this.simulation)
         }
         this.time = 0
+        this.steps = 0
+        this.simulation.forward();
 
         return await this.getObservation()
     }
