@@ -19,7 +19,7 @@ class MujocoRenderer {
     tmpQuat: any;
     updateGUICallbacks: never[];
     container: HTMLDivElement;
-    scene: any;
+    scene: THREE.Scene;
     camera: any;
     ambientLight: any;
     renderer: any;
@@ -93,6 +93,13 @@ class MujocoRenderer {
         console.log(`simulation timestep=${this.model?.getOptions().timestep}`)
     }
 
+    async remove_models() {
+        const rootObject = this.scene.getObjectByName("MuJoCo Root");
+        if (rootObject) {
+            this.scene.remove(rootObject);
+        }
+    }
+
     setModels(model: Model, state: State, simulation: Simulation) {
         this.model = model;
         this.state = state;
@@ -105,7 +112,7 @@ class MujocoRenderer {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    step(timeMS: number){
+    step(timeMS: number) {
         console.log(`render called: timeMS=${timeMS}`)
 
         if (this.model == undefined || this.state == undefined || this.simulation == undefined) {

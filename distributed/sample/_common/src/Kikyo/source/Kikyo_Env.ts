@@ -83,16 +83,23 @@ class MujocoEnv extends Env {
     simulation: Simulation | undefined;
     renderer: MujocoRenderer | undefined;
     time: number;
+    action_map: number[];
+    dt: number;
 
-    constructor(envName: string, index: number, action_size: number, state_size: number, config?: {[key:string]:any}) {
+    constructor(envName: string, index: number, action_size: number, state_size: number, action_map: number[], config?: { [key: string]: any }) {
         super(envName + "_" + index.toString(), action_size, state_size, config);
         this.index = index
         this.envName = envName
         this.sceneFile = envName + ".xml"
-        if(config && config.visualize==true){
+        if (config && config.visualize == true) {
             this.renderer = new MujocoRenderer()
         }
         this.time = 0
+        this.action_map = action_map;
+        this.dt = 33
+        if (config && 'dt' in config) {
+            this.dt = config.dt
+        }
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
 
@@ -111,27 +118,29 @@ class MujocoEnv extends Env {
         return observation
     }
 
+    applyAction(action: number[]): void {
+        if (this.simulation == undefined) {
+            console.error("simulation is null")
+            return
+        }
+        for (let i = 0; i < action.length; i++) {
+            this.simulation.ctrl[this.action_map[i]] = action[i]
+        }
+    }
+
     async step(action: number[]): Promise<Observation> {
         if (this.simulation == undefined) {
             console.error("simulation is null")
             return {} as Observation
         }
 
-        const f = 1000000;
-        const force = { x: Math.random()*f, y: Math.random()*f, z: Math.random()*f }
-        const point = { x: 0, y: 0, z: 0 }
-        // const point = { x: Math.random(), y: Math.random(), z: Math.random() }
-        const bodyID = 0;
-
-        this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
-        // todo: forceのやり方を適切に
-        
-        const dt = 33
-        const timeMS = this.time + dt
+        const timeMS = this.time + this.dt
         let timestep = this.simulation.model().getOptions().timestep;
+
+        this.applyAction(action)
+
         while (this.time < timeMS) {
             for (let i = 0; i < this.simulation.qfrc_applied.length; i++) { this.simulation.qfrc_applied[i] = 0.0; }
-            // this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
             this.simulation.step();
             this.time += timestep * 1000.0;
         }
@@ -142,20 +151,26 @@ class MujocoEnv extends Env {
     async reset(): Promise<Observation> {
         //todo: vis用のMujocoRootのReset
         const mujoco = await Kikyo.mujoco.getOrCreateInstance();
-        
-        mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco2/" + this.sceneFile)).text());
 
-        console.log("/working/" + this.sceneFile)
-        
+        if (this.simulation) {
+            //2回目以降
+            this.simulation.free();
+            this.model = undefined;
+            this.state = undefined;
+            this.simulation = undefined;
+        } else {
+            //初回
+            mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco2/" + this.sceneFile)).text());
+            console.log("/working/" + this.sceneFile)
+        }
+
         this.model = new mujoco.Model("/working/" + this.sceneFile);
-        console.log(this.model)
         this.state = new mujoco.State(this.model);
-        console.log(this.state)
         this.simulation = new mujoco.Simulation(this.model, this.state);
-        console.log(this.simulation)
-        
-        if(this.renderer){
-            await this.renderer.init(this.model,this.state,this.simulation)
+
+        if (this.renderer) {
+            await this.renderer.remove_models()
+            await this.renderer.init(this.model, this.state, this.simulation)
         }
         this.time = 0
 

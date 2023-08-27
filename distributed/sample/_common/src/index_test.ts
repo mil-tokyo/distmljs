@@ -88,7 +88,7 @@ const testfunc3 = async () => {
   //test with mujoco env
   console.log("test 3")
 
-  const env = new MujocoEnv('humanoid', 0, 0, 10, { 'visualize': true })
+  const env = new MujocoEnv('humanoid', 0, 0, 10, [22, 16], { 'visualize': true })
 
   await waitForClick("wait for clk 1");
 
@@ -99,7 +99,7 @@ const testfunc3 = async () => {
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.033);
-    o = await env.step([]);
+    o = await env.step([0, 0]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
@@ -107,30 +107,34 @@ const testfunc3 = async () => {
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.01);
-    o = await env.step([]);
+    o = await env.step([-1, 0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
   await waitForClick("wait for clk 3");
+  o = await env.reset();
+  console.log(o)
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.01);
-    o = await env.step([]);
+    o = await env.step([1, -0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
   await waitForClick("wait for clk 3");
-  
+  o = await env.reset();
+  console.log(o)
+
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.01);
-    o = await env.step([]);
+    o = await env.step([-1, -0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
   await waitForClick("wait for clk 3");
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.033);
-    o = await env.step([]);
+    o = await env.step([1, 0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
@@ -138,7 +142,7 @@ const testfunc3 = async () => {
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.01);
-    o = await env.step([]);
+    o = await env.step([-1, 0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
@@ -146,20 +150,21 @@ const testfunc3 = async () => {
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.01);
-    o = await env.step([]);
-    console.log(o)
-    // await waitForClick("wait for clk ...");
-  }
-  await waitForClick("wait for clk 3");
-  
-  for (let i = 0; i < 100; i++) {
-    await waitForSecond(0.01);
-    o = await env.step([]);
+    o = await env.step([1, -0.8]);
     console.log(o)
     // await waitForClick("wait for clk ...");
   }
   await waitForClick("wait for clk 3");
 
+  for (let i = 0; i < 100; i++) {
+    await waitForSecond(0.01);
+    o = await env.step([-1, -0.8]);
+    console.log(o)
+    // await waitForClick("wait for clk ...");
+  }
+  await waitForClick("wait for clk 3");
+
+  //todo: resetがおかしい
   o = await env.reset();
   console.log(o)
 
