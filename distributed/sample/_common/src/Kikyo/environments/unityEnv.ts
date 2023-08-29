@@ -1,6 +1,7 @@
 import { Env, UnityEnv } from "../source/Kikyo_Env"
+import { KikyoConfig } from "../source/Kikyo_interface"
 
-function getOrCreateUnityEnv(name: string, index: number, action_size: number, state_size: number, config?: object): UnityEnv {
+function getOrCreateUnityEnv(name: string, index: number, action_size: number, state_size: number, config?: KikyoConfig): UnityEnv {
   const key = name + "_" + index.toString()
   if (Kikyo.activeEnv[key] instanceof UnityEnv) {
     // return cached env
@@ -10,13 +11,17 @@ function getOrCreateUnityEnv(name: string, index: number, action_size: number, s
   }
 }
 
-const unityEnvsGetter: { [key: string]: () => Promise<UnityEnv> } = {
-  "singlePendulum": async () => {
-    const env = getOrCreateUnityEnv("MultiplePendulum", 0, 8, 1, { "Pendulums": 1 });
+const unityEnvsGetter: { [key: string]: (config?: KikyoConfig) => UnityEnv } = {
+  "singlePendulum": (config?: KikyoConfig) => {
+    if (config == undefined) { config = {} }
+    config.Pendulums = 1
+    const env = getOrCreateUnityEnv("MultiplePendulum", 0, 8, 1, config);
     return env
   },
-  "doublePendulum": async () => {
-    const env = getOrCreateUnityEnv("MultiplePendulum", 0, 14, 1, { "Pendulums": 2 });
+  "doublePendulum": (config?: KikyoConfig) => {
+    if (config == undefined) { config = {} }
+    config.Pendulums = 2
+    const env = getOrCreateUnityEnv("MultiplePendulum", 0, 14, 1, config);
     return env
   },
 }

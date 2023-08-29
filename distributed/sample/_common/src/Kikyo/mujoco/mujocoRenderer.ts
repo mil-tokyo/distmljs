@@ -24,12 +24,14 @@ class MujocoRenderer {
     ambientLight: any;
     renderer: any;
     controls: any;
+    width: number;
+    height: number;
     // dragStateManager: any;
     model: Model | undefined;
     state: State | undefined;
     simulation: Simulation | undefined;
 
-    constructor() {
+    constructor(width: number = -1, height: number = -1) {
         // Define Random State Variables
         this.params = { paused: false, help: false, ctrlnoiserate: 0.0, ctrlnoisestd: 0.0, keyframeNumber: 0 };
         this.actuators = {}
@@ -53,13 +55,12 @@ class MujocoRenderer {
         this.scene.background = new THREE.Color(0.15, 0.25, 0.35);
         this.scene.fog = new THREE.Fog(this.scene.background, 15, 25.5);
 
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.ambientLight.name = 'AmbientLight';
         this.scene.add(this.ambientLight);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
         this.renderer.setAnimationLoop(this.render.bind(this));
@@ -75,7 +76,18 @@ class MujocoRenderer {
         this.controls.screenSpacePanning = true;
         this.controls.update();
 
-        window.addEventListener('resize', this.onWindowResize.bind(this));
+        this.width = width;
+        this.height = height;
+
+        const w = this.width <= 0 ? window.innerWidth : this.width;
+        const h = this.height <= 0 ? window.innerHeight : this.height;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+
+        if (this.width <= 0 || this.height <= 0) {
+            window.addEventListener('resize', this.onWindowResize.bind(this));
+        }
     }
 
 
@@ -107,9 +119,12 @@ class MujocoRenderer {
     }
 
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        // this.renderer.setSize(window.innerWidth, window.innerHeight);
+        const w = this.width <= 0 ? window.innerWidth : this.width;
+        const h = this.height <= 0 ? window.innerHeight : this.height;
+        this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(w, h);
     }
 
     step(timeMS: number) {

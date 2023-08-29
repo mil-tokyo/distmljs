@@ -89,7 +89,7 @@ const testfunc3 = async () => {
   //test with mujoco env
   console.log("test 3")
 
-  const env = new MujocoEnv('humanoid', 0, 0, 10, [22, 16], { 'visualize': true })
+  const env = new MujocoEnv('humanoid', 0, [22, 16], 10, 5, { 'visualize': true })
 
   await waitForClick("wait for clk 1");
 
@@ -223,15 +223,14 @@ const testfunc4 = async () => {
     ren.step(t)
     await waitForClick('click to simulate 1/30 sec')
   }
-
 }
-
 
 const testfunc5 = async () => {
   //test with mujoco env
   console.log("test 5")
 
-  const env = await getEnv('Mujoco_InvertedDoublePendulum')
+  // const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, })
+  const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, 'width': 600, 'height': 400 })
 
   await waitForClick("wait for clk 1");
 
@@ -242,10 +241,10 @@ const testfunc5 = async () => {
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.033);
-    o = await env.step([Math.random()-0.5]);
-    if(o.terminated){
+    o = await env.step([Math.random() - 0.5]);
+    if (o.terminated) {
       console.log(o)
-      await waitForClick("terminated! wait for clk ...");      
+      await waitForClick("terminated! wait for clk ...");
       o = await env.reset();
     }
     console.log(o)

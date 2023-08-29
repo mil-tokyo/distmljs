@@ -228,7 +228,8 @@ async function compute_actor(msg: {
   console.log(msg)
 
   // Initialize environment
-  let env = await getEnv(msg.env_id);
+  // let env = await getEnv(msg.env_id);
+  let env = await getEnv(msg.env_id, { 'visualize': true, 'width': 600, 'height': 400 })
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
@@ -348,7 +349,8 @@ async function compute_tester(msg: {
   }
 
   // Initialize environment
-  let env = await getEnv(msg.env_id);
+  // let env = await getEnv(msg.env_id);
+  let env = await getEnv(msg.env_id, { 'visualize': true, 'width': 600, 'height': 400 })
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
