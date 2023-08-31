@@ -24,12 +24,14 @@ class MujocoRenderer {
     ambientLight: any;
     renderer: any;
     controls: any;
+    width: number;
+    height: number;
     // dragStateManager: any;
     model: Model | undefined;
     state: State | undefined;
     simulation: Simulation | undefined;
 
-    constructor() {
+    constructor(width: number = -1, height: number = -1) {
         // Define Random State Variables
         this.params = { paused: false, help: false, ctrlnoiserate: 0.0, ctrlnoisestd: 0.0, keyframeNumber: 0 };
         this.actuators = {}
@@ -53,13 +55,12 @@ class MujocoRenderer {
         this.scene.background = new THREE.Color(0.15, 0.25, 0.35);
         this.scene.fog = new THREE.Fog(this.scene.background, 15, 25.5);
 
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.ambientLight.name = 'AmbientLight';
         this.scene.add(this.ambientLight);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
         this.renderer.setAnimationLoop(this.render.bind(this));
@@ -75,12 +76,24 @@ class MujocoRenderer {
         this.controls.screenSpacePanning = true;
         this.controls.update();
 
-        window.addEventListener('resize', this.onWindowResize.bind(this));
+        this.width = width;
+        this.height = height;
+
+        const w = this.width <= 0 ? window.innerWidth : this.width;
+        const h = this.height <= 0 ? window.innerHeight : this.height;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+
+        if (this.width <= 0 || this.height <= 0) {
+            window.addEventListener('resize', this.onWindowResize.bind(this));
+        }
     }
 
 
     async init(model: Model, state: State, simulation: Simulation, mujoco?: MujocoInstance) {
         console.log("init called")
+        await this.remove_models() // remove old simulation
         this.setModels(model, state, simulation);
         // Initialize the three.js Scene using the .xml Model in initialScene
         if (mujoco == undefined) {
@@ -98,6 +111,9 @@ class MujocoRenderer {
         if (rootObject) {
             this.scene.remove(rootObject);
         }
+        this.model = undefined;
+        this.state = undefined;
+        this.simulation = undefined;
     }
 
     setModels(model: Model, state: State, simulation: Simulation) {
@@ -107,95 +123,98 @@ class MujocoRenderer {
     }
 
     onWindowResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        // this.renderer.setSize(window.innerWidth, window.innerHeight);
+        const w = this.width <= 0 ? window.innerWidth : this.width;
+        const h = this.height <= 0 ? window.innerHeight : this.height;
+        this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(w, h);
     }
 
-    step(timeMS: number) {
-        console.log(`render called: timeMS=${timeMS}`)
+    // step(timeMS: number) {
+    //     console.log(`render called: timeMS=${timeMS}`)
 
-        if (this.model == undefined || this.state == undefined || this.simulation == undefined) {
-            return;
-        }
+    //     if (this.model == undefined || this.state == undefined || this.simulation == undefined) {
+    //         return;
+    //     }
 
-        this.controls.update();
+    //     this.controls.update();
 
-        if (!this.params["paused"]) {
-            console.log(`not paused: timestep=${this.model.getOptions().timestep} timeMS=${timeMS}, mujoco_time=${this.mujoco_time}`)
-            let timestep = this.model.getOptions().timestep;
-            if (timeMS - this.mujoco_time > 35.0) { this.mujoco_time = timeMS; }
-            while (this.mujoco_time < timeMS) {
+    //     if (!this.params["paused"]) {
+    //         console.log(`not paused: timestep=${this.model.getOptions().timestep} timeMS=${timeMS}, mujoco_time=${this.mujoco_time}`)
+    //         let timestep = this.model.getOptions().timestep;
+    //         if (timeMS - this.mujoco_time > 35.0) { this.mujoco_time = timeMS; }
+    //         while (this.mujoco_time < timeMS) {
 
-                // Jitter the control state with gaussian random noise
-                if (this.params["ctrlnoisestd"] > 0.0) {
-                    let rate = Math.exp(-timestep / Math.max(1e-10, this.params["ctrlnoiserate"]));
-                    let scale = this.params["ctrlnoisestd"] * Math.sqrt(1 - rate * rate);
-                    let currentCtrl = this.simulation.ctrl;
-                    for (let i = 0; i < currentCtrl.length; i++) {
-                        currentCtrl[i] = rate * currentCtrl[i] + scale * standardNormal();
-                        this.actuators[i] = currentCtrl[i];
-                    }
-                }
+    //             // Jitter the control state with gaussian random noise
+    //             if (this.params["ctrlnoisestd"] > 0.0) {
+    //                 let rate = Math.exp(-timestep / Math.max(1e-10, this.params["ctrlnoiserate"]));
+    //                 let scale = this.params["ctrlnoisestd"] * Math.sqrt(1 - rate * rate);
+    //                 let currentCtrl = this.simulation.ctrl;
+    //                 for (let i = 0; i < currentCtrl.length; i++) {
+    //                     currentCtrl[i] = rate * currentCtrl[i] + scale * standardNormal();
+    //                     this.actuators[i] = currentCtrl[i];
+    //                 }
+    //             }
 
-                // Clear old perturbations, apply new ones.
-                for (let i = 0; i < this.simulation.qfrc_applied.length; i++) { this.simulation.qfrc_applied[i] = 0.0; }
-                // let dragged = this.dragStateManager.physicsObject;
-                // if (dragged && dragged.bodyID) {
-                //     for (let b = 0; b < this.model.nbody; b++) {
-                //         if (this.bodies[b]) {
-                //             getPosition(this.simulation.xpos, b, this.bodies[b].position);
-                //             getQuaternion(this.simulation.xquat, b, this.bodies[b].quaternion);
-                //             this.bodies[b].updateWorldMatrix(false, false);
-                //         }
-                //     }
-                //     let bodyID = dragged.bodyID;
-                //     this.dragStateManager.update(); // Update the world-space force origin
-                //     let force = toMujocoPos(this.dragStateManager.currentWorld.clone().sub(this.dragStateManager.worldHit).multiplyScalar(this.model.body_mass[bodyID] * 250));
-                //     let point = toMujocoPos(this.dragStateManager.worldHit.clone());
-                //     this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
+    //             // Clear old perturbations, apply new ones.
+    //             for (let i = 0; i < this.simulation.qfrc_applied.length; i++) { this.simulation.qfrc_applied[i] = 0.0; }
+    //             // let dragged = this.dragStateManager.physicsObject;
+    //             // if (dragged && dragged.bodyID) {
+    //             //     for (let b = 0; b < this.model.nbody; b++) {
+    //             //         if (this.bodies[b]) {
+    //             //             getPosition(this.simulation.xpos, b, this.bodies[b].position);
+    //             //             getQuaternion(this.simulation.xquat, b, this.bodies[b].quaternion);
+    //             //             this.bodies[b].updateWorldMatrix(false, false);
+    //             //         }
+    //             //     }
+    //             //     let bodyID = dragged.bodyID;
+    //             //     this.dragStateManager.update(); // Update the world-space force origin
+    //             //     let force = toMujocoPos(this.dragStateManager.currentWorld.clone().sub(this.dragStateManager.worldHit).multiplyScalar(this.model.body_mass[bodyID] * 250));
+    //             //     let point = toMujocoPos(this.dragStateManager.worldHit.clone());
+    //             //     this.simulation.applyForce(force.x, force.y, force.z, 0, 0, 0, point.x, point.y, point.z, bodyID);
 
-                //     // TODO: Apply pose perturbations (mocap bodies only).
-                // }
+    //             //     // TODO: Apply pose perturbations (mocap bodies only).
+    //             // }
 
-                this.simulation.step();
+    //             this.simulation.step();
 
-                this.mujoco_time += timestep * 1000.0;
-            }
+    //             this.mujoco_time += timestep * 1000.0;
+    //         }
 
-        } else if (this.params["paused"]) {
-            console.log(`paused: timestep=${this.model.getOptions().timestep}`)
-            // this.dragStateManager.update(); // Update the world-space force origin
-            // let dragged = this.dragStateManager.physicsObject;
-            // if (dragged && dragged.bodyID) {
-            //     let b = dragged.bodyID;
-            //     getPosition(this.simulation.xpos, b, this.tmpVec, false); // Get raw coordinate from MuJoCo
-            //     getQuaternion(this.simulation.xquat, b, this.tmpQuat, false); // Get raw coordinate from MuJoCo
+    //     } else if (this.params["paused"]) {
+    //         console.log(`paused: timestep=${this.model.getOptions().timestep}`)
+    //         // this.dragStateManager.update(); // Update the world-space force origin
+    //         // let dragged = this.dragStateManager.physicsObject;
+    //         // if (dragged && dragged.bodyID) {
+    //         //     let b = dragged.bodyID;
+    //         //     getPosition(this.simulation.xpos, b, this.tmpVec, false); // Get raw coordinate from MuJoCo
+    //         //     getQuaternion(this.simulation.xquat, b, this.tmpQuat, false); // Get raw coordinate from MuJoCo
 
-            //     let offset = toMujocoPos(this.dragStateManager.currentWorld.clone()
-            //         .sub(this.dragStateManager.worldHit).multiplyScalar(0.3));
-            //     if (this.model.body_mocapid[b] >= 0) {
-            //         // Set the root body's mocap position...
-            //         console.log("Trying to move mocap body", b);
-            //         let addr = this.model.body_mocapid[b] * 3;
-            //         let pos = this.simulation.mocap_pos;
-            //         pos[addr + 0] += offset.x;
-            //         pos[addr + 1] += offset.y;
-            //         pos[addr + 2] += offset.z;
-            //     } else {
-            //         // Set the root body's position directly...
-            //         let root = this.model.body_rootid[b];
-            //         let addr = this.model.jnt_qposadr[this.model.body_jntadr[root]];
-            //         let pos = this.simulation.qpos;
-            //         pos[addr + 0] += offset.x;
-            //         pos[addr + 1] += offset.y;
-            //         pos[addr + 2] += offset.z;
-            //     }
-            // }
+    //         //     let offset = toMujocoPos(this.dragStateManager.currentWorld.clone()
+    //         //         .sub(this.dragStateManager.worldHit).multiplyScalar(0.3));
+    //         //     if (this.model.body_mocapid[b] >= 0) {
+    //         //         // Set the root body's mocap position...
+    //         //         console.log("Trying to move mocap body", b);
+    //         //         let addr = this.model.body_mocapid[b] * 3;
+    //         //         let pos = this.simulation.mocap_pos;
+    //         //         pos[addr + 0] += offset.x;
+    //         //         pos[addr + 1] += offset.y;
+    //         //         pos[addr + 2] += offset.z;
+    //         //     } else {
+    //         //         // Set the root body's position directly...
+    //         //         let root = this.model.body_rootid[b];
+    //         //         let addr = this.model.jnt_qposadr[this.model.body_jntadr[root]];
+    //         //         let pos = this.simulation.qpos;
+    //         //         pos[addr + 0] += offset.x;
+    //         //         pos[addr + 1] += offset.y;
+    //         //         pos[addr + 2] += offset.z;
+    //         //     }
+    //         // }
 
-            this.simulation.forward();
-        }
-    }
+    //         this.simulation.forward();
+    //     }
+    // }
 
     render() {
         if (this.model == undefined || this.state == undefined || this.simulation == undefined) {

@@ -18,15 +18,15 @@ interface KikyoMudule {
     getOrCreateInstance: () => Promise<any>,
 }
 
-interface KikyoMujocoMudule extends KikyoMudule{
-    instance : MujocoInstance | null
+interface KikyoMujocoMudule extends KikyoMudule {
+    instance: MujocoInstance | null
     createInstance: () => Promise<MujocoInstance>,
     getOrCreateInstance: () => Promise<MujocoInstance>,
 }
 
-interface KikyoUnityMudule extends KikyoMudule{
-    compress : boolean,
-    instance : UnityInstance | null,
+interface KikyoUnityMudule extends KikyoMudule {
+    compress: boolean,
+    instance: UnityInstance | null,
     createInstance: () => Promise<UnityInstance>,
     getOrCreateInstance: () => Promise<UnityInstance>,
 }
@@ -54,5 +54,6 @@ interface SendValue {
     Config?: object,
 }
 type KikyoUnityMethod = 'CreateEnvironment' | 'StepEnvironment' | 'ResetEnvironment'
+type KikyoConfig = { [key: string]: any }
 
-export { KikyoMudule, UnityInstance, KikyoMujocoMudule, KikyoUnityMudule, KikyoUnityMethod, SendValue, Observation, UnityArguments }
+export { KikyoMudule, UnityInstance, KikyoMujocoMudule, KikyoUnityMudule, KikyoUnityMethod, SendValue, Observation, UnityArguments, KikyoConfig }

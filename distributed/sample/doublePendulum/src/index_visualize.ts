@@ -86,7 +86,7 @@ async function compute_visualizer(msg: {
   }
 
   // Initialize environment
-  const env = await getEnv('Mujoco_InvertedDoublePendulum');
+  const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, 'width': 600, 'height': 400, 'max_steps': MAX_EPISODE_LEN });
   let { state, terminated, reward_dict } = await env.reset();
   let stateTensor = T.fromArray(state);
   let reward = Object.values(reward_dict).reduce((partialSum, a) => partialSum + a, 0);
@@ -96,6 +96,7 @@ async function compute_visualizer(msg: {
   while (btn_flag) {
 
     console.log('start new episode.');
+    console.log('むじょこのはぅ');
     ({ state, terminated, reward_dict } = await env.reset());
     stateTensor = T.fromArray(state);
     reward = Object.values(reward_dict).reduce((partialSum, a) => partialSum + a, 0);
@@ -112,19 +113,25 @@ async function compute_visualizer(msg: {
       if (rnd_move) {
         let rand_tmp = Math.random();
         action = Math.floor(rand_tmp * msg.nClasses);
+        console.log(`random move: ${action}`);
       } else {
         let state_input = new K.nn.Variable(await stateTensor.reshape([1, msg.inputShape]).to(backend));
         action = T.argmax((await (await model.call(state_input))[0].data.to('cpu')).reshape([msg.nClasses])).get(0);
+        console.log(`AI move: ${action}`);
       }
 
       // one step
       let env_action: number = 0;
+      console.log(`action: ${action}`);
       switch (action) {
         case 0:
           env_action = - 0.5;
+          break;
         case 1:
           env_action = + 0.5;
+          break;
       };
+      console.log(`env_action: ${env_action}`);
 
       ({ state, terminated, reward_dict } = await env.step([env_action]));
       stateTensor = T.fromArray(state);
@@ -143,7 +150,7 @@ async function compute_visualizer(msg: {
         writeEpRewardInfo("+" + String(ep_reward.toFixed(2)));
       }
 
-      await sleep(30);
+      await sleep(50);
 
       if (!btn_flag) {
         break

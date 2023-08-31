@@ -69,7 +69,7 @@ class Arguments():
         if self.save_weights:
             assert self.test_freq <= self.save_freq
             
-        self.experiment_name = "hockey-sparse-AIvsAI-random-01"
+        self.experiment_name = "MuJoCo-double-pendulum-00"
         if self.seed == "rand":
             self.seed = int(np.random.rand()*1000)
         

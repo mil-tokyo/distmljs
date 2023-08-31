@@ -8,7 +8,7 @@ import { makeModel } from './models';
 import { getEnv } from "./Kikyo/exports";
 
 let ws: WebSocket;
-let backend: K.Backend = 'webgl';
+let backend: K.Backend = 'cpu';
 
 const MAX_EPISODE_LEN = 200;
 
@@ -213,7 +213,7 @@ async function compute_actor(msg: {
   };
 
   // Initialize environment
-  const env = await getEnv('Mujoco_InvertedDoublePendulum');
+  const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': false, 'width': 600, 'height': 400, 'max_steps': MAX_EPISODE_LEN })
   let { state, terminated, reward_dict } = await env.reset();
   let stateTensor = T.fromArray(state);
   let reward = Object.values(reward_dict).reduce((partialSum, a) => partialSum + a, 0);
@@ -262,8 +262,10 @@ async function compute_actor(msg: {
     switch (action) {
       case 0:
         env_action = - 0.5;
+        break;
       case 1:
         env_action = + 0.5;
+        break;
     };
 
     ({ state, terminated, reward_dict } = await env.step([env_action]));
@@ -309,7 +311,7 @@ async function compute_actor(msg: {
     }
   }
 
-  await sleep(30);
+  await sleep(5);
 
   return true
 }
@@ -341,7 +343,7 @@ async function compute_tester(msg: {
   }
 
   // Initialize environment
-  const env = await getEnv('Mujoco_InvertedDoublePendulum');
+  const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, 'width': 600, 'height': 400, 'max_steps': MAX_EPISODE_LEN })
   let { state, terminated, reward_dict } = await env.reset();
   let stateTensor = T.fromArray(state);
   let reward = Object.values(reward_dict).reduce((partialSum, a) => partialSum + a, 0);

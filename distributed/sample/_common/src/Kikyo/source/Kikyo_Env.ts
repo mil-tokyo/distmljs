@@ -1,6 +1,6 @@
 import { Model, Simulation, State } from "../declaration/mujoco_wasm";
 import { KikyoGlobal } from "./Kikyo";
-import { KikyoUnityMethod, Observation, SendValue } from "./Kikyo_interface";
+import { KikyoConfig, KikyoUnityMethod, Observation, SendValue } from "./Kikyo_interface";
 import { MujocoRenderer } from "../mujoco/mujocoRenderer";
 
 window.Kikyo = window.Kikyo ?? new KikyoGlobal()
@@ -9,9 +9,9 @@ abstract class Env {
     name: string;
     state_size: number;
     action_size: number;
-    config: object;
+    config: KikyoConfig;
 
-    constructor(name: string, action_size: number, state_size: number, config?: object) {
+    constructor(name: string, action_size: number, state_size: number, config?: KikyoConfig) {
         this.name = name
         this.action_size = action_size;
         this.state_size = state_size;
@@ -22,7 +22,7 @@ abstract class Env {
         Kikyo.activeEnv[name] = this
     }
 
-    set_config(config: object) {
+    set_config(config: KikyoConfig) {
         this.config = { ...this.config, ...config };
     }
 
@@ -43,14 +43,14 @@ class UnityEnv extends Env {
     index: number;
     envName: string;
 
-    constructor(envName: string, index: number, action_size: number, state_size: number, config?: object) {
+    constructor(envName: string, index: number, action_size: number, state_size: number, config?: KikyoConfig) {
         super(envName + "_" + index.toString(), action_size, state_size, config);
         this.index = index
         this.envName = envName
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
 
-    UnityPromise(method: KikyoUnityMethod, action?: number[], config?: object): Promise<Observation> {
+    UnityPromise(method: KikyoUnityMethod, action?: number[], config?: KikyoConfig): Promise<Observation> {
         return new Promise<Observation>((resolve) => {
             const token = Math.random().toString(32).substring(2)
             Kikyo.callback[token] = (observation: Observation) => {
@@ -82,30 +82,31 @@ class MujocoEnv extends Env {
     state: State | undefined;
     simulation: Simulation | undefined;
     renderer: MujocoRenderer | undefined;
-    time: number;
     action_map: number[];
-    dt: number;
+    frame_skip: number;
     max_steps: number;
     steps: number;
 
-    constructor(envName: string, index: number, action_size: number, state_size: number, action_map: number[], config?: { [key: string]: any }) {
-        super(envName + "_" + index.toString(), action_size, state_size, config);
+    constructor(envName: string, index: number, action_map: number[], state_size: number, frame_skip: number, config?: KikyoConfig) {
+        super(envName + "_" + index.toString(), action_map.length, state_size, config);
         this.index = index
         this.envName = envName
         this.sceneFile = envName + ".xml"
-        if (config && config.visualize == true) {
-            this.renderer = new MujocoRenderer()
-        }
-        this.time = 0
         this.action_map = action_map;
-        this.dt = 33
+        this.frame_skip = frame_skip;
         this.steps = 0
         this.max_steps = 1000
-        if (config && 'dt' in config) {
-            this.dt = config.dt
+        if (config && 'max_steps' in config) {
+            this.max_steps = config.max_steps
         }
         if (config && 'max_steps' in config) {
             this.max_steps = config.max_steps
+        }
+        if (config && config.visualize == true) {
+            const w = config.width ? config.width : -1
+            const h = config.height ? config.height : -1
+            this.renderer = new MujocoRenderer(w, h)
+            this.reset_camera()
         }
         // example... envName: cartpole, index: 1, name: cartpole_1
     }
@@ -117,7 +118,7 @@ class MujocoEnv extends Env {
         }
 
         const observation: Observation = {
-            terminated: this.steps>=this.max_steps, state: [], reward_dict: {}
+            terminated: this.steps >= this.max_steps, state: [], reward_dict: {}
         }
 
         observation.state.push(...Array.from(this.simulation.xpos))
@@ -141,48 +142,46 @@ class MujocoEnv extends Env {
             return {} as Observation
         }
 
-        const timeMS = this.time + this.dt
-        let timestep = this.simulation.model().getOptions().timestep;
-
         this.applyAction(action)
 
-        while (this.time < timeMS) {
-            for (let i = 0; i < this.simulation.qfrc_applied.length; i++) { this.simulation.qfrc_applied[i] = 0.0; }
+        for (let i = 0; i < this.frame_skip; i++) {
+            for (let j = 0; j < this.simulation.qfrc_applied.length; j++) { this.simulation.qfrc_applied[j] = 0.0; }
             this.simulation.step();
-            this.time += timestep * 1000.0;
         }
         this.steps++;
         return await this.getObservation()
     }
 
     async reset(): Promise<Observation> {
+
         const mujoco = await Kikyo.mujoco.getOrCreateInstance();
 
-        if (this.simulation) {
+        if (this.simulation && this.model && this.state) {
             //2回目以降
-            this.simulation.free();
-            this.model = undefined;
-            this.state = undefined;
-            this.simulation = undefined;
+            this.simulation.resetData();
         } else {
             //初回
             mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco/" + this.sceneFile)).text());
             console.log("/working/" + this.sceneFile)
+            this.model = new mujoco.Model("/working/" + this.sceneFile);
+            this.state = new mujoco.State(this.model);
+            this.simulation = new mujoco.Simulation(this.model, this.state);
         }
 
-        this.model = new mujoco.Model("/working/" + this.sceneFile);
-        this.state = new mujoco.State(this.model);
-        this.simulation = new mujoco.Simulation(this.model, this.state);
 
         if (this.renderer) {
             await this.renderer.remove_models()
             await this.renderer.init(this.model, this.state, this.simulation)
         }
-        this.time = 0
         this.steps = 0
         this.simulation.forward();
 
         return await this.getObservation()
+    }
+
+    reset_camera() {
+        this.renderer?.camera.position.set(2.0, 1.7, 1.7)
+        this.renderer?.camera.lookAt(0, 0, 0)
     }
 }
 export { Env, UnityEnv, MujocoEnv }
