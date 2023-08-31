@@ -153,23 +153,21 @@ class MujocoEnv extends Env {
     }
 
     async reset(): Promise<Observation> {
+
         const mujoco = await Kikyo.mujoco.getOrCreateInstance();
 
-        if (this.simulation) {
+        if (this.simulation && this.model && this.state) {
             //2回目以降
-            this.simulation.free();
-            this.model = undefined;
-            this.state = undefined;
-            this.simulation = undefined;
+            this.simulation.resetData();
         } else {
             //初回
             mujoco.FS.writeFile("/working/" + this.sceneFile, await (await fetch("./sources/mujoco/" + this.sceneFile)).text());
             console.log("/working/" + this.sceneFile)
+            this.model = new mujoco.Model("/working/" + this.sceneFile);
+            this.state = new mujoco.State(this.model);
+            this.simulation = new mujoco.Simulation(this.model, this.state);
         }
 
-        this.model = new mujoco.Model("/working/" + this.sceneFile);
-        this.state = new mujoco.State(this.model);
-        this.simulation = new mujoco.Simulation(this.model, this.state);
 
         if (this.renderer) {
             await this.renderer.remove_models()

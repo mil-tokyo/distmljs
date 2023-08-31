@@ -1,8 +1,6 @@
 "experiment_config": 
   "n_actor_client_wait": 1                      # number of initinal actors
   "n_learner_client_wait" : 1                   # number of initial learners
-  "dataset_name": "doublePendulum"                        # [ "maze" ]
-  "model_name": "dmlp"                          # [ "dmlp" ]
   "batch_size": 256                             # minibatch size
   "adam": 1                                     # 1 for Adam, 0 for SGD
   "use_wandb": 0                                # 1 for using wandb, 0 for skip all process for wandb
@@ -11,8 +9,10 @@
   "save_weights_root_dir": "checkpoints"        # save dir
   "save_freq": 5000                            # frequency of saveing model
 
-  "env" : "doublePendulum"
-  "experiment_name" : "doublePendulum_test"
+  "env" : "Mujoco_InvertedDoublePendulum"
+  "experiment_name" : "mujoco_doublePendulum_test"
+  "dataset_name": "Mujoco_InvertedDoublePendulum"                        # [ "maze" ]
+  "model_name": "dmlp"                          # [ "dmlp" ]
 
 "hyperparameters":
   "training_options":

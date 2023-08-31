@@ -24,9 +24,9 @@ export class InvertedDoublePendulum extends MujocoEnv {
     const site_pos = this.simulation.site_xpos
     const constraint = this.simulation.qfrc_constraint
 
-    console.log('qpos', qpos)
-    console.log('tip', site_pos)
-    console.log('constraint', constraint)
+    // console.log('qpos', qpos)
+    // console.log('tip', site_pos)
+    // console.log('constraint', constraint)
 
     observation.state.push(qpos[0])
     observation.state.push(Math.sin(qpos[1]))
