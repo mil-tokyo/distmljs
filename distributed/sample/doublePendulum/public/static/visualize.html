@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kakiage Distributed Reinforcement Learning Visualizer</title>
+  <script src="./index_visualize.js"></script>
+  <link href="./index.css" rel="stylesheet" />
+</head>
+
+<body>
+  <h1>Kakiage Distributed Reinforcement Learning Visualizer</h1>
+  <div class="flex">
+    <div class="button"><a class="oneline" id="btn" href="#">最新のモデルに更新</a></div>
+  </div>
+  <div class="flex">
+    <div class="button">
+      <a class="oneline" id="init-random" href="#">
+        <div id="current-random-value"></div>
+      </a>
+    </div>
+    <input type="range" id="random" min="0" max="1" step="0.05" value="0" style="width:240px;">
+  </div>
+
+  <main>
+    <p id="state"></p>
+    <table>
+      <tbody>
+        <tr>
+          <td>Client id : </td>
+          <td id="table-id"></td>
+        </tr>
+        <tr>
+          <td>Exe type : </td>
+          <td id="table-type"></td>
+        </tr>
+        <tr>
+          <td>Load model : </td>
+          <td id="table-loadstatus"></td>
+        </tr>
+        <tr>
+          <td>Reward : </td>
+          <td id="table-reward"></td>
+        </tr>
+        <tr>
+          <td>Epsode reward : </td>
+          <td id="table-ep-reward"></td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+  <div id="game_canvas_wrapper">
+    <canvas id="game-canvas"></canvas>
+  </div>
+  <br><br><br><br><br>
+</body>
+
+</html>
