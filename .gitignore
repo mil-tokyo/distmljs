@@ -113,3 +113,6 @@ kakiage-document.zip
 
 # Mac file
 .DS_Store
+
+#vscode
+.vscode

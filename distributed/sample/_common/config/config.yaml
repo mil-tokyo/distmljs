@@ -1,0 +1,40 @@
+"experiment_config": 
+  "n_actor_client_wait": 1                      # number of initinal actors
+  "n_learner_client_wait" : 1                   # number of initial learners
+  "batch_size": 256                             # minibatch size
+  "adam": 1                                     # 1 for Adam, 0 for SGD
+  "use_wandb": 0                                # 1 for using wandb, 0 for skip all process for wandb
+  "prioritized": "LAP"                          # [ "rand" | "PER" | "LAP" ]
+  "save_weights": 1                             # 1 for save weights
+  "save_weights_root_dir": "checkpoints"        # save dir
+  "save_freq": 5000                            # frequency of saveing model
+
+  "env" : "Mujoco_InvertedDoublePendulum"
+  "experiment_name" : "mujoco_doublePendulum_test"
+  "dataset_name": "Mujoco_InvertedDoublePendulum"                        # [ "maze" ]
+  "model_name": "dmlp"                          # [ "dmlp" ]
+
+"hyperparameters":
+  "training_options":
+    "seed": "rand"                              # int or "rand"
+    "lr": 0.0006
+    "discount": 0.99
+    "target_update": 25                         # freqency for updating target model to global model
+    "train_step_num": 20000                   # number of max iteration
+    "start_timesteps": 50000                   # number of initial random data
+    "update_freq": 1                            # not in use, always set to 1
+    "weight_remain_epochs": 5                   # number of iterations for keeping old weights in server 
+
+  "testing_options": 
+    "test_freq": 5000                           # frequency for testing
+    "n_test_trials": 10                        # number of episodes for each testing
+    "n_trials": 5                               # number of experiments
+
+"load_checkpoint":
+  "continue_train": 0
+  "start_trial_id": 0
+  "start_iter": 0
+
+"visualization_config":
+
+
