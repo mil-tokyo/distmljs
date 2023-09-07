@@ -3,35 +3,34 @@ import { MujocoEnv } from "./Kikyo/source/Kikyo_Env";
 import { MujocoRenderer } from "./Kikyo/mujoco/mujocoRenderer";
 import { getEnv } from "./Kikyo/exports";
 
-const testfunc = async () => {
-  let ready: boolean = false;
+// const testfunc = async () => {
+//   let ready: boolean = false;
 
-  const buildUrl = "sources/mujoco";
+//   const buildUrl = "sources/mujoco";
 
-  const bufferscript = document.createElement("script");
-  bufferscript.src = buildUrl + "/buffer.js";
-  bufferscript.onload = () => { console.log('bufferscript onload'); ready = true; }
-  document.body.appendChild(bufferscript);
+//   const bufferscript = document.createElement("script");
+//   bufferscript.src = buildUrl + "/buffer.js";
+//   bufferscript.onload = () => { console.log('bufferscript onload'); ready = true; }
+//   document.body.appendChild(bufferscript);
 
-  await waitUntil(() => { return ready })
-  ready = false
+//   await waitUntil(() => { return ready })
+//   ready = false
 
-  const preparescript = document.createElement("script");
-  preparescript.src = buildUrl + "/mujoco_prepare.js";
-  preparescript.onload = () => { console.log('preparescript onload'); ready = true; }
-  document.body.appendChild(preparescript);
+//   const preparescript = document.createElement("script");
+//   preparescript.src = buildUrl + "/mujoco_prepare.js";
+//   preparescript.onload = () => { console.log('preparescript onload'); ready = true; }
+//   document.body.appendChild(preparescript);
 
-  await waitUntil(() => { return ready })
-  ready = false
+//   await waitUntil(() => { return ready })
+//   ready = false
 
-  const loaderScript = document.createElement("script");
-  loaderScript.src = buildUrl + "/mujoco_wasm.js";
-  loaderScript.onload = () => { console.log('loaderScript onload'); ready = true; }
-  document.body.appendChild(loaderScript);
+//   const loaderScript = document.createElement("script");
+//   loaderScript.src = buildUrl + "/mujoco_wasm.js";
+//   loaderScript.onload = () => { console.log('loaderScript onload'); ready = true; }
+//   document.body.appendChild(loaderScript);
 
-  await waitUntil(() => { return ready })
-  ready = false
-
+//   await waitUntil(() => { return ready })
+//   ready = false
 }
 
 const testfunc2 = async () => {
@@ -176,6 +175,7 @@ const testfunc3 = async () => {
   //   sleep(100);
   // }
 }
+
 // const testfunc4 = async () => {
 //   let ready: boolean = false;
 //   const buildUrl = "sources/mujoco";
@@ -229,15 +229,14 @@ const testfunc5 = async () => {
   //test with mujoco env
   console.log("test 5")
 
-  // const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, })
   const env = await getEnv('Mujoco_InvertedDoublePendulum', { 'visualize': true, 'width': 600, 'height': 400, 'max_steps': 100 })
 
-  await waitForClick("wait for clk 1");
+  // await waitForClick("wait for clk 1");
 
   var o = await env.reset();
   console.log(o)
 
-  await waitForClick("wait for clk 2");
+  // await waitForClick("wait for clk 2");
 
   for (let i = 0; i < 100; i++) {
     await waitForSecond(0.033);
@@ -248,7 +247,7 @@ const testfunc5 = async () => {
       o = await env.reset();
     }
     console.log(o)
-    await waitForClick("wait for clk ...");
+    // await waitForClick("wait for clk ...");
   }
 
   // for (let i = 0; i < 600000; i++) {
