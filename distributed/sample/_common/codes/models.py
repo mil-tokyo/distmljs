@@ -51,5 +51,7 @@ def get_io_shape(dataset):
         return 6, 4
     elif dataset == "doublePendulum":
         return 2+12, 2
+    elif dataset == "Mujoco_InvertedDoublePendulum":
+        return 11, 2
     else:
         raise NotImplementedError(f"Unknown dataset: {dataset}")

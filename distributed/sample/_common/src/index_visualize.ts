@@ -88,7 +88,7 @@ async function compute_visualizer(msg: {
 
   // Initialize environment
   let env = await getEnv(msg.env_id);
-  env.set_config({ EnableView: true })
+  env.set_config({ EnableView: true, visualize: true, width: 600, height: 400 })
   // let state = T.fromArray(env.reset(true, false));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
   let state: T, state_norm: T;

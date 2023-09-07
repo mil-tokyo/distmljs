@@ -228,7 +228,9 @@ async function compute_actor(msg: {
   console.log(msg)
 
   // Initialize environment
-  let env = await getEnv(msg.env_id);
+  // let env = await getEnv(msg.env_id);
+  // await waitForClick("compute_actor: before getEnv")
+  let env = await getEnv(msg.env_id, { 'visualize': false, 'width': 600, 'height': 400 })
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
@@ -244,6 +246,7 @@ async function compute_actor(msg: {
   // hardcode
   const discount = 0.99
 
+  // await waitForClick(`compute_actor: before Start episode: max_ep=${max_episode_len}`)
   // Start episode
   for (let step = 0; step < max_episode_len; step++) {
 
@@ -268,7 +271,7 @@ async function compute_actor(msg: {
     }
 
     // one step
-    let observation: Observation = await env.step([action])
+    let observation: Observation = await env.step([action - 0.5])
     let done = observation.terminated ? 1 : 0
     let reward = Object.values(observation.reward_dict).reduce((s, v) => s + v, 0)
     let next_state = observation.state
@@ -316,6 +319,7 @@ async function compute_actor(msg: {
       break;
     }
   }
+  // await waitForClick(`compute_actor: after all episode: max_ep=${max_episode_len}`)
 
   return true
 }
@@ -348,11 +352,12 @@ async function compute_tester(msg: {
   }
 
   // Initialize environment
-  let env = await getEnv(msg.env_id);
+  // let env = await getEnv(msg.env_id);
+  let env = await getEnv(msg.env_id, { 'visualize': false, 'width': 600, 'height': 400 })
   let state = T.fromArray((await env.reset()).state);
   let state_norm = T.fromArray([...Array(msg.inputShape).keys()].map((d) => { return state.get(d) }));
   // let state_norm = T.fromArray(env.normalize([...Array(6).keys()].map((d) => {return state.get(d)})));
-  const max_episode_len = 200; //todo
+  const max_episode_len = 500; //todo
 
   // Initialize buffer
   let buffer_reward = T.zeros([max_episode_len, 1]);
@@ -366,7 +371,7 @@ async function compute_tester(msg: {
     let action = T.argmax((await (await model.call(state_input))[0].data.to('cpu')).reshape([msg.nClasses])).get(0);
 
     // one step
-    let observation: Observation = await env.step([action]);
+    let observation: Observation = await env.step([action - 0.5]);
     console.log(observation)
 
     state = T.fromArray(observation.state);
