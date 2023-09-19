@@ -9,6 +9,7 @@ import {
   mseLoss,
   mul,
   log,
+  sqrt,
   relu,
   reshape,
   sigmoid,
@@ -72,6 +73,17 @@ for (const { backend, ctor } of [
         await z.backward();
         arrayNearlyEqual(await ta(y.data), [2.3026, -0.9163]);
         arrayNearlyEqual(await ta(x.grad!.data), [0.1, 2.5]);
+      });
+    });
+
+    describe('sqrt', () => {
+      it('forward, backward', async () => {
+        const x = new Variable(ctor.fromArray([10, 0.4]));
+        const y = await sqrt(x);
+        const z = await sum(y);
+        await z.backward();
+        arrayNearlyEqual(await ta(y.data), [3.1623, 0.6325]);
+        arrayNearlyEqual(await ta(x.grad!.data), [0.1581, 0.7906]);
       });
     });
 

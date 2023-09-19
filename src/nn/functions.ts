@@ -124,7 +124,15 @@ export class Div extends NNFunction {
     });
   }
 
-  // TODO: backward
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    if (!this.inputs) {
+      throw new Error();
+    }
+    const [lhs, rhs] = this.inputs;
+    const glhs = await new Div().c(gy, rhs);
+    const grhs = await new Div().c(gy, lhs);
+    return [glhs, grhs];
+  }
 }
 
 export async function add(lhs: Variable, rhs: Variable): Promise<Variable> {
@@ -200,6 +208,27 @@ export class Neg extends NNFunction {
 
 export async function neg(x: Variable): Promise<Variable> {
   return await new Neg().c(x);
+}
+
+export class Sqrt extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.sqrt(x)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const y = this.outputs?.[0]?.deref();
+    if (!y) {
+      throw new Error();
+    }
+    const gx = (await new Div().c(gy, await new Add().c(y, y)));
+    return [gx];
+  }
+}
+
+export async function sqrt(x: Variable): Promise<Variable> {
+  return await new Sqrt().c(x);
 }
 
 export class ReLUBackprop extends NNFunction {
