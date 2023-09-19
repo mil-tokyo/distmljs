@@ -164,6 +164,27 @@ export async function exp(x: Variable): Promise<Variable> {
   return await new Exp().c(x);
 }
 
+export class Log extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.log(x)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const x = this.inputs?.[0];
+    if (!x) {
+      throw new Error();
+    }
+    const gx = (await new Div().c(gy, x));
+    return [gx];
+  }
+}
+
+export async function log(x: Variable): Promise<Variable> {
+  return await new Log().c(x);
+}
+
 export class Neg extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {

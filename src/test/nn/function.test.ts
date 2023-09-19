@@ -8,6 +8,7 @@ import {
   matmul,
   mseLoss,
   mul,
+  log,
   relu,
   reshape,
   sigmoid,
@@ -60,6 +61,17 @@ for (const { backend, ctor } of [
         await y.backward();
         assert.deepEqual(await ta(y.data), [-10]);
         assert.deepEqual(await ta(x.grad!.data), [1, 1]);
+      });
+    });
+
+    describe('log', () => {
+      it('forward, backward', async () => {
+        const x = new Variable(ctor.fromArray([10, 0.4]));
+        const y = await log(x);
+        const z = await sum(y);
+        await z.backward();
+        arrayNearlyEqual(await ta(y.data), [2.3026, -0.9163]);
+        arrayNearlyEqual(await ta(x.grad!.data), [0.1, 2.5]);
       });
     });
 
