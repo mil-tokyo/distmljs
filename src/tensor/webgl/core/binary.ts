@@ -61,7 +61,7 @@ function binaryWrap(
     ctx.addKernel(
       kernelName,
       webglShaderHeader +
-        `
+      `
 ${shaderGenTensorOutputUniform(ndim, output.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_lhs', ndim, lhs.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_rhs', ndim, rhs.buffer.textureShape.dim, dtype)}
@@ -137,6 +137,15 @@ export function sigmoidBackprop(
 ): WebGLTensor {
   return binaryWrap(lhs, rhs, 'sigmoidBackprop', {
     float32: 'float v = (1.0 - v_l) * v_l * v_r;',
+  });
+}
+
+export function tanhBackprop(
+  lhs: WebGLTensor,
+  rhs: WebGLTensor
+): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'tanhBackprop', {
+    float32: 'float v = (1.0 - v_l * v_l) * v_r;',
   });
 }
 

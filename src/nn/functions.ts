@@ -235,6 +235,32 @@ export async function sigmoid(x: Variable): Promise<Variable> {
   return await new Sigmoid().c(x);
 }
 
+export class Tanh extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.tanh(x)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // Sigmoidと同様に作成
+    const y = this.outputs?.[0]?.deref();
+    if (!y) {
+      throw new Error();
+    }
+    const [gx] = genCall([y.data, gy.data], {
+      cpu: (c, [yd, gyd]) => [cpuCore.tanhBackprop(yd, gyd)],
+      webgl: (c, [yd, gyd]) => [webglCore.tanhBackprop(yd, gyd)],
+      webgpu: (c, [yd, gyd]) => [webgpuCore.tanhBackprop(yd, gyd)],
+    });
+    return [new Variable(gx)];
+  }
+}
+
+export async function tanh(x: Variable): Promise<Variable> {
+  return await new Tanh().c(x);
+}
+
 export class MatMul extends NNFunction {
   constructor(public transa = false, public transb = false) {
     super();

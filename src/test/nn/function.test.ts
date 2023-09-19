@@ -11,6 +11,7 @@ import {
   relu,
   reshape,
   sigmoid,
+  tanh,
   softmax,
   softmaxCrossEntropy,
   sub,
@@ -80,6 +81,17 @@ for (const { backend, ctor } of [
         arrayNearlyEqual(await ta(y.data), [0.8808, 0.9526]);
         await z.backward();
         arrayNearlyEqual(await ta(x.grad!.data), [0.105, 0.0452]);
+      });
+    });
+
+    describe('tanh', () => {
+      it('backprop of tanh', async () => {
+        const x = new Variable(ctor.fromArray([2, 3]));
+        const y = await tanh(x);
+        const z = await sum(y);
+        arrayNearlyEqual(await ta(y.data), [0.9640, 0.9951]);
+        await z.backward();
+        arrayNearlyEqual(await ta(x.grad!.data), [0.0707, 0.0099]);
       });
     });
 
