@@ -14,6 +14,7 @@ import {
   reshape,
   sigmoid,
   tanh,
+  softplus,
   softmax,
   softmaxCrossEntropy,
   sub,
@@ -116,6 +117,17 @@ for (const { backend, ctor } of [
         arrayNearlyEqual(await ta(y.data), [0.9640, 0.9951]);
         await z.backward();
         arrayNearlyEqual(await ta(x.grad!.data), [0.0707, 0.0099]);
+      });
+    });
+
+    describe('softplus', () => {
+      it('backprop of softplus', async () => {
+        const x = new Variable(ctor.fromArray([2, 3, -5]));
+        const y = await softplus(x);
+        const z = await sum(y);
+        arrayNearlyEqual(await ta(y.data), [2.1269, 3.0486, 0.0067]);
+        await z.backward();
+        arrayNearlyEqual(await ta(x.grad!.data), [0.8808, 0.9526, 0.0067]);
       });
     });
 

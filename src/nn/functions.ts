@@ -311,6 +311,27 @@ export async function tanh(x: Variable): Promise<Variable> {
   return await new Tanh().c(x);
 }
 
+export class Softplus extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.log(c.add(c.full(x.shape, 1), c.exp(x)))],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const x = this.inputs?.[0];
+    if (!x) {
+      throw new Error();
+    }
+    const gx = (await mul(await sigmoid(x), gy));
+    return [gx];
+  }
+}
+
+export async function softplus(x: Variable): Promise<Variable> {
+  return await new Softplus().c(x);
+}
+
 export class MatMul extends NNFunction {
   constructor(public transa = false, public transb = false) {
     super();
