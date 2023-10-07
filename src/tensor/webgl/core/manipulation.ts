@@ -77,3 +77,63 @@ void main() {
   ctx.runKernel(kernelName, tensors.map((t, i) => ({ tensor: t, name: `tex_${i}` })), output, uniforms);
   return output;
 }
+
+export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<ReadonlyArray<number>>, axis: number): WebGLTensor[] {
+  assertFloat32R([gy], 'cat_backprop_webgl');
+  const dtype = gy.dtype;
+  const axisOffsets: number[] = [];
+  let ofs = 0;
+  for (let i = 0; i < shapes.length; ++i) {
+    axisOffsets.push(ofs);
+    ofs += shapes[i][axis];
+  }
+
+  const gxs: WebGLTensor[] = [];
+
+  const ctx = getNNWebGLContext();
+
+  for (let i = 0; i < shapes.length; ++i) {
+    const axisOffset = axisOffsets[i];
+    const gx = WebGLTensor.empty(shapes[i], dtype);
+    gxs.push(gx);
+    const gxShape = gx.shape;
+    const ndim = gxShape.length;
+
+    const kernelName = `catbackprop_${dtype}_${ndim}_${axis}_${makeTensorDimKey(gx, gy)}`;
+    if (!ctx.hasKernel(kernelName)) {
+      const get_tex_idxs: string[] = [];
+      for (let d = 0; d < ndim; d++) {
+        if (d === axis) {
+          get_tex_idxs.push(`tex_output_${d} + axis_offset`);
+        } else {
+          get_tex_idxs.push(`tex_output_${d}`);
+        }
+      }
+      const get_tex_idxs_str = get_tex_idxs.join(', ');
+      ctx.addKernel(
+        kernelName,
+        webglShaderHeader +
+        `
+        uniform int axis_offset;
+  ${shaderGenTensorNDGet('tex_input', ndim, gy.buffer.textureShape.dim, dtype)}
+  ${shaderGenTensorOutputUniform(ndim, gx.buffer.textureShape.dim, dtype)}
+  void main() {
+    ${shaderGenTensorOutputCoordsWithReturn(ndim, gx.buffer.textureShape.dim)}
+  
+    int axis_idx;
+    float v = get_tex_input(${get_tex_idxs_str});
+    ${shaderGenOutput('v', dtype)};
+  }
+  `
+      );
+    }
+
+
+    ctx.runKernel(kernelName, [{ tensor: gy, name: 'tex_input' }], gx, [
+      ...shaderGenTensorOutputUniformItem(gx),
+      ...shaderGenTensorNDGetUniformItem('tex_input', gy),
+      { name: 'axis_offset', value: axisOffset, type: 'int' },
+    ]);
+  }
+  return gxs;
+}

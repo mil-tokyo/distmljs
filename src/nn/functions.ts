@@ -64,6 +64,7 @@ import {
 import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 import { bmm_cpu } from '../tensor/cpu/core';
 import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
+import { cat_backprop_webgl } from '../tensor/webgl/core/manipulation';
 
 export async function broadcastTo(
   x: Variable,
@@ -650,7 +651,7 @@ export class Cat extends NNFunction {
     // TODO: backprop可能にする
     const gxs = genCall([gy.data], {
       cpu: (c, [gy]) => cat_backprop_cpu(gy, inputShapes, this.axis),
-      // TODO: webgl
+      webgl: (c, [gy]) => cat_backprop_webgl(gy, inputShapes, this.axis),
     });
     return gxs.map((gx) => new Variable(gx));
   }
