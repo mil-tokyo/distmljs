@@ -154,4 +154,10 @@ export interface TensorStatic<B extends Tensor> {
   squeeze: (input: B, dim?: number) => B;
   unsqueeze: (input: B, dim: number) => B;
   full: (shape: ArrayLike<number>, fillValue: number, dtype?: DType) => B;
+  cat(tensors: ReadonlyArray<B>, axis?: number): B;
+  split(
+    x: B,
+    split_size_or_sections: number | number[],
+    dim?: number
+  ): B[];
 }

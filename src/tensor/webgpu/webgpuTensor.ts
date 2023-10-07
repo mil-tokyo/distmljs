@@ -570,4 +570,16 @@ export class WebGPUTensor extends Tensor {
     data.fill(fillValue);
     return WebGPUTensor.fromArray(data, shape, dtype);
   }
+
+  static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
+    throw new Error('Not implemented');
+  }
+
+  static split(
+    x: WebGPUTensor,
+    split_size_or_sections: number | number[],
+    dim = 0
+  ): WebGPUTensor[] {
+    throw new Error('Not implemented');
+  }
 }
