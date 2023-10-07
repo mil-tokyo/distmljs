@@ -666,6 +666,35 @@ export async function cat(xs: ReadonlyArray<Variable>, axis = 0): Promise<Variab
   return new Cat(axis).c(...xs);
 }
 
+
+export class Split extends NNFunction {
+  constructor(readonly split_size_or_sections: number | number[],
+    readonly dim: number) {
+    super();
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      cpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+      webgl: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+    });
+  }
+
+  async backward(gys: Variable[]): Promise<Variable[]> {
+    return [await new Cat(this.dim).c(...gys)];
+  }
+}
+
+/**
+ * Split variables into multiple variables.
+ * @param xs
+ * @returns
+ */
+export async function split(x: Variable, split_size_or_sections: number | number[],
+  dim = 0): Promise<Variable[]> {
+  return new Split(split_size_or_sections, dim).call(x);
+}
+
 export interface MaxPool2dParamsReturnIndicesFalse {
   kernelSize: number;
   stride?: number;
