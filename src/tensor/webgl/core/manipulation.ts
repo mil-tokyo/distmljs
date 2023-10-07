@@ -1,3 +1,4 @@
+import { arraySum } from '../../../util';
 import { calcCatShape } from '../../shapeUtil';
 import { WebGLUniformItem, getNNWebGLContext } from '../webglContext';
 import { WebGLTensor } from '../webglTensor';
@@ -136,4 +137,40 @@ export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<Readon
     ]);
   }
   return gxs;
+}
+
+export function split(
+  x: WebGLTensor,
+  split_size_or_sections: number | number[],
+  dim = 0
+): WebGLTensor[] {
+  const dimShape: number[] = []; //dim次元における変更後の大きさ
+  if (typeof split_size_or_sections === 'number') {
+    const size = split_size_or_sections;
+    const num = Math.ceil(x.shape[dim] / size);
+    for (let i = 0; i < num; ++i) {
+      if (i < num - 1) {
+        dimShape[i] = size;
+      } else {
+        dimShape[i] = x.shape[dim] - size * (num - 1);
+      }
+    }
+  } else {
+    if (arraySum(split_size_or_sections) != x.shape[dim]) {
+      throw new Error('split: sum of split size and tensor size must match');
+    }
+    const num = split_size_or_sections.length;
+    for (let i = 0; i < num; ++i) {
+      dimShape[i] = split_size_or_sections[i];
+    }
+  }
+
+  const yShapes: number[][] = [];
+  for (let i = 0; i < dimShape.length; ++i) {
+    const yShape = x.shape.slice();
+    yShape[dim] = dimShape[i];
+    yShapes.push(yShape);
+  }
+
+  return cat_backprop_webgl(x, yShapes, dim);
 }

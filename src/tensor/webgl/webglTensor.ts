@@ -17,7 +17,7 @@ import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
-import { cat } from './core/manipulation';
+import { cat, split } from './core/manipulation';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -1016,5 +1016,13 @@ export class WebGLTensor extends Tensor {
 
   static cat(tensors: ReadonlyArray<WebGLTensor>, axis = 0): WebGLTensor {
     return cat(tensors, axis);
+  }
+
+  static split(
+    x: WebGLTensor,
+    split_size_or_sections: number | number[],
+    dim = 0
+  ): WebGLTensor[] {
+    return split(x, split_size_or_sections, dim);
   }
 }

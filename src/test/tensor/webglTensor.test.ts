@@ -243,4 +243,83 @@ describe('webglTensor', () => {
       assert.deepEqual(cpu.get(0, 2, 7), 111);
     });
   });
+
+  describe('split', () => {
+    it('split 1', async () => {
+      const x = WebGLTensor.fromArray([1, 2, 3, 4, 5], [5]);
+      const y = WebGLTensor.split(x, 3);
+      assert.deepEqual(y[0].shape, [3]);
+      assert.deepEqual(y[1].shape, [2]);
+      assert.deepEqual(await y[0].toArrayAsync(), [1, 2, 3]);
+      assert.deepEqual(await y[1].toArrayAsync(), [4, 5]);
+    });
+
+    it('split 2', async () => {
+      const x = WebGLTensor.fromArray([1], [1]);
+      const y = WebGLTensor.split(x, 10);
+      assert.deepEqual(y[0].shape, [1]);
+      assert.deepEqual(await y[0].toArrayAsync(), [1]);
+    });
+
+    it('split 2d 1', async () => {
+      const x = WebGLTensor.fromArray([1, 2, 3, 4], [2, 2]);
+      const y = WebGLTensor.split(x, 1, 1);
+      assert.deepEqual(y[0].shape, [2, 1]);
+      assert.deepEqual(y[1].shape, [2, 1]);
+      assert.deepEqual(await y[0].toArrayAsync(), [1, 3]);
+      assert.deepEqual(await y[1].toArrayAsync(), [2, 4]);
+    });
+
+    it('split 2d 2', async () => {
+      const x = WebGLTensor.fromArray([1, 2, 3, 4, 5, 6], [3, 2]);
+      const y = WebGLTensor.split(x, [1, 2]);
+      assert.deepEqual(y[0].shape, [1, 2]);
+      assert.deepEqual(y[1].shape, [2, 2]);
+      assert.deepEqual(await y[0].toArrayAsync(), [1, 2]);
+      assert.deepEqual(await y[1].toArrayAsync(), [3, 4, 5, 6]);
+    });
+
+    it('split 3d 1', async () => {
+      const x = WebGLTensor.fromArray(arange(100, 100 + 3 * 2 * 4), [3, 2, 4]);
+      const y = WebGLTensor.split(x, [1, 2]);
+      assert.deepEqual(y[0].shape, [1, 2, 4]);
+      assert.deepEqual(y[1].shape, [2, 2, 4]);
+      assert.deepEqual(
+        await y[0].toArrayAsync(),
+        [100, 101, 102, 103, 104, 105, 106, 107]
+      );
+      assert.deepEqual(
+        await y[1].toArrayAsync(),
+        [108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+          122, 123]
+      );
+    });
+
+    it('split 3d 2', async () => {
+      const x = WebGLTensor.fromArray(arange(100, 100 + 3 * 4 * 4), [3, 4, 4]);
+      const y = WebGLTensor.split(x, [1, 2, 1], 2);
+      assert.deepEqual(y[0].shape, [3, 4, 1]);
+      assert.deepEqual(y[1].shape, [3, 4, 2]);
+      assert.deepEqual(y[2].shape, [3, 4, 1]);
+      assert.deepEqual(await y[0].toArrayAsync(), [100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144]);
+      assert.deepEqual(
+        await y[1].toArrayAsync(),
+        [101, 102, 105, 106, 109, 110, 113, 114, 117, 118, 121, 122, 125, 126,
+          129, 130, 133, 134, 137, 138, 141, 142, 145, 146]
+      );
+      assert.deepEqual(await y[2].toArrayAsync(), [103, 107, 111, 115, 119, 123, 127, 131, 135, 139, 143, 147]);
+    });
+
+    it('split 3d 3', async () => {
+      const x = WebGLTensor.fromArray(
+        [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
+        [2, 3, 2]
+      );
+      const y = WebGLTensor.split(x, [1, 2], 1);
+      assert.deepEqual(y[0].shape, [2, 1, 2]);
+      assert.deepEqual(y[1].shape, [2, 2, 2]);
+      assert.deepEqual(await y[0].toArrayAsync(), [1, 2, 1, 2]);
+      assert.deepEqual(await y[1].toArrayAsync(), [3, 4, 5, 6, 3, 4, 5, 6]);
+    });
+  });
 });
