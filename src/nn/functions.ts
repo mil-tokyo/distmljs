@@ -63,6 +63,7 @@ import {
 } from '../tensor/cpu/nnfunction/embedding';
 import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 import { bmm_cpu } from '../tensor/cpu/core';
+import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
 
 export async function broadcastTo(
   x: Variable,
@@ -624,6 +625,44 @@ export class Flatten extends NNFunction {
  */
 export async function flatten(x: Variable): Promise<Variable> {
   return new Flatten().c(x);
+}
+
+
+export class Cat extends NNFunction {
+  private inputShapes?: ReadonlyArray<number>[];
+  constructor(readonly axis: number) {
+    super();
+  }
+
+  async forward(xs: Tensor[]): Promise<Tensor[]> {
+    this.inputShapes = xs.map(x => x.shape);
+    return genCall(xs, {
+      cpu: (c, xs) => [c.cat(xs, this.axis)],
+      webgl: (c, xs) => [c.cat(xs, this.axis)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const inputShapes = this.inputShapes;
+    if (!inputShapes) {
+      throw new Error();
+    }
+    // TODO: backprop可能にする
+    const gxs = genCall([gy.data], {
+      cpu: (c, [gy]) => cat_backprop_cpu(gy, inputShapes, this.axis),
+      // TODO: webgl
+    });
+    return gxs.map((gx) => new Variable(gx));
+  }
+}
+
+/**
+ * Concatenate variables into one variable.
+ * @param xs
+ * @returns
+ */
+export async function cat(xs: ReadonlyArray<Variable>, axis = 0): Promise<Variable> {
+  return new Cat(axis).c(...xs);
 }
 
 export interface MaxPool2dParamsReturnIndicesFalse {

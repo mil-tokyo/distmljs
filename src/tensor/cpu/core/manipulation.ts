@@ -235,6 +235,44 @@ export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
   return y;
 }
 
+
+export function cat_backprop_cpu(gy: CPUTensor, shapes: ReadonlyArray<ReadonlyArray<number>>, axis: number): CPUTensor[] {
+  const axisOffsets: number[] = [];
+  let ofs = 0;
+  for (let i = 0; i < shapes.length; ++i) {
+    axisOffsets.push(ofs);
+    ofs += shapes[i][axis];
+  }
+
+  const gxs = shapes.map((shape) => CPUTensor.zeros(shape, gy.dtype));
+
+  for (let i = 0; i < shapes.length; ++i) {
+    const axisOffset = axisOffsets[i];
+    const gx = gxs[i];
+    const gxShape = gx.shape;
+    const gxStrides = gx.strides;
+    const ndim = gxShape.length;
+    const gyStrides = gy.strides;
+    const dgy = gy.getBuffer().data;
+    const dgx = gx.getBuffer().data;
+    const length = dgx.length;
+    for (let j = 0; j < length; ++j) {
+      let idx = axisOffset * gyStrides[axis];
+      for (let d = 0; d < ndim; d++) {
+        // k: index along axis d
+        let k = Math.floor(j / gxStrides[d]) % gxShape[d];
+        // if (d === axis) {
+        //   k += axisOffset;
+        // }
+        idx += k * gyStrides[d];
+      }
+      dgx[j] = dgy[idx];
+    }
+  }
+
+  return gxs;
+}
+
 function chunkSub(
   dx: TypedArrayTypes,
   xShape: ReadonlyArray<number>,
