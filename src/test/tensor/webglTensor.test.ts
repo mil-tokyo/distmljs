@@ -5,6 +5,7 @@ import {
 } from '../../tensor/webgl/webglTensor';
 import { testFlag } from '../testFlag';
 import { arrayNearlyEqual } from '../testUtil';
+import { arange } from '../../util';
 
 describe('webglTensor', () => {
   if (!testFlag.webgl) {

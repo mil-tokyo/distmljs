@@ -63,6 +63,8 @@ import {
 } from '../tensor/cpu/nnfunction/embedding';
 import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 import { bmm_cpu } from '../tensor/cpu/core';
+import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
+import { cat_backprop_webgl } from '../tensor/webgl/core/manipulation';
 
 export async function broadcastTo(
   x: Variable,
@@ -624,6 +626,73 @@ export class Flatten extends NNFunction {
  */
 export async function flatten(x: Variable): Promise<Variable> {
   return new Flatten().c(x);
+}
+
+
+export class Cat extends NNFunction {
+  private inputShapes?: ReadonlyArray<number>[];
+  constructor(readonly axis: number) {
+    super();
+  }
+
+  async forward(xs: Tensor[]): Promise<Tensor[]> {
+    this.inputShapes = xs.map(x => x.shape);
+    return genCall(xs, {
+      cpu: (c, xs) => [c.cat(xs, this.axis)],
+      webgl: (c, xs) => [c.cat(xs, this.axis)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const inputShapes = this.inputShapes;
+    if (!inputShapes) {
+      throw new Error();
+    }
+    // TODO: backprop可能にする
+    const gxs = genCall([gy.data], {
+      cpu: (c, [gy]) => cat_backprop_cpu(gy, inputShapes, this.axis),
+      webgl: (c, [gy]) => cat_backprop_webgl(gy, inputShapes, this.axis),
+    });
+    return gxs.map((gx) => new Variable(gx));
+  }
+}
+
+/**
+ * Concatenate variables into one variable.
+ * @param xs
+ * @returns
+ */
+export async function cat(xs: ReadonlyArray<Variable>, axis = 0): Promise<Variable> {
+  return new Cat(axis).c(...xs);
+}
+
+
+export class Split extends NNFunction {
+  constructor(readonly split_size_or_sections: number | number[],
+    readonly dim: number) {
+    super();
+  }
+
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      cpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+      webgl: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+    });
+  }
+
+  async backward(gys: Variable[]): Promise<Variable[]> {
+    return [await new Cat(this.dim).c(...gys)];
+  }
+}
+
+/**
+ * Split variables into multiple variables.
+ * @param xs
+ * @returns
+ */
+export async function split(x: Variable, split_size_or_sections: number | number[],
+  dim = 0): Promise<Variable[]> {
+  return new Split(split_size_or_sections, dim).call(x);
 }
 
 export interface MaxPool2dParamsReturnIndicesFalse {

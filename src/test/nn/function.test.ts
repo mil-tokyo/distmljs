@@ -2,7 +2,9 @@
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import {
+  add,
   bmm,
+  cat,
   flatten,
   linear,
   matmul,
@@ -13,6 +15,7 @@ import {
   sigmoid,
   softmax,
   softmaxCrossEntropy,
+  split,
   sub,
   sum,
   transpose,
@@ -432,6 +435,63 @@ for (const { backend, ctor } of [
         const s = await sum(y);
         await s.backward();
         assert.deepEqual(await ta(x.grad!.data), arange(100, 124));
+      });
+    });
+
+    describe('cat', () => {
+      it('forward, backward', async () => {
+        const x1 = new Variable(ctor.fromArray(arange(2 * 3), [2, 3]));
+        const x2 = new Variable(ctor.fromArray(arange(100, 100 + 2 * 4), [2, 4]));
+        const x3 = new Variable(ctor.fromArray(arange(200, 200 + 2 * 7), [2, 7]));
+        const xr = await cat([x1, x2, x3], 1);
+        assert.deepEqual(xr.data.shape, [2, 14]);
+        assert.deepEqual(
+          await ta(xr.data),
+          [0, 1, 2, 100, 101, 102, 103, 200, 201, 202, 203, 204, 205, 206, 3, 4, 5, 104, 105, 106, 107, 207, 208, 209, 210, 211, 212, 213]
+        );
+        const weight = new Variable(ctor.fromArray(arange(100, 128), [2, 14]));
+        const y = await mul(xr, weight);
+        const s = await sum(y);
+        await s.backward();
+        assert.deepEqual(await ta(x1.grad!.data), [100, 101, 102, 114, 115, 116]);
+        assert.deepEqual(await ta(x2.grad!.data), [103, 104, 105, 106, 117, 118, 119, 120]);
+        assert.deepEqual(await ta(x3.grad!.data), [107, 108, 109, 110, 111, 112, 113, 121, 122, 123, 124, 125, 126, 127]);
+      });
+    });
+
+    describe('split', () => {
+      it('forward, backward', async () => {
+        const x = new Variable(ctor.fromArray(arange(100, 100 + 3 * 4 * 4), [3, 4, 4]));
+        const xr = await split(x, [1, 2, 1], 2);
+        assert.deepEqual(xr[0].data.shape, [3, 4, 1]);
+        assert.deepEqual(xr[1].data.shape, [3, 4, 2]);
+        assert.deepEqual(xr[2].data.shape, [3, 4, 1]);
+        assert.deepEqual(
+          await ta(xr[0].data),
+          [100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144]
+        );
+        assert.deepEqual(
+          await ta(xr[1].data),
+          [101, 102, 105, 106, 109, 110, 113, 114, 117, 118, 121, 122, 125, 126,
+            129, 130, 133, 134, 137, 138, 141, 142, 145, 146]
+        );
+        assert.deepEqual(
+          await ta(xr[2].data),
+          [103, 107, 111, 115, 119, 123, 127, 131, 135, 139, 143, 147]
+        );
+
+        const w0 = new Variable(ctor.fromArray(arange(10, 22), [3, 4, 1]));
+        const w1 = new Variable(ctor.fromArray(arange(20, 44), [3, 4, 2]));
+        const w2 = new Variable(ctor.fromArray(arange(30, 42), [3, 4, 1]));
+        const y0 = await sum(await mul(xr[0], w0));
+        const y1 = await sum(await mul(xr[1], w1));
+        const y2 = await sum(await mul(xr[2], w2));
+        const s = await add(await add(y0, y1), y2);
+        await s.backward();
+
+        assert.deepEqual(await ta(x.grad!.data), [10, 20, 21, 30, 11, 22, 23, 31, 12, 24, 25, 32, 13, 26, 27, 33, 14, 28,
+          29, 34, 15, 30, 31, 35, 16, 32, 33, 36, 17, 34, 35, 37, 18, 36, 37, 38,
+          19, 38, 39, 39, 20, 40, 41, 40, 21, 42, 43, 41]);
       });
     });
   });

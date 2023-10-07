@@ -17,6 +17,7 @@ import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
+import { cat, split } from './core/manipulation';
 import {
   packToFloat16Array,
   packToFloat32Array,
@@ -232,7 +233,7 @@ export class WebGLTensorBuffer {
     if (this.isBoundToDrawFrameBuffer)
       throw Error(
         'This buffer is already registered as draw buffer. ' +
-          'You may forgot to unbind the binding while previous operations.'
+        'You may forgot to unbind the binding while previous operations.'
       );
 
     const ctx = getNNWebGLContext();
@@ -263,12 +264,12 @@ export class WebGLTensorBuffer {
     if (this.readTextureUnitIndices.length > 0)
       throw Error(
         'This buffer is already registered as read buffer. ' +
-          'You cannot bind a texture as both read and draw texture buffer at same time.'
+        'You cannot bind a texture as both read and draw texture buffer at same time.'
       );
     if (this.isBoundToDrawFrameBuffer)
       throw Error(
         'This buffer is already registered as draw buffer. ' +
-          'You may forgot to unbind the binding while previous operations.'
+        'You may forgot to unbind the binding while previous operations.'
       );
 
     const ctx = getNNWebGLContext();
@@ -385,7 +386,7 @@ export class WebGLTensorBuffer {
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-          `
+        `
 ${shaderGenTensorOutputUniform(1, dst.textureShape.dim, dstDtype)}
 ${shaderGenTensorNDGet('tex_input', 1, this.textureShape.dim, srcDtype)}
 uniform int input_pixels;
@@ -615,12 +616,12 @@ export class WebGLTensor extends Tensor {
     } else {
       this.buffer = new WebGLTensorBuffer(
         textureShape ||
-          this.calcDefaultTextureShape(
-            this.size,
-            this.dtype,
-            ctx.maxTextureSize,
-            ctx.supportsTexture32bit
-          )
+        this.calcDefaultTextureShape(
+          this.size,
+          this.dtype,
+          ctx.maxTextureSize,
+          ctx.supportsTexture32bit
+        )
       );
     }
   }
@@ -1011,5 +1012,17 @@ export class WebGLTensor extends Tensor {
     const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(fillValue);
     return WebGLTensor.fromArray(data, shape, dtype);
+  }
+
+  static cat(tensors: ReadonlyArray<WebGLTensor>, axis = 0): WebGLTensor {
+    return cat(tensors, axis);
+  }
+
+  static split(
+    x: WebGLTensor,
+    split_size_or_sections: number | number[],
+    dim = 0
+  ): WebGLTensor[] {
+    return split(x, split_size_or_sections, dim);
   }
 }

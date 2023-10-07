@@ -1,5 +1,6 @@
 import { DType, TypedArrayForDType, TypedArrayTypes } from '../../../dtype';
 import { arraySum } from '../../../util';
+import { calcCatShape } from '../../shapeUtil';
 import { CPUTensor } from '../cpuTensor';
 
 function repeatSub(
@@ -218,32 +219,7 @@ function catSub(
 }
 
 export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
-  if (tensors.length === 0) {
-    throw new Error('tensors must not be empty');
-  }
-  const ndim = tensors[0].ndim;
-  const shape = tensors[0].shape;
-  const dtype = tensors[0].dtype;
-  for (const tensor of tensors) {
-    if (tensor.ndim !== ndim) {
-      throw new Error('all tensors must be the same dimension');
-    }
-    for (let i = 0; i < shape.length; ++i) {
-      if (i !== axis) {
-        if (tensor.shape[i] !== shape[i]) {
-          throw new Error(
-            'all tensors must have the same shape except in the concatenating dimension'
-          );
-        }
-      }
-    }
-    if (tensor.dtype !== dtype) {
-      throw new Error('all tensors must have the same dtype');
-    }
-  }
-  if (axis >= ndim) {
-    throw new Error('axis must be smaller than tensor dimension');
-  }
+  const { yShape, dtype } = calcCatShape(tensors, axis);
   const arrays: Array<TypedArrayTypes> = [];
   for (let i = 0; i < tensors.length; ++i) {
     arrays[i] = tensors[i].getBuffer().data;
@@ -255,19 +231,46 @@ export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
     strides[i] = tensors[i].strides;
   }
   const dy = catSub(arrays, shapes, strides, axis, dtype, 0);
-  const yShape: Array<number> = [];
-  for (let i = 0; i < tensors[0].ndim; ++i) {
-    if (i === axis) {
-      yShape[i] = 0;
-      for (const tensor of tensors) {
-        yShape[i] += tensor.shape[i];
-      }
-    } else {
-      yShape[i] = shape[i];
-    }
-  }
   const y = CPUTensor.fromArray(dy, yShape);
   return y;
+}
+
+
+export function cat_backprop_cpu(gy: CPUTensor, shapes: ReadonlyArray<ReadonlyArray<number>>, axis: number): CPUTensor[] {
+  const axisOffsets: number[] = [];
+  let ofs = 0;
+  for (let i = 0; i < shapes.length; ++i) {
+    axisOffsets.push(ofs);
+    ofs += shapes[i][axis];
+  }
+
+  const gxs = shapes.map((shape) => CPUTensor.zeros(shape, gy.dtype));
+
+  for (let i = 0; i < shapes.length; ++i) {
+    const axisOffset = axisOffsets[i];
+    const gx = gxs[i];
+    const gxShape = gx.shape;
+    const gxStrides = gx.strides;
+    const ndim = gxShape.length;
+    const gyStrides = gy.strides;
+    const dgy = gy.getBuffer().data;
+    const dgx = gx.getBuffer().data;
+    const length = dgx.length;
+    for (let j = 0; j < length; ++j) {
+      let idx = axisOffset * gyStrides[axis];
+      for (let d = 0; d < ndim; d++) {
+        // k: index along axis d
+        let k = Math.floor(j / gxStrides[d]) % gxShape[d];
+        // if (d === axis) {
+        //   k += axisOffset;
+        // }
+        idx += k * gyStrides[d];
+      }
+      dgx[j] = dgy[idx];
+    }
+  }
+
+  return gxs;
 }
 
 function chunkSub(
