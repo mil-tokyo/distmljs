@@ -1,7 +1,9 @@
 /* ブロードキャスト等の形状操作ユーティリティ
  */
 
+import { DType } from '../dtype';
 import { arange, arrayProd } from '../util';
+import { Tensor } from './tensor';
 
 export function getStride(shape: ReadonlyArray<number>): number[] {
   const strides: number[] = [];
@@ -300,4 +302,47 @@ export function calcUnsqueeze(
     }
   }
   return newShape;
+}
+
+export function calcCatShape(tensors: ReadonlyArray<Tensor>, axis = 0): { axisOffsets: number[]; dtype: DType; yShape: number[] } {
+  if (tensors.length === 0) {
+    throw new Error('tensors must not be empty');
+  }
+  const ndim = tensors[0].ndim;
+  const shape = tensors[0].shape;
+  const dtype = tensors[0].dtype;
+  for (const tensor of tensors) {
+    if (tensor.ndim !== ndim) {
+      throw new Error('all tensors must be the same dimension');
+    }
+    for (let i = 0; i < shape.length; ++i) {
+      if (i !== axis) {
+        if (tensor.shape[i] !== shape[i]) {
+          throw new Error(
+            'all tensors must have the same shape except in the concatenating dimension'
+          );
+        }
+      }
+    }
+    if (tensor.dtype !== dtype) {
+      throw new Error('all tensors must have the same dtype');
+    }
+  }
+  if (axis >= ndim) {
+    throw new Error('axis must be smaller than tensor dimension');
+  }
+  const axisOffsets: number[] = [];
+  const yShape: Array<number> = [];
+  for (let i = 0; i < tensors[0].ndim; ++i) {
+    if (i === axis) {
+      yShape[i] = 0;
+      for (const tensor of tensors) {
+        axisOffsets.push(yShape[i]);
+        yShape[i] += tensor.shape[i];
+      }
+    } else {
+      yShape[i] = shape[i];
+    }
+  }
+  return { axisOffsets, dtype, yShape };
 }

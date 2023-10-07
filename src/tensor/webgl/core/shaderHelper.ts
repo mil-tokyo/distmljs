@@ -498,7 +498,7 @@ ${ioType} get_${name}() {
 }
 
 export function assertFloat32R(
-  tensors: WebGLTensor[],
+  tensors: ReadonlyArray<WebGLTensor>,
   functionName?: string
 ): void {
   for (const tensor of tensors) {
@@ -509,4 +509,8 @@ export function assertFloat32R(
       throw new Error(`${functionName}: dimPerPixel must be 1`);
     }
   }
+}
+
+export function makeTensorDimKey(...tensors: WebGLTensor[]): string {
+  return tensors.map((t) => t.buffer.textureShape.dim).join('_');
 }

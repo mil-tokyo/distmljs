@@ -1,5 +1,6 @@
 import { DType, TypedArrayForDType, TypedArrayTypes } from '../../../dtype';
 import { arraySum } from '../../../util';
+import { calcCatShape } from '../../shapeUtil';
 import { CPUTensor } from '../cpuTensor';
 
 function repeatSub(
@@ -218,32 +219,7 @@ function catSub(
 }
 
 export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
-  if (tensors.length === 0) {
-    throw new Error('tensors must not be empty');
-  }
-  const ndim = tensors[0].ndim;
-  const shape = tensors[0].shape;
-  const dtype = tensors[0].dtype;
-  for (const tensor of tensors) {
-    if (tensor.ndim !== ndim) {
-      throw new Error('all tensors must be the same dimension');
-    }
-    for (let i = 0; i < shape.length; ++i) {
-      if (i !== axis) {
-        if (tensor.shape[i] !== shape[i]) {
-          throw new Error(
-            'all tensors must have the same shape except in the concatenating dimension'
-          );
-        }
-      }
-    }
-    if (tensor.dtype !== dtype) {
-      throw new Error('all tensors must have the same dtype');
-    }
-  }
-  if (axis >= ndim) {
-    throw new Error('axis must be smaller than tensor dimension');
-  }
+  const { yShape, dtype } = calcCatShape(tensors, axis);
   const arrays: Array<TypedArrayTypes> = [];
   for (let i = 0; i < tensors.length; ++i) {
     arrays[i] = tensors[i].getBuffer().data;
@@ -255,17 +231,6 @@ export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
     strides[i] = tensors[i].strides;
   }
   const dy = catSub(arrays, shapes, strides, axis, dtype, 0);
-  const yShape: Array<number> = [];
-  for (let i = 0; i < tensors[0].ndim; ++i) {
-    if (i === axis) {
-      yShape[i] = 0;
-      for (const tensor of tensors) {
-        yShape[i] += tensor.shape[i];
-      }
-    } else {
-      yShape[i] = shape[i];
-    }
-  }
   const y = CPUTensor.fromArray(dy, yShape);
   return y;
 }
