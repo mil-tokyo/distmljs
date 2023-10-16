@@ -33,7 +33,7 @@ function makeDataset(size: number): [CPUTensor, CPUTensor] {
     new Array(size).fill(0).map((_, i) => i / size),
     [size, 1]
   );
-  const y = CPUTensor.sin(CPUTensor.mul(x, CPUTensor.s(10)));
+  const y = CPUTensor.sin(CPUTensor.mul(x, 10));
   return [x, y];
 }
 

@@ -174,16 +174,16 @@ export class MultiHeadAttention extends Layer {
       [1, 0, 2]
     );
     k = await transpose(
-      await reshape(k, [k.data.shape[0], bsz * this.numHeads, headDim]),
+      reshape(k, [k.data.shape[0], bsz * this.numHeads, headDim]),
       [1, 2, 0]
     );
     v = await transpose(
-      await reshape(v, [v.data.shape[0], bsz * this.numHeads, headDim]),
+      reshape(v, [v.data.shape[0], bsz * this.numHeads, headDim]),
       [1, 0, 2]
     );
 
     const [, , E] = q.data.shape;
-    q = await mul(q, new Variable(q.data.getClass().s(1 / Math.sqrt(E))));
+    q = await mul(q, 1 / Math.sqrt(E));
     let attn = bmm(q, k);
     attn = add(attn, attnMask);
     attn = softmax(attn);
@@ -212,7 +212,7 @@ class PositionalEncoding extends K.nn.core.Layer {
     const divTerm = CPUTensor.exp(
       CPUTensor.mul(
         CPUTensor.fromArray(K.util.arange(0, dModel, 2)),
-        CPUTensor.s(-Math.log(10000) / dModel)
+        -Math.log(10000) / dModel
       )
     );
     const pe = CPUTensor.zeros([maxLen, 1, dModel]);
@@ -284,10 +284,10 @@ export class TransformerModel extends Layer {
   }
 
   async forward([src, srcMask]: Variable[]): Promise<Variable[]> {
-    let x = src;
+    let x: VariableResolvable = src;
     x = await this.encoder.c(x);
-    x = await mul(x, new Variable(x.data.getClass().s(Math.sqrt(this.dModel))));
-    x = await this.posEncoder.c(x);
+    x = await mul(x, Math.sqrt(this.dModel));
+    x = this.posEncoder.c(x);
     let y = this.transformerEncoder.c(x, srcMask);
     y = this.decoder.c(y);
     return [await y];

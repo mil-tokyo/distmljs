@@ -130,20 +130,71 @@ export class Div extends NNFunction {
   // TODO: backward
 }
 
-export async function add(lhs: VariableResolvable, rhs: VariableResolvable): Promise<Variable> {
-  return await new Add().c(lhs, rhs);
+async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<[Variable, Variable]> {
+  // TODO: support scalar as input of Add. Currently, unnecessary backpropagation to the scalar is performed.
+  let resLhs: Variable, resRhs: Variable;
+  if (typeof lhs === 'number') {
+    const r = await rhs;
+    if (typeof r === 'number') {
+      // both are number
+      // use CPUTensor
+      resLhs = new Variable(CPUTensor.s(lhs));
+      resRhs = new Variable(CPUTensor.s(r));
+    } else {
+      resLhs = new Variable(r.data.getClass().s(lhs));
+      resRhs = r;
+    }
+  } else {
+    const l = await lhs;
+    resLhs = l;
+    const r = await rhs;
+    if (typeof r === 'number') {
+      resRhs = new Variable(l.data.getClass().s(r));
+    } else {
+      resRhs = r;
+    }
+  }
+  return [resLhs, resRhs];
 }
 
-export async function sub(lhs: VariableResolvable, rhs: VariableResolvable): Promise<Variable> {
-  return await new Sub().c(lhs, rhs);
+/**
+ * Add two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function add(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Add().c(...await _toVariablePair(lhs, rhs));
 }
 
-export async function mul(lhs: VariableResolvable, rhs: VariableResolvable): Promise<Variable> {
-  return await new Mul().c(lhs, rhs);
+/**
+ * Subtract two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function sub(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Sub().c(...await _toVariablePair(lhs, rhs));
 }
 
-export async function div(lhs: VariableResolvable, rhs: VariableResolvable): Promise<Variable> {
-  return await new Div().c(lhs, rhs);
+/**
+ * Multiply two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function mul(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Mul().c(...await _toVariablePair(lhs, rhs));
+}
+
+/**
+ * Divide two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function div(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Div().c(...await _toVariablePair(lhs, rhs));
 }
 
 export class Exp extends NNFunction {
