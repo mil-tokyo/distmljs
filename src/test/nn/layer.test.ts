@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Backend } from '../../backend';
-import { Layer, Variable } from '../../nn/core';
+import { Layer, Variable, VariableResolvable } from '../../nn/core';
 import { mseLoss, mul, relu, sum } from '../../nn/functions';
 import {
   BatchNorm,
@@ -30,11 +30,11 @@ class Model extends Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.l1.c(y);
-    y = await relu(y);
-    y = await this.l2.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.l1.c(y);
+    y = relu(y);
+    y = this.l2.c(y);
+    return [await y];
   }
 }
 

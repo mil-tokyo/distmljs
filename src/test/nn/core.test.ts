@@ -32,5 +32,15 @@ describe('nn/core', () => {
       assert.deepEqual((lhs.grad!.data as CPUTensor).toArray(), [20]);
       assert.deepEqual((rhs.grad!.data as CPUTensor).toArray(), [10]);
     });
+
+    it('allow Promise<Variable> as input', async () => {
+      const lhs = new Variable(CPUTensor.fromArray([1, 2], [2]));
+      const rhs = new Variable(CPUTensor.fromArray([20], [1]));
+      const mutliplier = new Variable(CPUTensor.fromArray([10, 5], [2]));
+      const y = await mul(add(lhs, rhs), mutliplier);
+      await y.backward();
+      assert.deepEqual((lhs.grad!.data as CPUTensor).toArray(), [10, 5]);
+      assert.deepEqual((rhs.grad!.data as CPUTensor).toArray(), [15]);
+    });
   });
 });

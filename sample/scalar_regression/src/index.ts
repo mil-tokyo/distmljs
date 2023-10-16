@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto';
 import * as K from 'kakiage';
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
-import Random = K.math.Random;
+import VariableResolvable = K.nn.VariableResolvable;
 
 function print(message: string, time = false): void {
   const div = document.getElementById('result');
@@ -48,11 +48,11 @@ class MLPModel extends K.nn.core.Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.l1.c(y);
-    y = await K.nn.functions.relu(y);
-    y = await this.l2.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.l1.c(y);
+    y = K.nn.functions.relu(y);
+    y = this.l2.c(y);
+    return [await y];
   }
 }
 
@@ -67,7 +67,7 @@ async function scalarTrain() {
   for (let i = 0; i < 2000; i++) {
     // tidy: release memory allocated inside the block when the block ends.
     await K.tidy(async () => {
-      const y = await model.c(new K.nn.Variable(trainX));
+      const y = model.c(new K.nn.Variable(trainX));
       const loss = await K.nn.functions.mseLoss(y, new K.nn.Variable(trainY));
 
       if (i % 100 === 0) {

@@ -137,18 +137,21 @@ export class Parameter extends Variable {
   }
 }
 
+export type VariableResolvable = Variable | Promise<Variable>;
+
 export abstract class NNFunction {
   generation?: number;
   inputs?: Variable[];
   outputs?: WeakRef<Variable>[];
 
-  async call(...inputs: Variable[]): Promise<Variable[]> {
-    const ys = await this.forward(inputs.map((v) => v.data));
+  async call(...inputs: VariableResolvable[]): Promise<Variable[]> {
+    const resolvedInputs = await Promise.all(inputs);
+    const ys = await this.forward(resolvedInputs.map((v) => v.data));
     const outputs = ys.map((t) => new Variable(t));
 
     if (defaultNNContext.get('enableBackprop')) {
-      this.inputs = inputs;
-      this.generation = Math.max(...inputs.map((v) => v.generation));
+      this.inputs = resolvedInputs;
+      this.generation = Math.max(...resolvedInputs.map((v) => v.generation));
       outputs.forEach((v) => v.setCreator(this));
       this.outputs = outputs.map((v) => new WeakRef(v));
     }
@@ -161,7 +164,7 @@ export abstract class NNFunction {
    * @param inputs Input variables.
    * @returns Promise of output variable.
    */
-  async c(...inputs: Variable[]): Promise<Variable> {
+  async c(...inputs: VariableResolvable[]): Promise<Variable> {
     const outputs = await this.call(...inputs);
     if (outputs.length !== 1) {
       throw new Error(
@@ -322,9 +325,8 @@ export abstract class Layer {
     }
   }
 
-  async call(...inputs: Variable[]): Promise<Variable[]> {
-    const outputs = await this.forward(inputs);
-    return outputs;
+  async call(...inputs: VariableResolvable[]): Promise<Variable[]> {
+    return this.forward(await Promise.all(inputs));
   }
 
   /**
@@ -332,7 +334,7 @@ export abstract class Layer {
    * @param inputs Input variables.
    * @returns Promise of output variable.
    */
-  async c(...inputs: Variable[]): Promise<Variable> {
+  async c(...inputs: VariableResolvable[]): Promise<Variable> {
     const outputs = await this.call(...inputs);
     if (outputs.length !== 1) {
       throw new Error(

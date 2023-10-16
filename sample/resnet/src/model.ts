@@ -1,5 +1,6 @@
 import * as K from 'kakiage';
 import Variable = K.nn.Variable;
+import VariableResolvable = K.nn.VariableResolvable;
 import F = K.nn.functions;
 import L = K.nn.layers;
 
@@ -37,22 +38,22 @@ class BasicBlock extends K.nn.core.Layer {
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
     const x = inputs[0];
-    let y = x;
-    y = await this.conv1.c(y);
-    y = await this.bn1.c(y);
-    y = await F.relu(y);
-    y = await this.conv2.c(y);
-    y = await this.bn2.c(y);
-    let ds: Variable;
+    let y: VariableResolvable = x;
+    y = this.conv1.c(y);
+    y = this.bn1.c(y);
+    y = F.relu(y);
+    y = this.conv2.c(y);
+    y = this.bn2.c(y);
+    let ds: VariableResolvable;
     if (this.downsampleConv && this.downsampleBN) {
-      ds = await this.downsampleConv.c(x);
-      ds = await this.downsampleBN.c(ds);
+      ds = this.downsampleConv.c(x);
+      ds = this.downsampleBN.c(ds);
     } else {
       ds = x;
     }
-    y = await F.add(ds, y);
-    y = await F.relu(y);
-    return [y];
+    y = F.add(ds, y);
+    y = F.relu(y);
+    return [await y];
   }
 }
 
@@ -115,19 +116,19 @@ export class ResNet18 extends K.nn.core.Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.conv1.c(y);
-    y = await this.bn1.c(y);
-    y = await F.relu(y);
-    y = await F.max_pool2d(y, { kernelSize: 3, stride: 2, padding: 1 });
-    y = await this.layer1.c(y);
-    y = await this.layer2.c(y);
-    y = await this.layer3.c(y);
-    y = await this.layer4.c(y);
-    y = await F.adaptive_avg_pool2d(y, 1);
-    y = await F.flatten(y);
-    y = await this.fc.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.conv1.c(y);
+    y = this.bn1.c(y);
+    y = F.relu(y);
+    y = F.max_pool2d(y, { kernelSize: 3, stride: 2, padding: 1 });
+    y = this.layer1.c(y);
+    y = this.layer2.c(y);
+    y = this.layer3.c(y);
+    y = this.layer4.c(y);
+    y = F.adaptive_avg_pool2d(y, 1);
+    y = F.flatten(y);
+    y = this.fc.c(y);
+    return [await y];
   }
 }
 
@@ -146,17 +147,17 @@ export class MiniConvNet extends K.nn.core.Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.conv1.c(y);
-    y = await F.relu(y);
-    y = await this.conv2.c(y);
-    y = await F.relu(y);
-    y = await this.conv3.c(y);
-    y = await F.relu(y);
-    y = await F.adaptive_avg_pool2d(y, 1);
-    y = await F.flatten(y);
-    y = await this.fc.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.conv1.c(y);
+    y = F.relu(y);
+    y = this.conv2.c(y);
+    y = F.relu(y);
+    y = this.conv3.c(y);
+    y = F.relu(y);
+    y = F.adaptive_avg_pool2d(y, 1);
+    y = F.flatten(y);
+    y = this.fc.c(y);
+    return [await y];
   }
 }
 
@@ -189,19 +190,19 @@ export class MiniConvNetBN extends K.nn.core.Layer {
   }
 
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.conv1.c(y);
-    y = await this.bn1.c(y);
-    y = await F.relu(y);
-    y = await this.conv2.c(y);
-    y = await this.bn2.c(y);
-    y = await F.relu(y);
-    y = await this.conv3.c(y);
-    y = await this.bn3.c(y);
-    y = await F.relu(y);
-    y = await F.adaptive_avg_pool2d(y, 1);
-    y = await F.flatten(y);
-    y = await this.fc.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.conv1.c(y);
+    y = this.bn1.c(y);
+    y = F.relu(y);
+    y = this.conv2.c(y);
+    y = this.bn2.c(y);
+    y = F.relu(y);
+    y = this.conv3.c(y);
+    y = this.bn3.c(y);
+    y = F.relu(y);
+    y = F.adaptive_avg_pool2d(y, 1);
+    y = F.flatten(y);
+    y = this.fc.c(y);
+    return [await y];
   }
 }
