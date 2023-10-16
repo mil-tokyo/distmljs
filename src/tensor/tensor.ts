@@ -113,11 +113,11 @@ export interface TensorStatic<B extends Tensor> {
     shape?: ArrayLike<number>,
     dtype?: DType
   ) => B;
-  add: (lhs: B, rhs: B) => B;
-  sub: (lhs: B, rhs: B) => B;
-  mul: (lhs: B, rhs: B) => B;
-  div: (lhs: B, rhs: B) => B;
-  pow: (lhs: B, rhs: B) => B;
+  add: (lhs: B | number, rhs: B | number) => B;
+  sub: (lhs: B | number, rhs: B | number) => B;
+  mul: (lhs: B | number, rhs: B | number) => B;
+  div: (lhs: B | number, rhs: B | number) => B;
+  pow: (lhs: B | number, rhs: B | number) => B;
   abs: (x: B) => B;
   acos: (x: B) => B;
   acosh: (x: B) => B;

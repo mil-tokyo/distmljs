@@ -17,11 +17,13 @@ import {
 // TODO: 片側がスカラーの場合の最適化
 
 function binaryWrap(
-  lhs: WebGLTensor,
-  rhs: WebGLTensor,
+  lhsN: WebGLTensor | number,
+  rhsN: WebGLTensor | number,
   name: string,
   exprs: { [T in DType]?: string }
 ): WebGLTensor {
+  const lhs = lhsN instanceof WebGLTensor ? lhsN : WebGLTensor.s(lhsN);
+  const rhs = rhsN instanceof WebGLTensor ? rhsN : WebGLTensor.s(rhsN);
   if (lhs.dtype !== rhs.dtype) {
     throw new Error(
       `${name}: dtype of lhs(${lhs.dtype}) !== rhs(${rhs.dtype})`
@@ -61,7 +63,7 @@ function binaryWrap(
     ctx.addKernel(
       kernelName,
       webglShaderHeader +
-        `
+      `
 ${shaderGenTensorOutputUniform(ndim, output.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_lhs', ndim, lhs.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_rhs', ndim, rhs.buffer.textureShape.dim, dtype)}
@@ -88,10 +90,13 @@ void main() {
       ...shaderGenTensorNDGetUniformItem('tex_rhs', rhs, allStrides[1]),
     ]
   );
+
+  if (lhsN !== lhs) lhs.dispose();
+  if (rhsN !== rhs) rhs.dispose();
   return output;
 }
 
-export function coreadd(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+export function coreadd(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   return binaryWrap(lhs, rhs, 'add', {
     float32: 'float v = v_l + v_r;',
     int32: 'int v = v_l + v_r;',
@@ -99,7 +104,7 @@ export function coreadd(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   });
 }
 
-export function coresub(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+export function coresub(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   return binaryWrap(lhs, rhs, 'sub', {
     float32: 'float v = v_l - v_r;',
     int32: 'int v = v_l - v_r;',
@@ -107,7 +112,7 @@ export function coresub(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   });
 }
 
-export function coremul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+export function coremul(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   return binaryWrap(lhs, rhs, 'mul', {
     float32: 'float v = v_l * v_r;',
     int32: 'int v = v_l * v_r;',
@@ -115,7 +120,7 @@ export function coremul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   });
 }
 
-export function corediv(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+export function corediv(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   return binaryWrap(lhs, rhs, 'div', {
     float32: 'float v = v_l / v_r;',
     int32: 'int v = v_l / v_r;',
@@ -123,7 +128,7 @@ export function corediv(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   });
 }
 
-export function corepow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+export function corepow(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
   // implementation: pow(abs(-1.5), 2)
   return binaryWrap(lhs, rhs, 'pow', {

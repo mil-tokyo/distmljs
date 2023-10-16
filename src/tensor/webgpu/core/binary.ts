@@ -10,10 +10,12 @@ import { WebGPUTensor } from '../webgpuTensor';
 // TODO: 片側がスカラーの場合の最適化
 
 function binaryWrap(
-  lhs: WebGPUTensor,
-  rhs: WebGPUTensor,
+  lhsN: WebGPUTensor | number,
+  rhsN: WebGPUTensor | number,
   name: string
 ): WebGPUTensor {
+  const lhs = lhsN instanceof WebGPUTensor ? lhsN : WebGPUTensor.s(lhsN);
+  const rhs = rhsN instanceof WebGPUTensor ? rhsN : WebGPUTensor.s(rhsN);
   if (lhs.dtype !== rhs.dtype) {
     throw new Error(
       `${name}: dtype of lhs(${lhs.dtype}) !== rhs(${rhs.dtype})`
@@ -59,23 +61,23 @@ function binaryWrap(
   return output;
 }
 
-export function coreadd(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+export function coreadd(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'add');
 }
 
-export function coresub(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+export function coresub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'sub');
 }
 
-export function coremul(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+export function coremul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'mul');
 }
 
-export function corediv(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+export function corediv(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'div');
 }
 
-export function corepow(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+export function corepow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'pow');
 }
 

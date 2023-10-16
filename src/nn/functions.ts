@@ -45,6 +45,7 @@ import {
   Sum,
   SumTo,
   Variable,
+  VariableResolvable,
 } from './core';
 import {
   batch_norm_backprop_cpu,
@@ -67,21 +68,21 @@ import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
 import { cat_backprop_webgl } from '../tensor/webgl/core/manipulation';
 
 export async function broadcastTo(
-  x: Variable,
+  x: VariableResolvable,
   shape: ReadonlyArray<number>
 ): Promise<Variable> {
   return await new BroadcastTo(shape).c(x);
 }
 
 export async function sumTo(
-  x: Variable,
+  x: VariableResolvable,
   shape: ReadonlyArray<number>
 ): Promise<Variable> {
   return await new SumTo(shape).c(x);
 }
 
 export async function sum(
-  x: Variable,
+  x: VariableResolvable,
   axis?: number | number[] | null,
   keepdims?: boolean
 ): Promise<Variable> {
@@ -129,20 +130,71 @@ export class Div extends NNFunction {
   // TODO: backward
 }
 
-export async function add(lhs: Variable, rhs: Variable): Promise<Variable> {
-  return await new Add().c(lhs, rhs);
+async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<[Variable, Variable]> {
+  // TODO: support scalar as input of Add. Currently, unnecessary backpropagation to the scalar is performed.
+  let resLhs: Variable, resRhs: Variable;
+  if (typeof lhs === 'number') {
+    const r = await rhs;
+    if (typeof r === 'number') {
+      // both are number
+      // use CPUTensor
+      resLhs = new Variable(CPUTensor.s(lhs));
+      resRhs = new Variable(CPUTensor.s(r));
+    } else {
+      resLhs = new Variable(r.data.getClass().s(lhs));
+      resRhs = r;
+    }
+  } else {
+    const l = await lhs;
+    resLhs = l;
+    const r = await rhs;
+    if (typeof r === 'number') {
+      resRhs = new Variable(l.data.getClass().s(r));
+    } else {
+      resRhs = r;
+    }
+  }
+  return [resLhs, resRhs];
 }
 
-export async function sub(lhs: Variable, rhs: Variable): Promise<Variable> {
-  return await new Sub().c(lhs, rhs);
+/**
+ * Add two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function add(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Add().c(...await _toVariablePair(lhs, rhs));
 }
 
-export async function mul(lhs: Variable, rhs: Variable): Promise<Variable> {
-  return await new Mul().c(lhs, rhs);
+/**
+ * Subtract two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function sub(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Sub().c(...await _toVariablePair(lhs, rhs));
 }
 
-export async function div(lhs: Variable, rhs: Variable): Promise<Variable> {
-  return await new Div().c(lhs, rhs);
+/**
+ * Multiply two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function mul(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Mul().c(...await _toVariablePair(lhs, rhs));
+}
+
+/**
+ * Divide two variables.
+ * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
+ * @returns 
+ */
+export async function div(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
+  return await new Div().c(...await _toVariablePair(lhs, rhs));
 }
 
 export class Exp extends NNFunction {
@@ -162,7 +214,7 @@ export class Exp extends NNFunction {
   }
 }
 
-export async function exp(x: Variable): Promise<Variable> {
+export async function exp(x: VariableResolvable): Promise<Variable> {
   return await new Exp().c(x);
 }
 
@@ -179,7 +231,7 @@ export class Neg extends NNFunction {
   }
 }
 
-export async function neg(x: Variable): Promise<Variable> {
+export async function neg(x: VariableResolvable): Promise<Variable> {
   return await new Neg().c(x);
 }
 
@@ -205,7 +257,7 @@ export class ReLU extends NNFunction {
   }
 }
 
-export async function relu(x: Variable): Promise<Variable> {
+export async function relu(x: VariableResolvable): Promise<Variable> {
   return await new ReLU().c(x);
 }
 
@@ -233,7 +285,7 @@ export class Sigmoid extends NNFunction {
   }
 }
 
-export async function sigmoid(x: Variable): Promise<Variable> {
+export async function sigmoid(x: VariableResolvable): Promise<Variable> {
   return await new Sigmoid().c(x);
 }
 
@@ -270,8 +322,8 @@ export class MatMul extends NNFunction {
 }
 
 export async function matmul(
-  a: Variable,
-  b: Variable,
+  a: VariableResolvable,
+  b: VariableResolvable,
   transa = false,
   transb = false
 ): Promise<Variable> {
@@ -311,8 +363,8 @@ export class Bmm extends NNFunction {
 }
 
 export async function bmm(
-  a: Variable,
-  b: Variable,
+  a: VariableResolvable,
+  b: VariableResolvable,
   transa = false,
   transb = false
 ): Promise<Variable> {
@@ -361,7 +413,7 @@ export class Softmax extends NNFunction {
   }
 }
 
-export async function softmax(x: Variable): Promise<Variable> {
+export async function softmax(x: VariableResolvable): Promise<Variable> {
   return await new Softmax().c(x);
 }
 
@@ -404,8 +456,8 @@ export class SoftmaxCrossEntropy extends NNFunction {
 }
 
 export async function softmaxCrossEntropy(
-  x: Variable,
-  label: Variable
+  x: VariableResolvable,
+  label: VariableResolvable
 ): Promise<Variable> {
   return await new SoftmaxCrossEntropy().c(x, label);
 }
@@ -434,7 +486,7 @@ export class MSELoss extends NNFunction {
   }
 }
 
-export async function mseLoss(a: Variable, b: Variable): Promise<Variable> {
+export async function mseLoss(a: VariableResolvable, b: VariableResolvable): Promise<Variable> {
   return await new MSELoss().c(a, b);
 }
 
@@ -517,9 +569,9 @@ export class Linear extends NNFunction {
 }
 
 export async function linear(
-  x: Variable,
-  weight: Variable,
-  bias?: Variable
+  x: VariableResolvable,
+  weight: VariableResolvable,
+  bias?: VariableResolvable
 ): Promise<Variable> {
   if (bias) {
     return await new Linear().c(x, weight, bias);
@@ -553,7 +605,7 @@ export class Reshape extends NNFunction {
 }
 
 export async function reshape(
-  x: Variable,
+  x: VariableResolvable,
   shape: ReadonlyArray<number> | number,
   allowZero = true
 ): Promise<Variable> {
@@ -590,7 +642,7 @@ export class Transpose extends NNFunction {
 }
 
 export async function transpose(
-  x: Variable,
+  x: VariableResolvable,
   axes?: ReadonlyArray<number> | null
 ): Promise<Variable> {
   return new Transpose(axes).c(x);
@@ -624,7 +676,7 @@ export class Flatten extends NNFunction {
  * @param x
  * @returns
  */
-export async function flatten(x: Variable): Promise<Variable> {
+export async function flatten(x: VariableResolvable): Promise<Variable> {
   return new Flatten().c(x);
 }
 
@@ -662,7 +714,7 @@ export class Cat extends NNFunction {
  * @param xs
  * @returns
  */
-export async function cat(xs: ReadonlyArray<Variable>, axis = 0): Promise<Variable> {
+export async function cat(xs: ReadonlyArray<VariableResolvable>, axis = 0): Promise<Variable> {
   return new Cat(axis).c(...xs);
 }
 
@@ -690,7 +742,7 @@ export class Split extends NNFunction {
  * @param xs
  * @returns
  */
-export async function split(x: Variable, split_size_or_sections: number | number[],
+export async function split(x: VariableResolvable, split_size_or_sections: number | number[],
   dim = 0): Promise<Variable[]> {
   return new Split(split_size_or_sections, dim).call(x);
 }
@@ -833,14 +885,14 @@ export class MaxPool2d extends NNFunction {
 }
 
 export async function max_pool2d(
-  x: Variable,
+  x: VariableResolvable,
   params: MaxPool2dParamsReturnIndicesFalse
 ): Promise<Variable> {
   return new MaxPool2d(params).c(x);
 }
 
 export async function max_pool2d_with_indices(
-  x: Variable,
+  x: VariableResolvable,
   params: MaxPool2dParamsReturnIndicesTrue
 ): Promise<Variable[]> {
   return new MaxPool2d(params).call(x);
@@ -941,7 +993,7 @@ export class AdaptiveMaxPool2d extends NNFunction {
 }
 
 export async function adaptive_max_pool2d(
-  x: Variable,
+  x: VariableResolvable,
   outputSize: number | number[],
   returnIndices: boolean | 'spatial' | 'flatten' = false
 ): Promise<Variable> {
@@ -1023,7 +1075,7 @@ export class AvgPool2d extends NNFunction {
 }
 
 export async function avg_pool2d(
-  x: Variable,
+  x: VariableResolvable,
   params: AvgPool2dParams
 ): Promise<Variable> {
   return new AvgPool2d(params).c(x);
@@ -1088,7 +1140,7 @@ export class AdaptiveAvgPool2d extends NNFunction {
 }
 
 export async function adaptive_avg_pool2d(
-  x: Variable,
+  x: VariableResolvable,
   outputSize: number | number[]
 ): Promise<Variable> {
   return new AdaptiveAvgPool2d(outputSize).c(x);
@@ -1182,26 +1234,27 @@ export class Conv2d extends NNFunction {
 }
 
 export function conv2d(
-  x: Variable,
-  weight: Variable,
+  x: VariableResolvable,
+  weight: VariableResolvable,
   params?: Conv2dParams
 ): Promise<Variable>;
 export function conv2d(
-  x: Variable,
-  weight: Variable,
-  bias: Variable | undefined,
+  x: VariableResolvable,
+  weight: VariableResolvable,
+  bias: VariableResolvable | undefined,
   params?: Conv2dParams
 ): Promise<Variable>;
 export async function conv2d(
-  x: Variable,
-  weight: Variable,
-  biasOrParams?: Conv2dParams | Variable,
+  x: VariableResolvable,
+  weight: VariableResolvable,
+  biasOrParams?: Conv2dParams | VariableResolvable,
   params?: Conv2dParams
 ): Promise<Variable> {
-  if (biasOrParams instanceof Variable) {
-    return new Conv2d(params || {}).c(x, weight, biasOrParams);
-  } else if (biasOrParams) {
-    return new Conv2d(biasOrParams || {}).c(x, weight);
+  const biasOrParamsResolved = await biasOrParams;
+  if (biasOrParamsResolved instanceof Variable) {
+    return new Conv2d(params || {}).c(x, weight, biasOrParamsResolved);
+  } else if (biasOrParamsResolved) {
+    return new Conv2d(biasOrParamsResolved || {}).c(x, weight);
   } else {
     // x, weight, undefined, params
     return new Conv2d(params || {}).c(x, weight);
@@ -1477,6 +1530,6 @@ export class Dropout extends NNFunction {
     return [await mul(gy, new Variable(this.maskForBackprop!))];
   }
 }
-export async function dropout(input: Variable, p?: number): Promise<Variable> {
+export async function dropout(input: VariableResolvable, p?: number): Promise<Variable> {
   return new Dropout(p).c(input);
 }

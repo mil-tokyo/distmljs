@@ -23,10 +23,10 @@ export class SGD extends Optimizer {
         vel = T.zeros(parameter.data.shape);
       }
       // TODO: as anyを回避
-      vel = T.mul(vel as any, T.s(this.momentum) as any);
+      vel = T.mul(vel as any, this.momentum);
       vel = T.add(
         vel as any,
-        T.mul(parameter.grad!.data as any, T.s(-this.lr) as any) as any
+        T.mul(parameter.grad!.data as any, -this.lr) as any
       );
       const newData = T.add(prevData as any, vel as any);
       return [vel, newData];

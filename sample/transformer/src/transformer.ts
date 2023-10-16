@@ -7,6 +7,7 @@ import * as K from 'kakiage';
 import Random = K.math.Random;
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
+import VariableResolvable = K.nn.VariableResolvable;
 import Layer = K.nn.core.Layer;
 import Embedding = K.nn.layers.Embedding;
 import Sequential = K.nn.layers.Sequential;
@@ -86,24 +87,24 @@ export class TransformerEncoderLayer extends Layer {
   }
 
   async forward([src, srcMask]: Variable[]): Promise<Variable[]> {
-    let x = src;
-    x = await this.norm1.c(await add(x, await this.saBlock(x, srcMask)));
-    x = await this.norm2.c(await add(x, await this.ffBlock(x)));
-    return [x];
+    let x: VariableResolvable = src;
+    x = this.norm1.c(add(x, this.saBlock(x, srcMask)));
+    x = this.norm2.c(add(x, this.ffBlock(x)));
+    return [await x];
   }
 
-  private async saBlock(x: Variable, attnMask: Variable): Promise<Variable> {
-    const a = await this.selfAttn.c(x, x, x, attnMask);
-    return await this.dropout1.c(a);
+  private async saBlock(x: VariableResolvable, attnMask: VariableResolvable): Promise<Variable> {
+    const a = this.selfAttn.c(x, x, x, attnMask);
+    return this.dropout1.c(a);
   }
 
-  private async ffBlock(x: Variable): Promise<Variable> {
+  private async ffBlock(x: VariableResolvable): Promise<Variable> {
     let h = x;
-    h = await this.linear1.c(h);
-    h = await relu(h);
-    h = await this.dropout.c(h);
-    h = await this.linear2.c(h);
-    h = await this.dropout2.c(h);
+    h = this.linear1.c(h);
+    h = relu(h);
+    h = this.dropout.c(h);
+    h = this.linear2.c(h);
+    h = this.dropout2.c(h);
     return h;
   }
 }
@@ -169,31 +170,31 @@ export class MultiHeadAttention extends Layer {
     let k = await this.inProjK.c(key);
     let v = await this.inProjV.c(value);
     q = await transpose(
-      await reshape(q, [tgtLen, bsz * this.numHeads, headDim]),
+      reshape(q, [tgtLen, bsz * this.numHeads, headDim]),
       [1, 0, 2]
     );
     k = await transpose(
-      await reshape(k, [k.data.shape[0], bsz * this.numHeads, headDim]),
+      reshape(k, [k.data.shape[0], bsz * this.numHeads, headDim]),
       [1, 2, 0]
     );
     v = await transpose(
-      await reshape(v, [v.data.shape[0], bsz * this.numHeads, headDim]),
+      reshape(v, [v.data.shape[0], bsz * this.numHeads, headDim]),
       [1, 0, 2]
     );
 
     const [, , E] = q.data.shape;
-    q = await mul(q, new Variable(q.data.getClass().s(1 / Math.sqrt(E))));
-    let attn = await bmm(q, k);
-    attn = await add(attn, attnMask);
-    attn = await softmax(attn);
-    attn = await this.dropout.c(attn);
-    let attnOutput = await bmm(attn, v);
-    attnOutput = await transpose(attnOutput, [1, 0, 2]);
-    attnOutput = await reshape(attnOutput, [tgtLen * bsz, embedDim]);
-    attnOutput = await this.outProj.c(attnOutput);
-    attnOutput = await reshape(attnOutput, [tgtLen, bsz, this.embedDim]);
+    q = await mul(q, 1 / Math.sqrt(E));
+    let attn = bmm(q, k);
+    attn = add(attn, attnMask);
+    attn = softmax(attn);
+    attn = this.dropout.c(attn);
+    let attnOutput = bmm(attn, v);
+    attnOutput = transpose(attnOutput, [1, 0, 2]);
+    attnOutput = reshape(attnOutput, [tgtLen * bsz, embedDim]);
+    attnOutput = this.outProj.c(attnOutput);
+    attnOutput = reshape(attnOutput, [tgtLen, bsz, this.embedDim]);
 
-    return [attnOutput];
+    return [await attnOutput];
   }
 }
 
@@ -211,7 +212,7 @@ class PositionalEncoding extends K.nn.core.Layer {
     const divTerm = CPUTensor.exp(
       CPUTensor.mul(
         CPUTensor.fromArray(K.util.arange(0, dModel, 2)),
-        CPUTensor.s(-Math.log(10000) / dModel)
+        -Math.log(10000) / dModel
       )
     );
     const pe = CPUTensor.zeros([maxLen, 1, dModel]);
@@ -231,11 +232,11 @@ class PositionalEncoding extends K.nn.core.Layer {
   }
 
   async forward([x]: Variable[]): Promise<Variable[]> {
-    let h = x;
+    let h: VariableResolvable = x;
     const peSlice = this.pe.gets(K.slice(null, x.data.shape[0]));
-    h = await add(h, new Variable(peSlice));
-    h = await this.dropout.c(h);
-    return [h];
+    h = add(h, new Variable(peSlice));
+    h = this.dropout.c(h);
+    return [await h];
   }
 }
 
@@ -283,12 +284,12 @@ export class TransformerModel extends Layer {
   }
 
   async forward([src, srcMask]: Variable[]): Promise<Variable[]> {
-    let x = src;
+    let x: VariableResolvable = src;
     x = await this.encoder.c(x);
-    x = await mul(x, new Variable(x.data.getClass().s(Math.sqrt(this.dModel))));
-    x = await this.posEncoder.c(x);
-    let y = await this.transformerEncoder.c(x, srcMask);
-    y = await this.decoder.c(y);
-    return [y];
+    x = await mul(x, Math.sqrt(this.dModel));
+    x = this.posEncoder.c(x);
+    let y = this.transformerEncoder.c(x, srcMask);
+    y = this.decoder.c(y);
+    return [await y];
   }
 }

@@ -26,6 +26,24 @@ describe('nn/core/webgpu', () => {
       assert.deepEqual(await ta(rhs.grad!.data.copy()), [1]);
     });
 
+    it('backprop of add scalar rhs', async () => {
+      const lhs = new Variable(WebGPUTensor.fromArray([10]));
+      const y = await add(lhs, 20);
+      await y.backward();
+      assert.instanceOf(y.data, WebGPUTensor);
+      // CPU側から1を代入したテンソルがそのまま返るため、copyがないと読み取れない(WebGPUの制約)
+      assert.deepEqual(await ta(lhs.grad!.data.copy()), [1]);
+    });
+
+    it('backprop of add scalar lhs', async () => {
+      const rhs = new Variable(WebGPUTensor.fromArray([20]));
+      const y = await add(10, rhs);
+      await y.backward();
+      assert.instanceOf(y.data, WebGPUTensor);
+      // CPU側から1を代入したテンソルがそのまま返るため、copyがないと読み取れない(WebGPUの制約)
+      assert.deepEqual(await ta(rhs.grad!.data.copy()), [1]);
+    });
+
     it('backprop of add broadcast', async () => {
       const lhs = new Variable(WebGPUTensor.fromArray([1, 2], [2]));
       const rhs = new Variable(WebGPUTensor.fromArray([20], [1]));

@@ -1,6 +1,7 @@
 import Chart from 'chart.js/auto';
 import * as K from 'kakiage';
 import Variable = K.nn.Variable;
+import VariableResolvable = K.nn.VariableResolvable;
 import CPUTensor = K.tensor.CPUTensor;
 import FetchDataset = K.dataset.datasets.FetchDataset;
 import DataLoader = K.dataset.DataLoader;
@@ -36,11 +37,11 @@ class MLPModel extends K.nn.core.Layer {
 
   // forward defines control flow
   async forward(inputs: Variable[]): Promise<Variable[]> {
-    let y = inputs[0];
-    y = await this.l1.c(y);
-    y = await K.nn.functions.relu(y);
-    y = await this.l2.c(y);
-    return [y];
+    let y: VariableResolvable = inputs[0];
+    y = this.l1.c(y);
+    y = K.nn.functions.relu(y);
+    y = this.l2.c(y);
+    return [await y];
   }
 }
 

@@ -808,23 +808,23 @@ export class WebGLTensor extends Tensor {
     return corecopy(this);
   }
 
-  static add(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  static add(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  static sub(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  static mul(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  static div(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+  static pow(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
     return corepow(lhs, rhs);
   }
 

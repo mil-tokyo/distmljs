@@ -104,7 +104,7 @@ export function batch_norm_webgl(
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-          `
+        `
 #define innerLength ${innerLength}
 #define outerLength ${outerLength}
 float invReduceLength = 1.0 / float(innerLength * outerLength);
@@ -160,23 +160,23 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        1,
-        updatedRunningMean.buffer.textureShape.dim
-      )}
+                1,
+                updatedRunningMean.buffer.textureShape.dim
+              )}
       ${shaderGenTensorNDGetVec4('tex_stats', 1, stats.buffer.textureShape.dim)}
       ${shaderGenTensorNDGet(
-        'tex_mean',
-        1,
-        runningStats.runningMean.buffer.textureShape.dim
-      )}
+                'tex_mean',
+                1,
+                runningStats.runningMean.buffer.textureShape.dim
+              )}
       uniform float momentum;
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          1,
-          updatedRunningMean.buffer.textureShape.dim
-        )}
+                1,
+                updatedRunningMean.buffer.textureShape.dim
+              )}
         vec4 meanvar = get_tex_stats(tex_output_0);
         float m = get_tex_mean(tex_output_0);
         float v = (1.0 - momentum) * m + momentum * meanvar.r;
@@ -210,24 +210,24 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        1,
-        updatedRunningVar.buffer.textureShape.dim
-      )}
+                1,
+                updatedRunningVar.buffer.textureShape.dim
+              )}
       ${shaderGenTensorNDGetVec4('tex_stats', 1, stats.buffer.textureShape.dim)}
       ${shaderGenTensorNDGet(
-        'tex_var',
-        1,
-        runningStats.runningVar.buffer.textureShape.dim
-      )}
+                'tex_var',
+                1,
+                runningStats.runningVar.buffer.textureShape.dim
+              )}
       uniform float momentum;
       uniform float coef;
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          1,
-          updatedRunningVar.buffer.textureShape.dim
-        )}
+                1,
+                updatedRunningVar.buffer.textureShape.dim
+              )}
         vec4 meanvar = get_tex_stats(tex_output_0);
         float m = get_tex_var(tex_output_0);
         float v = (1.0 - momentum) * m + momentum * meanvar.g * coef;
@@ -266,23 +266,23 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        0,
-        updatedNumBatchesTracked.buffer.textureShape.dim,
-        updatedNumBatchesTracked.dtype
-      )}
+                0,
+                updatedNumBatchesTracked.buffer.textureShape.dim,
+                updatedNumBatchesTracked.dtype
+              )}
       ${shaderGenTensorNDGet(
-        'tex_nbt',
-        0,
-        runningStats.numBatchesTracked.buffer.textureShape.dim,
-        runningStats.numBatchesTracked.dtype
-      )}
+                'tex_nbt',
+                0,
+                runningStats.numBatchesTracked.buffer.textureShape.dim,
+                runningStats.numBatchesTracked.dtype
+              )}
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          0,
-          updatedNumBatchesTracked.buffer.textureShape.dim
-        )}
+                0,
+                updatedNumBatchesTracked.buffer.textureShape.dim
+              )}
         int m = get_tex_nbt();
         int v = m + 1;
         ${shaderGenOutput('v', updatedNumBatchesTracked.dtype)};
@@ -311,18 +311,18 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        1,
-        updatedRunningMean.buffer.textureShape.dim
-      )}
+                1,
+                updatedRunningMean.buffer.textureShape.dim
+              )}
       ${shaderGenTensorNDGetVec4('tex_stats', 1, stats.buffer.textureShape.dim)}
       uniform float momentum;
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          1,
-          updatedRunningMean.buffer.textureShape.dim
-        )}
+                1,
+                updatedRunningMean.buffer.textureShape.dim
+              )}
         vec4 meanvar = get_tex_stats(tex_output_0);
         float v = momentum * meanvar.r;
         ${shaderGenOutput('v')};
@@ -348,19 +348,19 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        1,
-        updatedRunningVar.buffer.textureShape.dim
-      )}
+                1,
+                updatedRunningVar.buffer.textureShape.dim
+              )}
       ${shaderGenTensorNDGetVec4('tex_stats', 1, stats.buffer.textureShape.dim)}
       uniform float momentum;
       uniform float coef;
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          1,
-          updatedRunningVar.buffer.textureShape.dim
-        )}
+                1,
+                updatedRunningVar.buffer.textureShape.dim
+              )}
         vec4 meanvar = get_tex_stats(tex_output_0);
         float v = (1.0 - momentum) + momentum * meanvar.g * coef;
         ${shaderGenOutput('v')};
@@ -391,17 +391,17 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
             ctx.addKernel(
               kernelName,
               webglShaderHeader +
-                `
+              `
       ${shaderGenTensorOutputUniform(
-        0,
-        updatedNumBatchesTracked.buffer.textureShape.dim,
-        updatedNumBatchesTracked.dtype
-      )}
+                0,
+                updatedNumBatchesTracked.buffer.textureShape.dim,
+                updatedNumBatchesTracked.dtype
+              )}
       void main() {
         ${shaderGenTensorOutputCoordsWithReturn(
-          0,
-          updatedNumBatchesTracked.buffer.textureShape.dim
-        )}
+                0,
+                updatedNumBatchesTracked.buffer.textureShape.dim
+              )}
         int v = 1;
         ${shaderGenOutput('v', updatedNumBatchesTracked.dtype)};
       }
@@ -424,18 +424,18 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-          `
+        `
   ${shaderGenTensorOutputUniform(1, stats.buffer.textureShape.dim)}
   ${shaderGenTensorNDGet(
-    'tex_mean',
-    1,
-    runningStats.runningMean.buffer.textureShape.dim
-  )}
+          'tex_mean',
+          1,
+          runningStats.runningMean.buffer.textureShape.dim
+        )}
   ${shaderGenTensorNDGet(
-    'tex_var',
-    1,
-    runningStats.runningVar.buffer.textureShape.dim
-  )}
+          'tex_var',
+          1,
+          runningStats.runningVar.buffer.textureShape.dim
+        )}
   void main() {
     ${shaderGenTensorOutputCoordsWithReturn(1, stats.buffer.textureShape.dim)}
     float mean = get_tex_mean(tex_output_0);
@@ -470,21 +470,21 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-          `
+        `
   ${shaderGenTensorOutputUniform(1, scalings.buffer.textureShape.dim)}
   ${shaderGenTensorNDGetVec4('tex_stats', 1, stats.buffer.textureShape.dim)}
   ${shaderGenTensorNDGet(
-    'tex_weight',
-    1,
-    affine.weight.buffer.textureShape.dim
-  )}
+          'tex_weight',
+          1,
+          affine.weight.buffer.textureShape.dim
+        )}
   ${shaderGenTensorNDGet('tex_bias', 1, affine.bias.buffer.textureShape.dim)}
   uniform float eps;
   void main() {
     ${shaderGenTensorOutputCoordsWithReturn(
-      1,
-      scalings.buffer.textureShape.dim
-    )}
+          1,
+          scalings.buffer.textureShape.dim
+        )}
     vec4 meanvar = get_tex_stats(tex_output_0);
     float w = get_tex_weight(tex_output_0);
     float b = get_tex_bias(tex_output_0);
@@ -522,13 +522,13 @@ float invReduceLength = 1.0 / float(innerLength * outerLength);
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-          `
+        `
   ${shaderGenTensorOutputUniform(3, y.buffer.textureShape.dim)}
   ${shaderGenTensorNDGetVec4(
-    'tex_scalings',
-    1,
-    scalings.buffer.textureShape.dim
-  )}
+          'tex_scalings',
+          1,
+          scalings.buffer.textureShape.dim
+        )}
   ${shaderGenTensorNDGet('tex_x', 3, x.buffer.textureShape.dim)}
   void main() {
     ${shaderGenTensorOutputCoordsWithReturn(3, y.buffer.textureShape.dim)}
@@ -596,13 +596,13 @@ export function batch_norm_backprop_webgl(
         ctx.addKernel(
           kernelName,
           webglShaderHeader +
-            `
+          `
     ${shaderGenTensorOutputUniform(1, mean.buffer.textureShape.dim)}
     ${shaderGenTensorNDGetVec4(
-      'tex_scalings',
-      1,
-      statsForBackprop.buffer.textureShape.dim
-    )}
+            'tex_scalings',
+            1,
+            statsForBackprop.buffer.textureShape.dim
+          )}
     void main() {
       ${shaderGenTensorOutputCoordsWithReturn(1, mean.buffer.textureShape.dim)}
       vec4 scalings = get_tex_scalings(tex_output_0);
@@ -628,18 +628,18 @@ export function batch_norm_backprop_webgl(
         ctx.addKernel(
           kernelName,
           webglShaderHeader +
-            `
+          `
     ${shaderGenTensorOutputUniform(1, invStd.buffer.textureShape.dim)}
     ${shaderGenTensorNDGetVec4(
-      'tex_scalings',
-      1,
-      statsForBackprop.buffer.textureShape.dim
-    )}
+            'tex_scalings',
+            1,
+            statsForBackprop.buffer.textureShape.dim
+          )}
     void main() {
       ${shaderGenTensorOutputCoordsWithReturn(
-        1,
-        invStd.buffer.textureShape.dim
-      )}
+            1,
+            invStd.buffer.textureShape.dim
+          )}
       vec4 scalings = get_tex_scalings(tex_output_0);
       float v = scalings.g;
       ${shaderGenOutput('v')};
@@ -664,13 +664,13 @@ export function batch_norm_backprop_webgl(
         ctx.addKernel(
           kernelName,
           webglShaderHeader +
-            `
+          `
     ${shaderGenTensorOutputUniform(1, scale.buffer.textureShape.dim)}
     ${shaderGenTensorNDGetVec4(
-      'tex_scalings',
-      1,
-      statsForBackprop.buffer.textureShape.dim
-    )}
+            'tex_scalings',
+            1,
+            statsForBackprop.buffer.textureShape.dim
+          )}
     void main() {
       ${shaderGenTensorOutputCoordsWithReturn(1, scale.buffer.textureShape.dim)}
       vec4 scalings = get_tex_scalings(tex_output_0);
@@ -703,7 +703,7 @@ export function batch_norm_backprop_webgl(
         ),
         gbias
       ),
-      WebGLTensor.s(1.0 / (gy.size / gbias.size))
+      1.0 / (gy.size / gbias.size)
     );
     const gx = WebGLTensor.mul(scale, WebGLTensor.sub(gy, tmp));
     return [gx, gweight.reshape([-1]), gbias.reshape([-1])];

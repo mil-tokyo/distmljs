@@ -42,6 +42,18 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         const y = T.add(lhs, rhs);
         assert.deepEqual(await y.toArrayAsync(), [110, 120, 230, 240]);
       });
+
+      it('with scalar lhs', async () => {
+        const rhs = T.fromArray([100, 200], [2, 1]);
+        const y = T.add(10, rhs);
+        assert.deepEqual(await y.toArrayAsync(), [110, 210]);
+      });
+
+      it('with scalar rhs', async () => {
+        const lhs = T.fromArray([10, 20, 30, 40], [2, 2]);
+        const y = T.add(lhs, 100);
+        assert.deepEqual(await y.toArrayAsync(), [110, 120, 130, 140]);
+      });
     });
 
     describe('mul', () => {

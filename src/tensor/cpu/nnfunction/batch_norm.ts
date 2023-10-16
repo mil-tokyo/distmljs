@@ -211,7 +211,7 @@ export function batch_norm_backprop_cpu(
       CPUTensor.mul(CPUTensor.sub(x, mean), CPUTensor.mul(invStd, gweight)),
       gbias
     ),
-    CPUTensor.s(1.0 / (gy.size / gbias.size))
+    1.0 / (gy.size / gbias.size)
   );
   const gx = CPUTensor.mul(scale, CPUTensor.sub(gy, tmp));
   return { gx, gweight: gweight.reshape([-1]), gbias: gbias.reshape([-1]) };
@@ -306,7 +306,7 @@ export function layer_norm_backprop_cpu(
   const gxh = CPUTensor.mul(gy, w);
   const tmp = CPUTensor.sub(
     CPUTensor.sub(
-      CPUTensor.mul(CPUTensor.s(n), gxh),
+      CPUTensor.mul(n, gxh),
       CPUTensor.sum(gxh, axesCh, true)
     ),
     CPUTensor.mul(
@@ -314,7 +314,7 @@ export function layer_norm_backprop_cpu(
       CPUTensor.sum(CPUTensor.mul(gxh, xScaled), axesCh, true)
     )
   );
-  const gx = CPUTensor.mul(CPUTensor.mul(CPUTensor.s(1 / n), invStd), tmp);
+  const gx = CPUTensor.mul(CPUTensor.mul(1 / n, invStd), tmp);
   return {
     gx,
     gweight: gweight.reshape(params.normalizedShape),

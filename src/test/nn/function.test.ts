@@ -53,6 +53,22 @@ for (const { backend, ctor } of [
         assert.deepEqual(await ta(lhs.grad!.data.copy()), [1, 1]);
         assert.deepEqual(await ta(rhs.grad!.data.copy()), [-2]);
       });
+
+      it('use rhs scalar', async () => {
+        const lhs = new Variable(ctor.fromArray([1, 2], [2]));
+        const y = await sub(lhs, 20);
+        assert.deepEqual(await ta(y.data), [-19, -18]);
+        await y.backward();
+        assert.deepEqual(await ta(lhs.grad!.data.copy()), [1, 1]);
+      });
+
+      it('use lhs scalar', async () => {
+        const rhs = new Variable(ctor.fromArray([20, 30], [2]));
+        const y = await sub(5, rhs);
+        assert.deepEqual(await ta(y.data), [-15, -25]);
+        await y.backward();
+        assert.deepEqual(await ta(rhs.grad!.data.copy()), [-1, -1]);
+      });
     });
 
     describe('sum', () => {
