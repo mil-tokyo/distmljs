@@ -4,6 +4,15 @@ import { arrayEqual } from '../../../util';
 import { CPUTensor } from '../cpuTensor';
 import { getMultiBroadcastShape } from '../../shapeUtil';
 
+// upgrade scalar to Tensor
+function us(t: CPUTensor | number): CPUTensor {
+  if (t instanceof CPUTensor) {
+    return t;
+  } else {
+    return CPUTensor.s(t);
+  }
+}
+
 // functions for add
 function addBC1(
   dl: TypedArrayTypes,
@@ -124,12 +133,13 @@ function addS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coreadd(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+export function coreadd(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
   // TODO: type check
-  if (!arrayEqual(lhs.shape, rhs.shape)) {
-    return addBC(lhs, rhs);
+  const ulhs = us(lhs), urhs = us(rhs);
+  if (!arrayEqual(ulhs.shape, urhs.shape)) {
+    return addBC(ulhs, urhs);
   } else {
-    return addS(lhs, rhs);
+    return addS(ulhs, urhs);
   }
 }
 // functions for div
@@ -252,12 +262,13 @@ function divS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function corediv(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+export function corediv(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
   // TODO: type check
-  if (!arrayEqual(lhs.shape, rhs.shape)) {
-    return divBC(lhs, rhs);
+  const ulhs = us(lhs), urhs = us(rhs);
+  if (!arrayEqual(ulhs.shape, urhs.shape)) {
+    return divBC(ulhs, urhs);
   } else {
-    return divS(lhs, rhs);
+    return divS(ulhs, urhs);
   }
 }
 // functions for mul
@@ -380,12 +391,13 @@ function mulS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coremul(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+export function coremul(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
   // TODO: type check
-  if (!arrayEqual(lhs.shape, rhs.shape)) {
-    return mulBC(lhs, rhs);
+  const ulhs = us(lhs), urhs = us(rhs);
+  if (!arrayEqual(ulhs.shape, urhs.shape)) {
+    return mulBC(ulhs, urhs);
   } else {
-    return mulS(lhs, rhs);
+    return mulS(ulhs, urhs);
   }
 }
 // functions for pow
@@ -508,12 +520,13 @@ function powS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function corepow(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+export function corepow(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
   // TODO: type check
-  if (!arrayEqual(lhs.shape, rhs.shape)) {
-    return powBC(lhs, rhs);
+  const ulhs = us(lhs), urhs = us(rhs);
+  if (!arrayEqual(ulhs.shape, urhs.shape)) {
+    return powBC(ulhs, urhs);
   } else {
-    return powS(lhs, rhs);
+    return powS(ulhs, urhs);
   }
 }
 // functions for sub
@@ -636,11 +649,12 @@ function subS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coresub(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+export function coresub(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
   // TODO: type check
-  if (!arrayEqual(lhs.shape, rhs.shape)) {
-    return subBC(lhs, rhs);
+  const ulhs = us(lhs), urhs = us(rhs);
+  if (!arrayEqual(ulhs.shape, urhs.shape)) {
+    return subBC(ulhs, urhs);
   } else {
-    return subS(lhs, rhs);
+    return subS(ulhs, urhs);
   }
 }

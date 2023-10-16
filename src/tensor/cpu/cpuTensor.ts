@@ -331,23 +331,23 @@ export class CPUTensor extends Tensor {
     return unaryWrap(x, coretanh);
   }
 
-  static add(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+  static add(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+  static sub(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+  static mul(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+  static div(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+  static pow(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
     return corepow(lhs, rhs);
   }
 

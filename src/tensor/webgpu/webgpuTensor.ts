@@ -444,23 +444,23 @@ export class WebGPUTensor extends Tensor {
     return coretanh(x);
   }
 
-  static add(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+  static add(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+  static sub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+  static mul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+  static div(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+  static pow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
     return corepow(lhs, rhs);
   }
 
