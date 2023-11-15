@@ -145,6 +145,15 @@ export function sigmoidBackprop(
   });
 }
 
+export function tanhBackprop(
+  lhs: WebGLTensor,
+  rhs: WebGLTensor
+): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'tanhBackprop', {
+    float32: 'float v = (1.0 - v_l * v_l) * v_r;',
+  });
+}
+
 export function reluBackprop(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   return binaryWrap(lhs, rhs, 'reluBackprop', {
     float32: 'float v = v_l > 0.0 ? v_r : 0.0;',
