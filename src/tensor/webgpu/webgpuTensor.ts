@@ -6,7 +6,7 @@ import {
   TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
-import { arrayProd } from '../../util';
+import { arrayEqual, arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import {
   calcReshape,
@@ -569,6 +569,46 @@ export class WebGPUTensor extends Tensor {
     const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(fillValue);
     return WebGPUTensor.fromArray(data, shape, dtype);
+  }
+
+  static minimum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    throw new Error(`not implemented yet`);
+  }
+  minimum(other: WebGPUTensor): WebGPUTensor {
+    return WebGPUTensor.minimum(this, other);
+  }
+
+  static maximum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    throw new Error(`not implemented yet`);
+  }
+  maximum(other: WebGPUTensor): WebGPUTensor {
+    return WebGPUTensor.maximum(this, other);
+  }
+
+  static clamp(input: WebGPUTensor, min?: WebGPUTensor, max?: WebGPUTensor) {
+    let output;
+    if (min) { output = WebGPUTensor.maximum(input, min) }
+    if (max) { output = WebGPUTensor.minimum(output || input, max) }
+    return output || input
+  }
+  clamp(min?: WebGPUTensor, max?: WebGPUTensor): WebGPUTensor {
+    return WebGPUTensor.clamp(this, min, max);
+  }
+
+  static equal(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    throw new Error(`not implemented yet`);
+  }
+  equal(other: WebGPUTensor): WebGPUTensor {
+    return WebGPUTensor.equal(this, other);
   }
 
   static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
