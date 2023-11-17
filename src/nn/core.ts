@@ -41,6 +41,7 @@ export class Variable {
    * @param createGraph create backpropagation graph in backpropagation (e.g. second-order derivative)
    */
   async backward(retainGrad = false, createGraph = false): Promise<void> {
+    console.log('backwarrrrrrrrrrrrrrrd')
     if (!this.grad) {
       const t = this.data.getClass().ones(this.data.shape, this.data.dtype);
       this.grad = new Variable(t);
@@ -82,6 +83,11 @@ export class Variable {
             const x = nonNull(f.inputs)[i];
             const gx = gxs[i];
             if (gx) {
+              if ((await gx.data.toArrayAsync()).includes(NaN)) {
+                console.log('gx contains NaN !!')
+                console.log(f)
+                console.log(await gx.data.toArrayAsync())
+              }
               if (x.grad) {
                 x.grad = (await new Add().call(x.grad, gx))[0];
               } else {

@@ -47,7 +47,7 @@ import { fromArrayND, toArrayND } from './core/arraynd';
 import { cat, chunk, repeat, tile, split } from './core/manipulation';
 import { gemm_cpu } from './core/gemm';
 import { sort, topk } from './core/sort';
-import { arrayProd } from '../../util';
+import { arrayProd, arrayEqual } from '../../util';
 import { tril, triu } from './core/tri';
 
 class CPUTensorBuffer {
@@ -554,4 +554,72 @@ export class CPUTensor extends Tensor {
   ): [CPUTensor, CPUTensor] {
     return topk(input, k, dim, largest);
   }
+
+  static minimum(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    const output = CPUTensor.zeros(lhs.shape, lhs.dtype);
+    const dl = lhs.getBuffer().data;
+    const dr = rhs.getBuffer().data;
+    const dy = output.getBuffer().data;
+    for (let i = 0; i < output.size; i++) {
+      const l = dl[i];
+      const r = dr[i];
+      dy[i] = Math.min(l, r);
+    }
+    return output;
+  }
+  minimum(other: CPUTensor): CPUTensor {
+    return CPUTensor.minimum(this, other);
+  }
+
+  static maximum(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    const output = CPUTensor.zeros(lhs.shape, lhs.dtype);
+    const dl = lhs.getBuffer().data;
+    const dr = rhs.getBuffer().data;
+    const dy = output.getBuffer().data;
+    for (let i = 0; i < output.size; i++) {
+      const l = dl[i];
+      const r = dr[i];
+      dy[i] = Math.max(l, r);
+    }
+    return output;
+  }
+  maximum(other: CPUTensor): CPUTensor {
+    return CPUTensor.maximum(this, other);
+  }
+
+  static clamp(input: CPUTensor, min?: CPUTensor, max?: CPUTensor) {
+    let output;
+    if (min) { output = CPUTensor.maximum(input, min) }
+    if (max) { output = CPUTensor.minimum(output || input, max) }
+    return output || input
+  }
+  clamp(min?: CPUTensor, max?: CPUTensor): CPUTensor {
+    return CPUTensor.clamp(this, min, max);
+  }
+
+  static equal(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    const output = CPUTensor.zeros(lhs.shape, lhs.dtype);
+    const dl = lhs.getBuffer().data;
+    const dr = rhs.getBuffer().data;
+    const dy = output.getBuffer().data;
+    for (let i = 0; i < output.size; i++) {
+      const l = dl[i];
+      const r = dr[i];
+      dy[i] = Number(l == r);
+    }
+    return output;
+  }
+  equal(other: CPUTensor): CPUTensor {
+    return CPUTensor.equal(this, other);
+  }
+
 }

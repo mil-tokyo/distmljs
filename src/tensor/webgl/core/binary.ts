@@ -128,6 +128,30 @@ export function corediv(lhs: WebGLTensor | number, rhs: WebGLTensor | number): W
   });
 }
 
+export function coreminimum(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'minimum', {
+    float32: 'float v = min(v_l,v_r);',
+    int32: 'int v = min(v_l,v_r);',
+    uint8: 'uint v = min(v_l,v_r);',
+  });
+}
+
+export function coremaximum(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'maximum', {
+    float32: 'float v = max(v_l,v_r);',
+    int32: 'int v = max(v_l,v_r);',
+    uint8: 'uint v = max(v_l,v_r);',
+  });
+}
+
+export function coreequal(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  return binaryWrap(lhs, rhs, 'equal', {
+    float32: 'float v = float(v_l==v_r);',
+    int32: 'int v = int(v_l==v_r);',
+    uint8: 'uint v = uint(v_l==v_r);',
+  });
+}
+
 export function corepow(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
   // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
   // implementation: pow(abs(-1.5), 2)

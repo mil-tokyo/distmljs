@@ -5,7 +5,7 @@ import {
   TypedArrayForDType,
   TypedArrayTypes,
 } from '../../dtype';
-import { arrayProd } from '../../util';
+import { arrayEqual, arrayProd } from '../../util';
 import { CPUTensor } from '../cpu/cpuTensor';
 import {
   calcReshape,
@@ -14,7 +14,7 @@ import {
   calcUnsqueeze,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import { coreadd, corediv, coreequal, coremaximum, coreminimum, coremul, corepow, coresub } from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
 import { cat, split } from './core/manipulation';
@@ -1012,6 +1012,46 @@ export class WebGLTensor extends Tensor {
     const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(fillValue);
     return WebGLTensor.fromArray(data, shape, dtype);
+  }
+
+  static minimum(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    return coreminimum(lhs, rhs);
+  }
+  minimum(other: WebGLTensor): WebGLTensor {
+    return WebGLTensor.minimum(this, other);
+  }
+
+  static maximum(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    return coremaximum(lhs, rhs);
+  }
+  maximum(other: WebGLTensor): WebGLTensor {
+    return WebGLTensor.maximum(this, other);
+  }
+
+  static clamp(input: WebGLTensor, min?: WebGLTensor, max?: WebGLTensor) {
+    let output;
+    if (min) { output = WebGLTensor.maximum(input, min) }
+    if (max) { output = WebGLTensor.minimum(output || input, max) }
+    return output || input
+  }
+  clamp(min?: WebGLTensor, max?: WebGLTensor): WebGLTensor {
+    return WebGLTensor.clamp(this, min, max);
+  }
+
+  static equal(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
+    if (!arrayEqual(lhs.shape, rhs.shape)) {
+      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+    }
+    return coreequal(lhs, rhs);
+  }
+  equal(other: WebGLTensor): WebGLTensor {
+    return WebGLTensor.equal(this, other);
   }
 
   static cat(tensors: ReadonlyArray<WebGLTensor>, axis = 0): WebGLTensor {
