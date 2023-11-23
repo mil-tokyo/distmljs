@@ -104,10 +104,10 @@ describe('webglTensor', () => {
       );
     });
 
+    // it is platform-dependent (float16 texture cannot represent large number)
     it('exp large', async () => {
       const x = WebGLTensor.fromArray([-80, -70, -60, -50, -40, -30, -20, -10, 10, 20, 30, 40, 50, 60, 70, 80], [8, 2]);
       const y = WebGLTensor.exp(x);
-      console.log(await y.toArrayAsync())
       arrayNearlyEqual(await y.toArrayAsync(), [1.8049e-35, 3.9754e-31, 8.7565e-27, 1.9287e-22,
         4.2484e-18, 9.3576e-14, 2.0612e-09, 4.5400e-05, 2.2026e+04, 4.8517e+08,
         1.0686e+13, 2.3539e+17, 5.1847e+21, 1.1420e+26, 2.5154e+30, 5.5406e+34]);

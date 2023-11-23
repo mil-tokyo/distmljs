@@ -82,12 +82,6 @@ export class Variable {
             const x = nonNull(f.inputs)[i];
             const gx = gxs[i];
             if (gx) {
-              if ((await gx.data.toArrayAsync()).includes(NaN)) {
-                console.log('gx contains NaN !!')
-                console.log(f)
-                console.log(await gx.data.toArrayAsync())
-              }
-              console.log(`backward of f=${f}\nx = ${await x.data.toArrayAsync()}\nx.grad = ${await x.grad?.data.toArrayAsync()}`)
               if (x.grad) {
                 x.grad = (await new Add().call(x.grad, gx))[0];
               } else {
