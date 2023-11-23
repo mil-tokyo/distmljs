@@ -139,6 +139,18 @@ export function sigmoidBackprop(y: CPUTensor, gy: CPUTensor): CPUTensor {
   return output;
 }
 
+export function tanhBackprop(y: CPUTensor, gy: CPUTensor): CPUTensor {
+  const output = CPUTensor.zeros(gy.shape);
+  const dy = y.getBuffer().data;
+  const dgy = gy.getBuffer().data;
+  const dgx = output.getBuffer().data;
+  for (let i = 0; i < output.size; i++) {
+    const yv = dy[i];
+    dgx[i] = (1 - yv * yv) * dgy[i];
+  }
+  return output;
+}
+
 export function mseLoss(a: CPUTensor, b: CPUTensor): CPUTensor {
   if (!arrayEqual(a.shape, b.shape)) {
     throw new Error('Shape mismatch');

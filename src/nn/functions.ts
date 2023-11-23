@@ -127,7 +127,15 @@ export class Div extends NNFunction {
     });
   }
 
-  // TODO: backward
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    if (!this.inputs) {
+      throw new Error();
+    }
+    const [lhs, rhs] = this.inputs;
+    const glhs = await new Div().c(gy, rhs);
+    const grhs = await new Div().c(gy, lhs);
+    return [glhs, grhs];
+  }
 }
 
 async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<[Variable, Variable]> {
@@ -218,6 +226,27 @@ export async function exp(x: VariableResolvable): Promise<Variable> {
   return await new Exp().c(x);
 }
 
+export class Log extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.log(x)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const x = this.inputs?.[0];
+    if (!x) {
+      throw new Error();
+    }
+    const gx = (await new Div().c(gy, x));
+    return [gx];
+  }
+}
+
+export async function log(x: Variable): Promise<Variable> {
+  return await new Log().c(x);
+}
+
 export class Neg extends NNFunction {
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     return genCall([x], {
@@ -287,6 +316,89 @@ export class Sigmoid extends NNFunction {
 
 export async function sigmoid(x: VariableResolvable): Promise<Variable> {
   return await new Sigmoid().c(x);
+}
+
+export class Clamp extends NNFunction {
+  min: Tensor;
+  max: Tensor;
+  constructor(min: Tensor, max: Tensor) {
+    super();
+    this.min = min;
+    this.max = max;
+  }
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    const ret = genCall([x, this.min, this.max], {
+      all: (c, [x, min, max]) => [c.clamp(x, min, max)],
+    });
+    return ret
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const x = this.inputs?.[0];
+    const y = this.outputs?.[0]?.deref();
+    if (!x) {
+      throw new Error();
+    }
+    if (!y) {
+      throw new Error();
+    }
+    const [gx] = genCall([x.data, y.data], {
+      all: (c, [xd, yd]) => [(c.equal(xd, yd))],
+    });
+    return [await mul(new Variable(gx), gy)];
+  }
+}
+
+export async function clamp(x: Variable, min: number = 0.0, max: number = 1.0): Promise<Variable> {
+  // todo: min/max側のTensorは定数扱いで微分未実装（torchではmin/maxにも微分が通る）
+  return await new Clamp(x.data.getClass().full(x.data.shape, min), x.data.getClass().full(x.data.shape, max)).c(x);
+}
+
+export class Tanh extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.tanh(x)],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    // Sigmoidと同様に作成
+    const y = this.outputs?.[0]?.deref();
+    if (!y) {
+      throw new Error();
+    }
+    const [gx] = genCall([y.data, gy.data], {
+      cpu: (c, [yd, gyd]) => [cpuCore.tanhBackprop(yd, gyd)],
+      webgl: (c, [yd, gyd]) => [webglCore.tanhBackprop(yd, gyd)],
+      webgpu: (c, [yd, gyd]) => [webgpuCore.tanhBackprop(yd, gyd)],
+    });
+    return [new Variable(gx)];
+  }
+}
+
+export async function tanh(x: Variable): Promise<Variable> {
+  return await new Tanh().c(x);
+}
+
+export class Softplus extends NNFunction {
+  async forward([x]: Tensor[]): Promise<Tensor[]> {
+    return genCall([x], {
+      all: (c, [x]) => [c.log(c.add(c.full(x.shape, 1), c.exp(x)))],
+    });
+  }
+
+  async backward([gy]: Variable[]): Promise<Variable[]> {
+    const x = this.inputs?.[0];
+    if (!x) {
+      throw new Error();
+    }
+    const gx = (await mul(await sigmoid(x), gy));
+    return [gx];
+  }
+}
+
+export async function softplus(x: Variable): Promise<Variable> {
+  return await new Softplus().c(x);
 }
 
 export class MatMul extends NNFunction {

@@ -88,6 +88,13 @@ export function sigmoidBackprop(
   return binaryWrap(lhs, rhs, 'sigmoidBackprop');
 }
 
+export function tanhBackprop(
+  lhs: WebGPUTensor,
+  rhs: WebGPUTensor
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'tanhBackprop');
+}
+
 export function reluBackprop(
   lhs: WebGPUTensor,
   rhs: WebGPUTensor

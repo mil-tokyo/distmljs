@@ -48,7 +48,7 @@ function unaryWrap(
     ctx.addKernel(
       kernelName,
       webglShaderHeader +
-        `
+      `
 ${shaderGenTensorOutputUniformElementwise(dim, dtype)}
 ${shaderGenTensorElementwiseGet('tex_input', dim, dtype)}
 void main() {
@@ -159,5 +159,6 @@ export function coretan(x: WebGLTensor): WebGLTensor {
 }
 
 export function coretanh(x: WebGLTensor): WebGLTensor {
-  return unaryWrap(x, 'tanh', { float32: 'float v = tanh(v_s);' });
+  // The value range of tanh is -1 to 1, but some internal implementations avoid NaN at large inputs. 
+  return unaryWrap(x, 'tanh', { float32: 'float v = exp(-2.0 * abs(v_s)); v = (1.0 - v) / (1.0 + v) * sign(v_s);' });
 }
