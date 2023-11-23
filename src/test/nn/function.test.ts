@@ -13,6 +13,7 @@ import {
   relu,
   reshape,
   sigmoid,
+  tanh,
   softmax,
   softmaxCrossEntropy,
   split,
@@ -89,6 +90,15 @@ for (const { backend, ctor } of [
         assert.deepEqual(await ta(y.data), [10, 0]);
         assert.deepEqual(await ta(x.grad!.data), [1, 0]);
       });
+      it('NaN input', async () => {
+        const x = new Variable(ctor.fromArray([NaN, Infinity]));
+        const y = await relu(x);
+        await y.backward();
+        console.log(await y.data.toArrayAsync())
+        console.log(await x.grad!.data.toArrayAsync())
+        assert.deepEqual(await ta(y.data), [10, 0]);
+        assert.deepEqual(await ta(x.grad!.data), [1, 0]);
+      });
     });
 
     describe('sigmoid', () => {
@@ -99,6 +109,46 @@ for (const { backend, ctor } of [
         arrayNearlyEqual(await ta(y.data), [0.8808, 0.9526]);
         await z.backward();
         arrayNearlyEqual(await ta(x.grad!.data), [0.105, 0.0452]);
+      });
+    });
+
+    describe('tanh', () => {
+      it('backprop of tanh', async () => {
+        const x = new Variable(ctor.fromArray([2, 3]));
+        const y = await tanh(x);
+        const z = await sum(y);
+        arrayNearlyEqual(await ta(y.data), [0.9640, 0.9951]);
+        await z.backward();
+        arrayNearlyEqual(await ta(x.grad!.data), [0.0707, 0.0099]);
+      });
+      let logX;
+      let logY;
+      it('backprop of tanh large', async () => {
+        const x = new Variable(ctor.fromArray(
+          [-90.91110610961914, -80.5718994140625, -70.33268737792969, -60.340431213378906, -50.499023222197266, -40.340431213378906, -30.492544752197266, -20.76211929321289, -10.76211929321289, -0.79900329321289,
+            90.91110610961914, 80.5718994140625, 70.33268737792969, 60.340431213378906, 50.499023222197266, 40.340431213378906, 30.492544752197266, 20.76211929321289, 10.76211929321289, 0.79900329321289], [2, 10]));
+        const y = await tanh(x);
+        const z = await sum(y);
+        console.log('y')
+        console.log(x.data.backend)
+        // logY = await y.data.toArrayAsync()
+
+        console.log(await y.data.toArrayAsync())
+        arrayNearlyEqual(await ta(y.data), [-1.0000, -1.0000, -1.0000, -1.0000, -1.0000, -1.0000, -1.0000, -1.0000,
+        -1.0000, -0.6635, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000,
+          1.0000, 1.0000, 1.0000, 0.6635]);
+        await z.backward();
+        console.log('x.grad')
+        // logX = await x.grad!.data.toArrayAsync()
+        console.log(await x.grad!.data.toArrayAsync())
+
+        // assert.fail(
+        //   `tanh=${logY}, grad=${logX}`
+        // )
+
+        // arrayNearlyEqual(await ta(x.grad!.data), [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        //   0.5598, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+        //   0.0000, 0.5598]);
       });
     });
 

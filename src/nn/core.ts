@@ -41,7 +41,6 @@ export class Variable {
    * @param createGraph create backpropagation graph in backpropagation (e.g. second-order derivative)
    */
   async backward(retainGrad = false, createGraph = false): Promise<void> {
-    console.log('backwarrrrrrrrrrrrrrrd')
     if (!this.grad) {
       const t = this.data.getClass().ones(this.data.shape, this.data.dtype);
       this.grad = new Variable(t);
@@ -88,6 +87,7 @@ export class Variable {
                 console.log(f)
                 console.log(await gx.data.toArrayAsync())
               }
+              console.log(`backward of f=${f}\nx = ${await x.data.toArrayAsync()}\nx.grad = ${await x.grad?.data.toArrayAsync()}`)
               if (x.grad) {
                 x.grad = (await new Add().call(x.grad, gx))[0];
               } else {
