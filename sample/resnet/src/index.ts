@@ -146,7 +146,7 @@ async function train(backend: K.Backend, batchSize: number) {
 
     const trainEndTime = Date.now();
     print(
-      `epoch ${epoch} finished in ${(trainEndTime - trainStartTime) / 1000}s (${trainIter} iterations, ${trainIter * batchSize} samples)`
+      `epoch ${epoch} finished in ${(trainEndTime - trainStartTime) / 1000}s (${trainIter} iterations, batch size ${batchSize}, ${trainIter * batchSize} samples)`
     );
 
     let nTestSamples = 0;
