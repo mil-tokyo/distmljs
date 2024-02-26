@@ -182,18 +182,22 @@ async def main():
                     f"\riter {i} / {len(train_loader)} elapsed={int(time.time() - start_time)}s",
                     end="",
                 )
+                # 切断・クライアントの動的追加への対応はなされていない(今は切断されると待ち続ける)
+                batch_size_this_batch = len(image)
+                if batch_size_this_batch < batch_size:
+                    # 最終バッチはバッチサイズに満たないことがあり、分割がうまくいかない可能性があるためスキップ
+                    break
+                n_clients = len(client_ids)
+                chunk_size = math.ceil(batch_size_this_batch / n_clients)
+                chunk_sizes = []
+                grad_item_ids = []
+
                 item_ids_to_delete = []
                 weight_item_id = uuid4().hex
                 kakiage_server.blobs[weight_item_id] = serialize_tensors_to_bytes(
                     weights
                 )
                 item_ids_to_delete.append(weight_item_id)
-                # 切断・クライアントの動的追加への対応はなされていない(今は切断されると待ち続ける)
-                batch_size = len(image)
-                n_clients = len(client_ids)
-                chunk_size = math.ceil(batch_size / n_clients)
-                chunk_sizes = []
-                grad_item_ids = []
                 # split batch into len(client_ids) chunks
                 for c, client_id in enumerate(client_ids):
                     image_chunk = image[c * chunk_size : (c + 1) * chunk_size]
@@ -249,7 +253,7 @@ async def main():
                 # calculate weighted average of gradients
                 grad_arrays = {}
                 for chunk_size, grad_item_id in zip(chunk_sizes, grad_item_ids):
-                    chunk_weight = chunk_size / batch_size
+                    chunk_weight = chunk_size / batch_size_this_batch
                     chunk_grad_arrays = deserialize_tensor_from_bytes(
                         kakiage_server.blobs[grad_item_id]
                     )
