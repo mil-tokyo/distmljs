@@ -266,6 +266,7 @@ async def main():
                     del kakiage_server.blobs[item_id]
                 logging.debug(json.dumps({"event": "minibatch_end", "i": i}))
         epoch_end_time = time.time()
+        print()  # newline
         logging.info(
             f"epoch {epoch} took {epoch_end_time - epoch_start_time:.1f}s, {len(train_loader)} iterations, {len(client_ids)} clients, global batch size: {batch_size}, batch size per client: {chunk_size}"
         )
@@ -282,7 +283,6 @@ async def main():
                 }
             )
         )
-        print()  # newline
         logging.info("Running validation on server...")
         for k, v in model.state_dict().items():
             v[...] = torch.from_numpy(weights[snake2camel(k)])
