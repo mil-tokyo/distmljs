@@ -122,6 +122,9 @@ async def main():
     dataset_name = os.environ.get("DATASET", "mnist")
     model_name = os.environ.get("MODEL", "mlp")
     batch_size = int(os.environ.get("BATCH_SIZE", "32"))
+    max_iter = int(
+        os.environ.get("MAX_ITER", "0")
+    )  # iteration limit for quick benchmark (0 means no limit)
     input_shape, n_classes = get_io_shape(dataset_name)
     output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
@@ -164,6 +167,7 @@ async def main():
         logging.debug(json.dumps({"event": "epoch_start", "epoch": epoch}))
         logging.info(f"epoch {epoch} / {n_epoch}")
         epoch_start_time = time.time()
+        iter_count = 0
         with torch.no_grad():
             weights = {}
             for k, v in model.state_dict().items():
@@ -265,10 +269,13 @@ async def main():
                 for item_id in item_ids_to_delete:
                     del kakiage_server.blobs[item_id]
                 logging.debug(json.dumps({"event": "minibatch_end", "i": i}))
+                iter_count += 1
+                if max_iter > 0 and iter_count >= max_iter:
+                    break
         epoch_end_time = time.time()
         print()  # newline
         logging.info(
-            f"epoch {epoch} took {epoch_end_time - epoch_start_time:.1f}s, {len(train_loader)} iterations, {len(client_ids)} clients, global batch size: {batch_size}, batch size per client: {chunk_size}"
+            f"epoch {epoch} took {epoch_end_time - epoch_start_time:.1f}s, {iter_count} iterations, {len(client_ids)} clients, global batch size: {batch_size}, batch size per client: {chunk_size}"
         )
         # for benchmark purpose
         logging.debug(
@@ -276,7 +283,7 @@ async def main():
                 {
                     "epoch": epoch,
                     "elapsed_in_epoch": epoch_end_time - epoch_start_time,
-                    "n_iterations": len(train_loader),
+                    "n_iterations": iter_count,
                     "n_clients": len(client_ids),
                     "global_batch_size": batch_size,
                     "batch_size_per_client": chunk_size,
