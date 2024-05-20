@@ -20,10 +20,12 @@ export class SGD extends Optimizer {
     const prevData = parameter.data;
     const [vel, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = T.add(
-        parameter.grad!.data as any,
-        T.mul(prevData as any, this.weightDecay) as any
-      );
+      const grad = this.weightDecay ?
+        T.add(
+          parameter.grad!.data as any,
+          T.mul(prevData as any, this.weightDecay) as any
+        ) :
+        parameter.grad!.data as any;
       let vel = prevVel;
       if (!vel) {
         vel = T.zeros(parameter.data.shape);
@@ -78,10 +80,12 @@ export class Adam extends Optimizer {
     const prevData = parameter.data;
     const [momentum, variance, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = T.add(
-        parameter.grad!.data as any,
-        T.mul(prevData as any, this.weightDecay) as any
-      );
+      const grad = this.weightDecay ?
+        T.add(
+          parameter.grad!.data as any,
+          T.mul(prevData as any, this.weightDecay) as any
+        ) :
+        parameter.grad!.data as any;
 
       // momentum
       let m = prevMom || T.zeros(parameter.data.shape);
