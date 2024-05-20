@@ -193,7 +193,9 @@ export class AdamW extends Optimizer {
         1 - Math.pow(this.beta2, this.deviceStateSteps + 1)
       );
 
-      let newData = T.mul(prevData as any, 1 - this.lr * this.weightDecay);
+      let newData = this.weightDecay ?
+        T.mul(prevData as any, 1 - this.lr * this.weightDecay) as any :
+        prevData as any;
       newData = T.sub(
         newData as any,
         T.mul(
