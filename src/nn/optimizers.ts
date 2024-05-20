@@ -20,16 +20,16 @@ export class SGD extends Optimizer {
     const prevData = parameter.data;
     const [vel, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = T.add(parameter.grad!.data as any, T.mul(prevData as any, this.weightDecay) as any);
+      const grad = T.add(
+        parameter.grad!.data as any,
+        T.mul(prevData as any, this.weightDecay) as any
+      );
       let vel = prevVel;
       if (!vel) {
         vel = T.zeros(parameter.data.shape);
       }
       vel = T.mul(vel as any, this.momentum);
-      vel = T.add(
-        vel as any,
-        T.mul(grad as any, -this.lr) as any
-      );
+      vel = T.add(vel as any, T.mul(grad as any, -this.lr) as any);
       const newData = T.add(prevData as any, vel as any);
       return [vel, newData];
     });
@@ -73,7 +73,10 @@ export class Adam extends Optimizer {
     const prevData = parameter.data;
     const [momentum, variance, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = T.add(parameter.grad!.data as any, T.mul(prevData as any, this.weightDecay) as any);
+      const grad = T.add(
+        parameter.grad!.data as any,
+        T.mul(prevData as any, this.weightDecay) as any
+      );
 
       // momentum
       let m = prevMom || T.zeros(parameter.data.shape);
@@ -81,23 +84,29 @@ export class Adam extends Optimizer {
         T.mul(m as any, this.beta1) as any,
         T.mul(grad as any, 1 - this.beta1) as any
       );
-      const mHat = T.div(m as any, 1 - Math.pow(this.beta1, this.currentStep + 1));
+      const mHat = T.div(
+        m as any,
+        1 - Math.pow(this.beta1, this.currentStep + 1)
+      );
 
       // variance
       let v = prevVar || T.zeros(parameter.data.shape);
       v = T.add(
         T.mul(v as any, this.beta2) as any,
-        T.mul(
-          T.mul(grad as any, grad as any) as any,
-          1 - this.beta2
-        ) as any
+        T.mul(T.mul(grad as any, grad as any) as any, 1 - this.beta2) as any
       );
-      const vHat = T.div(v as any, 1 - Math.pow(this.beta2, this.currentStep + 1));
+      const vHat = T.div(
+        v as any,
+        1 - Math.pow(this.beta2, this.currentStep + 1)
+      );
 
       const newData = T.sub(
         prevData as any,
         T.mul(
-          T.div(mHat as any, T.add(T.sqrt(vHat as any) as any, this.epsilon) as any) as any,
+          T.div(
+            mHat as any,
+            T.add(T.sqrt(vHat as any) as any, this.epsilon) as any
+          ) as any,
           this.lr
         ) as any
       ) as any;
@@ -109,7 +118,7 @@ export class Adam extends Optimizer {
     this.momentum.set(parameter, momentum);
     this.variance.set(parameter, variance);
     this.currentStep++;
-    if (prevMom && prevVar) { // prevMomとprevVarは片方だけが存在することはない
+    if (prevMom && prevVar) {
       // tidyでforward-backward-stepを囲む場合、forward前に存在するため保持されたままとなるパラメータを明示的に削除する必要
       prevData.dispose();
       prevMom.dispose();
@@ -155,24 +164,30 @@ export class AdamW extends Optimizer {
         T.mul(m as any, this.beta1) as any,
         T.mul(grad as any, 1 - this.beta1) as any
       );
-      const mHat = T.div(m as any, 1 - Math.pow(this.beta1, this.currentStep + 1));
+      const mHat = T.div(
+        m as any,
+        1 - Math.pow(this.beta1, this.currentStep + 1)
+      );
 
       // variance
       let v = prevVar || T.zeros(parameter.data.shape);
       v = T.add(
         T.mul(v as any, this.beta2) as any,
-        T.mul(
-          T.mul(grad as any, grad as any) as any,
-          1 - this.beta2
-        ) as any
+        T.mul(T.mul(grad as any, grad as any) as any, 1 - this.beta2) as any
       );
-      const vHat = T.div(v as any, 1 - Math.pow(this.beta2, this.currentStep + 1));
+      const vHat = T.div(
+        v as any,
+        1 - Math.pow(this.beta2, this.currentStep + 1)
+      );
 
       let newData = T.mul(prevData as any, 1 - this.lr * this.weightDecay);
       newData = T.sub(
         newData as any,
         T.mul(
-          T.div(mHat as any, T.add(T.sqrt(vHat as any) as any, this.epsilon) as any) as any,
+          T.div(
+            mHat as any,
+            T.add(T.sqrt(vHat as any) as any, this.epsilon) as any
+          ) as any,
           this.lr
         ) as any
       ) as any;
@@ -184,7 +199,7 @@ export class AdamW extends Optimizer {
     this.momentum.set(parameter, momentum);
     this.variance.set(parameter, variance);
     this.currentStep++;
-    if (prevMom && prevVar) { // prevMomとprevVarは片方だけが存在することはない
+    if (prevMom && prevVar) {
       // tidyでforward-backward-stepを囲む場合、forward前に存在するため保持されたままとなるパラメータを明示的に削除する必要
       prevData.dispose();
       prevMom.dispose();
@@ -196,4 +211,3 @@ export class AdamW extends Optimizer {
     return [...this.momentum.values(), ...this.variance.values()];
   }
 }
-
