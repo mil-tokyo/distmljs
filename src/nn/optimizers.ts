@@ -51,6 +51,7 @@ export class SGD extends Optimizer {
 export class Adam extends Optimizer {
   momentum: Map<Parameter, Tensor>;
   variance: Map<Parameter, Tensor>;
+  deviceStateSteps: number;
   constructor(
     params: Iterable<Parameter>,
     public lr = 0.001,
@@ -62,6 +63,12 @@ export class Adam extends Optimizer {
     super(params);
     this.momentum = new Map();
     this.variance = new Map();
+    this.deviceStateSteps = 0;
+  }
+
+  async step(): Promise<void> {
+    await super.step();
+    this.deviceStateSteps++;
   }
 
   async stepOne(parameter: Parameter): Promise<void> {
@@ -84,7 +91,7 @@ export class Adam extends Optimizer {
       );
       const mHat = T.div(
         m as any,
-        1 - Math.pow(this.beta1, this.currentStep + 1)
+        1 - Math.pow(this.beta1, this.deviceStateSteps + 1)
       );
 
       // variance
@@ -95,7 +102,7 @@ export class Adam extends Optimizer {
       );
       const vHat = T.div(
         v as any,
-        1 - Math.pow(this.beta2, this.currentStep + 1)
+        1 - Math.pow(this.beta2, this.deviceStateSteps + 1)
       );
 
       const newData = T.sub(
@@ -131,6 +138,7 @@ export class Adam extends Optimizer {
 export class AdamW extends Optimizer {
   momentum: Map<Parameter, Tensor>;
   variance: Map<Parameter, Tensor>;
+  deviceStateSteps: number;
   constructor(
     params: Iterable<Parameter>,
     public lr = 0.001,
@@ -142,6 +150,12 @@ export class AdamW extends Optimizer {
     super(params);
     this.momentum = new Map();
     this.variance = new Map();
+    this.deviceStateSteps = 0;
+  }
+
+  async step(): Promise<void> {
+    await super.step();
+    this.deviceStateSteps++;
   }
 
   async stepOne(parameter: Parameter): Promise<void> {
@@ -161,7 +175,7 @@ export class AdamW extends Optimizer {
       );
       const mHat = T.div(
         m as any,
-        1 - Math.pow(this.beta1, this.currentStep + 1)
+        1 - Math.pow(this.beta1, this.deviceStateSteps + 1)
       );
 
       // variance
@@ -172,7 +186,7 @@ export class AdamW extends Optimizer {
       );
       const vHat = T.div(
         v as any,
-        1 - Math.pow(this.beta2, this.currentStep + 1)
+        1 - Math.pow(this.beta2, this.deviceStateSteps + 1)
       );
 
       let newData = T.mul(prevData as any, 1 - this.lr * this.weightDecay);

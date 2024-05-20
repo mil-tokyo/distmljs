@@ -417,7 +417,6 @@ export abstract class Layer {
 
 export abstract class Optimizer {
   params: Parameter[];
-  currentStep: number = 0;
 
   constructor(params: Iterable<Parameter>) {
     this.params = Array.from(params);
@@ -435,7 +434,6 @@ export abstract class Optimizer {
     for (const p of this.params) {
       await this.stepOne(p);
     }
-    this.currentStep++;
   }
 
   abstract getKeepTensors(): Tensor[];
