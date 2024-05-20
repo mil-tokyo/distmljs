@@ -242,6 +242,7 @@ async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
   if (!f.ok) {
     throw new Error('Server response to save is not ok');
   }
+  await f.text(); // avoid memory leak
 }
 
 async function recvBlob(itemId: string): Promise<Uint8Array> {
@@ -257,17 +258,22 @@ let model: K.nn.core.Layer;
 
 let totalBatches = 0;
 
+interface computePerformance {
+  receiveInput: number;
+  computeGrad: number;
+  sendOutput: number;
+}
+
 async function compute(msg: { weight: string; dataset: string; grad: string }) {
-  const weights = new TensorDeserializer().deserialize(
-    await recvBlob(msg.weight)
-  );
+  const time1 = performance.now();
+  const [weightBlob, datasetBlob] = await Promise.all([recvBlob(msg.weight), recvBlob(msg.dataset)]);
+  const time2 = performance.now();
+  const weights = new TensorDeserializer().deserialize(weightBlob);
   for (const { name, parameter } of model.parametersWithName(true, false)) {
     parameter.data = await nonNull(weights.get(name)).to(backend);
     parameter.cleargrad();
   }
-  const dataset = new TensorDeserializer().deserialize(
-    await recvBlob(msg.dataset)
-  );
+  const dataset = new TensorDeserializer().deserialize(datasetBlob);
   const image = await nonNull(dataset.get('image')).to(backend);
   const label = await nonNull(dataset.get('label')).to(backend);
   const y = await model.c(new K.nn.Variable(image));
@@ -285,17 +291,24 @@ async function compute(msg: { weight: string; dataset: string; grad: string }) {
       grads.set(name, await nonNull(parameter.data).to('cpu'));
     }
   }
+  const time3 = performance.now();
   await sendBlob(msg.grad, new TensorSerializer().serialize(grads));
+  const time4 = performance.now();
   totalBatches += 1;
   writeBatchInfo(totalBatches, lossValue, y.data.shape[0]);
+  return {
+    receiveInput: time2 - time1,
+    computeGrad: time3 - time2,
+    sendOutput: time4 - time3,
+  };
 }
 
 async function run() {
   writeState('Connecting to distributed training server...');
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-      window.location.host +
-      '/kakiage/ws'
+    window.location.host +
+    '/kakiage/ws'
   );
   ws.onopen = () => {
     writeState('Connected to server');
@@ -309,11 +322,12 @@ async function run() {
       model = makeModel(msg.model, msg.inputShape, msg.nClasses);
       await model.to(backend);
     }
+    let performance: computePerformance | undefined;
     await K.tidy(async () => {
-      await compute(msg);
+      performance = await compute(msg);
       return [];
     });
-    ws.send(JSON.stringify({}));
+    ws.send(JSON.stringify({ performance }));
   };
 }
 

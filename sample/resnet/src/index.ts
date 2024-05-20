@@ -105,6 +105,7 @@ async function train(backend: K.Backend, batchSize: number) {
   for (let epoch = 1; epoch <= totalEpochs; epoch++) {
     const epochStartTime = Date.now();
     print(`epoch ${epoch} / ${totalEpochs}`);
+    const trainStartTime = Date.now();
     let trainIter = 0;
     model.train();
     for await (const [images, labels] of trainLoader) {
@@ -142,6 +143,11 @@ async function train(backend: K.Backend, batchSize: number) {
       });
       await waitIfNeeded();
     }
+
+    const trainEndTime = Date.now();
+    print(
+      `epoch ${epoch} finished in ${(trainEndTime - trainStartTime) / 1000}s (${trainIter} iterations, batch size ${batchSize}, ${trainIter * batchSize} samples)`
+    );
 
     let nTestSamples = 0;
     let nCorrect = 0;

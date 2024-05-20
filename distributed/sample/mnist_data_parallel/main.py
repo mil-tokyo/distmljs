@@ -16,22 +16,60 @@ npm run train
 """
 
 import asyncio
+import json
 import math
 from uuid import uuid4
 import numpy as np
 import os
 import pickle
 import time
+import logging
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent, setup_server
-from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
+from kakiage.server import (
+    KakiageServerWSConnectEvent,
+    KakiageServerWSReceiveEvent,
+    setup_server,
+)
+from kakiage.tensor_serializer import (
+    serialize_tensors_to_bytes,
+    deserialize_tensor_from_bytes,
+)
 from sample_net import make_net, get_io_shape, get_dataset_loader
+
+
+def init_logger():
+    # Configure the root logger
+    logging.getLogger().setLevel(logging.NOTSET)
+
+    # Create formatter with milliseconds timestamp
+    formatter = logging.Formatter(
+        "%(asctime)s.%(msecs)03d:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    # Create INFO level handler for stderr
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    logging.getLogger().addHandler(console_handler)
+
+    log_path = os.environ.get("LOG_PATH", None)
+    if log_path is not None:
+        # Create DEBUG level handler for file
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(file_handler)
+
+
+init_logger()
 
 # setup server to distribute javascript and communicate
 kakiage_server = setup_server()
 app = kakiage_server.app
+
 
 def test(model, loader):
     model.eval()
@@ -78,24 +116,28 @@ def is_trainable_key(name):
 
 
 async def main():
-    print("MNIST / CIFAR data parallel training sample")
+    logging.info("MNIST / CIFAR data parallel training sample")
     n_client_wait = int(os.environ.get("N_CLIENTS", "1"))
     n_epoch = int(os.environ.get("EPOCH", "2"))
     dataset_name = os.environ.get("DATASET", "mnist")
     model_name = os.environ.get("MODEL", "mlp")
     batch_size = int(os.environ.get("BATCH_SIZE", "32"))
+    max_iter = int(
+        os.environ.get("MAX_ITER", "0")
+    )  # iteration limit for quick benchmark (0 means no limit)
     input_shape, n_classes = get_io_shape(dataset_name)
     output_dir = os.path.join("results", model_name, dataset_name)
     os.makedirs(output_dir, exist_ok=True)
 
     torch.manual_seed(0)
     lr = 0.01
-    print(
-        f"Model: {model_name}, dataset: {dataset_name}, batch size: {batch_size}")
+    logging.info(
+        f"Model: {model_name}, dataset: {dataset_name}, batch size: {batch_size}"
+    )
     model = make_net(model_name, input_shape, n_classes)
     train_loader, test_loader = get_dataset_loader(dataset_name, batch_size)
     client_ids = []
-    print(f"Waiting {n_client_wait} clients to connect")
+    logging.info(f"Waiting {n_client_wait} clients to connect")
 
     # Gets server event
     async def get_event():
@@ -103,17 +145,29 @@ async def main():
             event = await kakiage_server.event_queue.get()
             if isinstance(event, KakiageServerWSConnectEvent):
                 client_ids.append(event.client_id)
+                logging.debug(
+                    json.dumps(
+                        {
+                            "event": "KakiageServerWSConnectEvent",
+                            "client_id": event.client_id,
+                        }
+                    )
+                )
                 return None
             else:
                 return event
+
     while len(client_ids) < n_client_wait:
         await get_event()
-        print(f"{len(client_ids)} / {n_client_wait} clients connected")
+        logging.info(f"{len(client_ids)} / {n_client_wait} clients connected")
 
     test_results = []
     start_time = time.time()
     for epoch in range(n_epoch):
-        print(f"epoch {epoch} / {n_epoch}")
+        logging.debug(json.dumps({"event": "epoch_start", "epoch": epoch}))
+        logging.info(f"epoch {epoch} / {n_epoch}")
+        epoch_start_time = time.time()
+        iter_count = 0
         with torch.no_grad():
             weights = {}
             for k, v in model.state_dict().items():
@@ -123,23 +177,31 @@ async def main():
                     vnum = vnum.astype(np.int32)
                 weights[snake2camel(k)] = vnum
             for i, (image, label) in enumerate(train_loader):
+                logging.debug(json.dumps({"event": "minibatch_start", "i": i}))
                 print(
-                    f"\riter {i} / {len(train_loader)} elapsed={int(time.time() - start_time)}s", end="")
+                    f"\riter {i} / {len(train_loader)} elapsed={int(time.time() - start_time)}s",
+                    end="",
+                )
+                # 切断・クライアントの動的追加への対応はなされていない(今は切断されると待ち続ける)
+                batch_size_this_batch = len(image)
+                if batch_size_this_batch < batch_size:
+                    # 最終バッチはバッチサイズに満たないことがあり、分割がうまくいかない可能性があるためスキップ
+                    break
+                n_clients = len(client_ids)
+                chunk_size = math.ceil(batch_size_this_batch / n_clients)
+                chunk_sizes = []
+                grad_item_ids = []
+
                 item_ids_to_delete = []
                 weight_item_id = uuid4().hex
                 kakiage_server.blobs[weight_item_id] = serialize_tensors_to_bytes(
-                    weights)
+                    weights
+                )
                 item_ids_to_delete.append(weight_item_id)
-                # 切断・クライアントの動的追加への対応はなされていない(今は切断されると待ち続ける)
-                batch_size = len(image)
-                n_clients = len(client_ids)
-                chunk_size = math.ceil(batch_size / n_clients)
-                chunk_sizes = []
-                grad_item_ids = []
                 # split batch into len(client_ids) chunks
                 for c, client_id in enumerate(client_ids):
-                    image_chunk = image[c*chunk_size:(c+1)*chunk_size]
-                    label_chunk = label[c*chunk_size:(c+1)*chunk_size]
+                    image_chunk = image[c * chunk_size : (c + 1) * chunk_size]
+                    label_chunk = label[c * chunk_size : (c + 1) * chunk_size]
                     chunk_sizes.append(len(image_chunk))
                     dataset_item_id = uuid4().hex
                     # set blob (binary data) in server so that client can download by spceifying id
@@ -152,14 +214,17 @@ async def main():
                     item_ids_to_delete.append(dataset_item_id)
                     grad_item_id = uuid4().hex
                     # send client to calculate gradient given the weight and batch
-                    await kakiage_server.send_message(client_id, {
-                        "model": model_name,
-                        "inputShape": list(input_shape),
-                        "nClasses": n_classes,
-                        "weight": weight_item_id,
-                        "dataset": dataset_item_id,
-                        "grad": grad_item_id
-                    })
+                    await kakiage_server.send_message(
+                        client_id,
+                        {
+                            "model": model_name,
+                            "inputShape": list(input_shape),
+                            "nClasses": n_classes,
+                            "weight": weight_item_id,
+                            "dataset": dataset_item_id,
+                            "grad": grad_item_id,
+                        },
+                    )
                     grad_item_ids.append(grad_item_id)
                     item_ids_to_delete.append(grad_item_id)
                 complete_count = 0
@@ -169,18 +234,29 @@ async def main():
                 while True:
                     event = await get_event()
                     if isinstance(event, KakiageServerWSReceiveEvent):
+                        logging.debug(
+                            json.dumps(
+                                {
+                                    "event": "KakiageServerWSReceiveEvent",
+                                    "client_id": event.client_id,
+                                    "message": event.message,
+                                }
+                            )
+                        )
+                        event.message
                         complete_count += 1
                         if complete_count >= n_clients:
                             break
                     else:
-                        print("unexpected event")
+                        logging.info("unexpected event")
 
                 # calculate weighted average of gradients
                 grad_arrays = {}
                 for chunk_size, grad_item_id in zip(chunk_sizes, grad_item_ids):
-                    chunk_weight = chunk_size / batch_size
+                    chunk_weight = chunk_size / batch_size_this_batch
                     chunk_grad_arrays = deserialize_tensor_from_bytes(
-                        kakiage_server.blobs[grad_item_id])
+                        kakiage_server.blobs[grad_item_id]
+                    )
                     for k, v in chunk_grad_arrays.items():
                         if k in grad_arrays:
                             grad_arrays[k] += v * chunk_weight
@@ -196,24 +272,48 @@ async def main():
                         v[...] = grad
                 for item_id in item_ids_to_delete:
                     del kakiage_server.blobs[item_id]
-        print()
-        print("Running validation on server...")
+                logging.debug(json.dumps({"event": "minibatch_end", "i": i}))
+                iter_count += 1
+                if max_iter > 0 and iter_count >= max_iter:
+                    break
+        epoch_end_time = time.time()
+        print()  # newline
+        logging.info(
+            f"epoch {epoch} took {epoch_end_time - epoch_start_time:.1f}s, {iter_count} iterations, {len(client_ids)} clients, global batch size: {batch_size}, batch size per client: {chunk_size}"
+        )
+        # for benchmark purpose
+        logging.debug(
+            json.dumps(
+                {
+                    "epoch": epoch,
+                    "elapsed_in_epoch": epoch_end_time - epoch_start_time,
+                    "n_iterations": iter_count,
+                    "n_clients": len(client_ids),
+                    "global_batch_size": batch_size,
+                    "batch_size_per_client": chunk_size,
+                }
+            )
+        )
+        logging.info("Running validation on server...")
         for k, v in model.state_dict().items():
             v[...] = torch.from_numpy(weights[snake2camel(k)])
         test_result = test(model, test_loader)
-        print(test_result)
+        logging.info(test_result)
         test_results.append(test_result)
-    torch.save(model.state_dict(), os.path.join(
-        output_dir, "kakiage_trained_model.pt"))
+        logging.debug(json.dumps({"event": "epoch_end", "epoch": epoch}))
+    torch.save(model.state_dict(), os.path.join(output_dir, "kakiage_trained_model.pt"))
     with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
-    onnx_path = os.path.join(
-        output_dir, "kakiage_trained_model.onnx")
-    print("exporting trained model with ONNX format: " + onnx_path)
-    torch.onnx.export(model, torch.zeros(1, *input_shape), onnx_path,
-                      input_names=["input"],
-                      output_names=["output"])
-    print("training ended. You can close the program by Ctrl-C.")
+    onnx_path = os.path.join(output_dir, "kakiage_trained_model.onnx")
+    logging.info("exporting trained model with ONNX format: " + onnx_path)
+    torch.onnx.export(
+        model,
+        torch.zeros(1, *input_shape),
+        onnx_path,
+        input_names=["input"],
+        output_names=["output"],
+    )
+    logging.info("training ended. You can close the program by Ctrl-C.")
     # TODO: exit program (sys.exit(0) emits long error message)
 
 
