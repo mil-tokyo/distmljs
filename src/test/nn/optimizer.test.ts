@@ -295,7 +295,7 @@ for (const { backend, ctor } of [
         ]);
         (linear.bias!.data as CPUTensor).setArray([-0.0444, 0.1323]);
         await linear.to(backend);
-        const opt = new AdamW(linear.parameters(), 0.01);
+        const opt = new AdamW(linear.parameters(), 0.1);
         opt.zeroGrad();
         let x = new Variable(
           ctor.fromArray(

@@ -51,7 +51,6 @@ export class SGD extends Optimizer {
 export class Adam extends Optimizer {
   momentum: Map<Parameter, Tensor>;
   variance: Map<Parameter, Tensor>;
-  currentStep: number;
   constructor(
     params: Iterable<Parameter>,
     public lr = 0.001,
@@ -63,7 +62,6 @@ export class Adam extends Optimizer {
     super(params);
     this.momentum = new Map();
     this.variance = new Map();
-    this.currentStep = 0;
   }
 
   async stepOne(parameter: Parameter): Promise<void> {
@@ -117,7 +115,6 @@ export class Adam extends Optimizer {
     parameter.data = newData;
     this.momentum.set(parameter, momentum);
     this.variance.set(parameter, variance);
-    this.currentStep++;
     if (prevMom && prevVar) {
       // tidyでforward-backward-stepを囲む場合、forward前に存在するため保持されたままとなるパラメータを明示的に削除する必要
       prevData.dispose();
@@ -134,7 +131,6 @@ export class Adam extends Optimizer {
 export class AdamW extends Optimizer {
   momentum: Map<Parameter, Tensor>;
   variance: Map<Parameter, Tensor>;
-  currentStep: number;
   constructor(
     params: Iterable<Parameter>,
     public lr = 0.001,
@@ -146,7 +142,6 @@ export class AdamW extends Optimizer {
     super(params);
     this.momentum = new Map();
     this.variance = new Map();
-    this.currentStep = 0;
   }
 
   async stepOne(parameter: Parameter): Promise<void> {
@@ -198,7 +193,6 @@ export class AdamW extends Optimizer {
     parameter.data = newData;
     this.momentum.set(parameter, momentum);
     this.variance.set(parameter, variance);
-    this.currentStep++;
     if (prevMom && prevVar) {
       // tidyでforward-backward-stepを囲む場合、forward前に存在するため保持されたままとなるパラメータを明示的に削除する必要
       prevData.dispose();
