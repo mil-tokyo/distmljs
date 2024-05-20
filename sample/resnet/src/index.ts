@@ -40,7 +40,7 @@ async function train(backend: K.Backend, batchSize: number) {
   const trainLoader = new DataLoader(trainDataset, { batchSize });
   const testLoader = new DataLoader(testDataset, { batchSize });
 
-  const lr = 0.01 * (batchSize / 32); // lower learning rate when batch size is small
+  const lr = 0.01 * Math.min(batchSize / 32, 1.0); // lower learning rate when batch size is small
   const model = new ResNet18(10);
   await model.to(backend);
   const optimizer = new K.nn.optimizers.SGD(model.parameters(), lr);
