@@ -15,7 +15,15 @@ python setup.py develop
 
 # 配布用ビルド
 
+Prerequisites:
+
+```bash
+pip install wheel
 ```
+
+Build:
+
+```bash
 python setup.py bdist_wheel
 ```
 

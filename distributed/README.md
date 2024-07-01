@@ -6,7 +6,7 @@ Server-side code is implemented as Python library.
 
 Python 3.8+
 
-```
+```bash
 pip install -r requirements.txt
 python setup.py develop
 ```
@@ -15,7 +15,15 @@ How to run sample: see `samples/*/README.md`
 
 # Build for distribution
 
+Prerequisites:
+
+```bash
+pip install wheel
 ```
+
+Build:
+
+```bash
 python setup.py bdist_wheel
 ```
 
