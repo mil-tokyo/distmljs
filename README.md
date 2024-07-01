@@ -18,7 +18,7 @@ DistML.js is the web browser-based deep learning library with distributed traini
 
 # Setup
 
-node 16.x is needed.
+node 20.x is needed.
 
 ```
 npm install
