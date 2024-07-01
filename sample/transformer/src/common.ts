@@ -1,4 +1,4 @@
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
 import TensorDeserializer = K.tensor.TensorDeserializer;

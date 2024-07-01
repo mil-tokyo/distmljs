@@ -2,49 +2,62 @@ import asyncio
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+    BackgroundTasks,
+)
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 
 @dataclass
-class KakiageServerEvent:
+class DistMLJSServerEvent:
     pass
 
 
 @dataclass
-class KakiageServerWSEvent(KakiageServerEvent):
+class DistMLJSServerWSEvent(DistMLJSServerEvent):
     client_id: str
 
 
 @dataclass
-class KakiageServerWSConnectEvent(KakiageServerWSEvent):
+class DistMLJSServerWSConnectEvent(DistMLJSServerWSEvent):
     pass
 
 
 @dataclass
-class KakiageServerWSReceiveEvent(KakiageServerWSEvent):
+class DistMLJSServerWSReceiveEvent(DistMLJSServerWSEvent):
     message: object
 
 
 @dataclass
-class KakiageServerWSDisconnectEvent(KakiageServerWSEvent):
+class DistMLJSServerWSDisconnectEvent(DistMLJSServerWSEvent):
     pass
 
 
 app = FastAPI()
 blobs = {}
-event_queue: 'asyncio.Queue[KakiageServerEvent]' = asyncio.Queue()
+event_queue: "asyncio.Queue[DistMLJSServerEvent]" = asyncio.Queue()
 ws_clients: Dict[str, WebSocket] = {}
 
 
-class KakiageServer:
+class DistMLJSServer:
     app: FastAPI
     blobs: Dict[str, bytes]
-    event_queue: 'asyncio.Queue[KakiageServerEvent]'
+    event_queue: "asyncio.Queue[DistMLJSServerEvent]"
 
-    def __init__(self, app: FastAPI, blobs: Dict[str, bytes], event_queue: 'asyncio.Queue[KakiageServerEvent]') -> None:
+    def __init__(
+        self,
+        app: FastAPI,
+        blobs: Dict[str, bytes],
+        event_queue: "asyncio.Queue[DistMLJSServerEvent]",
+    ) -> None:
         self.app = app
         self.blobs = blobs
         self.event_queue = event_queue
@@ -56,7 +69,7 @@ class KakiageServer:
         await client.send_json(message)
 
 
-server = KakiageServer(app, blobs, event_queue)
+server = DistMLJSServer(app, blobs, event_queue)
 
 
 # avoid cache to force update js file when reloaded
@@ -67,14 +80,14 @@ async def add_my_headers(request: Request, call_next):
     return response
 
 
-@app.put("/kakiage/blob/{item_id}")
+@app.put("/distmljs/blob/{item_id}")
 async def binary_put(item_id: str, request: Request):
     raw_data = await request.body()  # bytes
     blobs[item_id] = raw_data
     return {"item_id": item_id, "length": len(raw_data)}
 
 
-@app.get("/kakiage/blob/{item_id}")
+@app.get("/distmljs/blob/{item_id}")
 async def binary_get(item_id: str):
     item = blobs.get(item_id)
     if item is not None:
@@ -83,22 +96,22 @@ async def binary_get(item_id: str):
         raise HTTPException(status_code=404, detail="Item not found")
 
 
-@app.websocket("/kakiage/ws")
+@app.websocket("/distmljs/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     client_id = uuid4().hex
     ws_clients[client_id] = websocket
-    await event_queue.put(KakiageServerWSConnectEvent(client_id))
+    await event_queue.put(DistMLJSServerWSConnectEvent(client_id))
     try:
         while True:
             data = await websocket.receive_json()
-            await event_queue.put(KakiageServerWSReceiveEvent(client_id, data))
+            await event_queue.put(DistMLJSServerWSReceiveEvent(client_id, data))
     except WebSocketDisconnect:
         del ws_clients[client_id]
-        await event_queue.put(KakiageServerWSDisconnectEvent(client_id))
+        await event_queue.put(DistMLJSServerWSDisconnectEvent(client_id))
 
 
-def setup_server(default_static=True) -> KakiageServer:
+def setup_server(default_static=True) -> DistMLJSServer:
     # 今はグローバルオブジェクトを返すだけだが、将来的にはグローバルな状態を持たないようにする
 
     # staticファイルの配信設定
@@ -110,5 +123,6 @@ def setup_server(default_static=True) -> KakiageServer:
 
         @app.get("/")
         async def read_index():
-            return FileResponse('public/index.html')
+            return FileResponse("public/index.html")
+
     return server

@@ -1,11 +1,11 @@
 ---
-title: Kakiage
-author: Edge Intelligence Systems
+title: DistML.js
+author: The University of Tokyo and Edge Intelligence Systems
 ---
 
 [English document](../)
 
-Kakiage は、Web ブラウザで動作する深層学習ライブラリおよび、それを応用した分散学習ツールです。
+DistML.js は、Web ブラウザで動作する深層学習ライブラリおよび、それを応用した分散学習ツールです。
 
 - [Web ブラウザ用クライアントライブラリ(TypeScript)の API ドキュメント](../client)
 - [分散計算サーバライブラリ(Python)の API ドキュメント](../server)

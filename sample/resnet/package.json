@@ -13,7 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "chart.js": "^3.7.1",
-    "kakiage": "file:../..",
+    "distmljs": "file:../..",
     "lodash": "^4.17.21"
   },
   "devDependencies": {

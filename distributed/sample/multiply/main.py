@@ -2,15 +2,29 @@ import asyncio
 from typing import List
 from uuid import uuid4
 import numpy as np
-from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import (
+    FastAPI,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+    BackgroundTasks,
+)
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
-from kakiage.server import KakiageServerWSConnectEvent, KakiageServerWSReceiveEvent, setup_server
-from kakiage.tensor_serializer import serialize_tensors_to_bytes, deserialize_tensor_from_bytes
+from distmljs.server import (
+    DistMLJSServerWSConnectEvent,
+    DistMLJSServerWSReceiveEvent,
+    setup_server,
+)
+from distmljs.tensor_serializer import (
+    serialize_tensors_to_bytes,
+    deserialize_tensor_from_bytes,
+)
 
-kakiage_server = setup_server()
-app = kakiage_server.app
+distmljs_server = setup_server()
+app = distmljs_server.app
 
 
 async def main():
@@ -18,8 +32,8 @@ async def main():
     client_ids = []
     print("Waiting a client to connect")
     while True:
-        event = await kakiage_server.event_queue.get()
-        if isinstance(event, KakiageServerWSConnectEvent):
+        event = await distmljs_server.event_queue.get()
+        if isinstance(event, DistMLJSServerWSConnectEvent):
             client_ids.append(event.client_id)
             break
         else:
@@ -29,15 +43,17 @@ async def main():
     src_s = serialize_tensors_to_bytes({"src": src_array})
     src_item_id = uuid4().hex
     dst_item_id = uuid4().hex
-    kakiage_server.blobs[src_item_id] = src_s
-    await kakiage_server.send_message(client_ids[0], {"src": src_item_id, "dst": dst_item_id})
+    distmljs_server.blobs[src_item_id] = src_s
+    await distmljs_server.send_message(
+        client_ids[0], {"src": src_item_id, "dst": dst_item_id}
+    )
     while True:
-        event = await kakiage_server.event_queue.get()
-        if isinstance(event, KakiageServerWSReceiveEvent):
+        event = await distmljs_server.event_queue.get()
+        if isinstance(event, DistMLJSServerWSReceiveEvent):
             break
         else:
             print("unexpected event")
-    dst_s = kakiage_server.blobs[dst_item_id]
+    dst_s = distmljs_server.blobs[dst_item_id]
     dst_array = deserialize_tensor_from_bytes(dst_s)
     print(dst_array)
 

@@ -1,29 +1,29 @@
-kakiage package
+distmljs package
 ===============
 
 Submodules
 ----------
 
-kakiage.constant\_codec\_eightbit module
+distmljs.constant\_codec\_eightbit module
 ----------------------------------------
 
-.. automodule:: kakiage.constant_codec_eightbit
+.. automodule:: distmljs.constant_codec_eightbit
    :members:
    :undoc-members:
    :show-inheritance:
 
-kakiage.server module
+distmljs.server module
 ---------------------
 
-.. automodule:: kakiage.server
+.. automodule:: distmljs.server
    :members:
    :undoc-members:
    :show-inheritance:
 
-kakiage.tensor\_serializer module
+distmljs.tensor\_serializer module
 ---------------------------------
 
-.. automodule:: kakiage.tensor_serializer
+.. automodule:: distmljs.tensor_serializer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,7 +31,7 @@ kakiage.tensor\_serializer module
 Module contents
 ---------------
 
-.. automodule:: kakiage
+.. automodule:: distmljs
    :members:
    :undoc-members:
    :show-inheritance:

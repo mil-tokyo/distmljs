@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import { throttle } from 'lodash';
 import { ResNet18 } from './model';
 import CPUTensor = K.tensor.CPUTensor;

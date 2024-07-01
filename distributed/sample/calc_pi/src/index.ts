@@ -11,7 +11,7 @@ function addPoint(points: number) {
   document.getElementById("n_processed")!.innerText = totalPoints.toString();
 }
 
-async function compute(msg: {run_per_ticket: number}): Promise<{run: number; hit: number}> {
+async function compute(msg: { run_per_ticket: number }): Promise<{ run: number; hit: number }> {
   let hit = 0;
   let run = msg.run_per_ticket;
   for (let i = 0; i < run; i++) {
@@ -23,15 +23,15 @@ async function compute(msg: {run_per_ticket: number}): Promise<{run: number; hit
     }
   }
   addPoint(run);
-  return {run, hit};
+  return { run, hit };
 }
 
 async function run() {
   writeLog("Connecting");
   ws = new WebSocket(
     (window.location.protocol === "https:" ? "wss://" : "ws://") +
-      window.location.host +
-      "/kakiage/ws"
+    window.location.host +
+    "/distmljs/ws"
   );
   ws.onopen = () => {
     writeLog("Connected to WS server");

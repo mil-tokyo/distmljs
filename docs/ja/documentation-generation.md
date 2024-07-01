@@ -4,7 +4,7 @@
 
 Linux 対応。
 
-あらかじめ、kakiage の TypeScript ライブラリ(`npm install`)、Python ライブラリの開発環境(`python setup.py develop`)のセットアップを完了していること。
+あらかじめ、DistML.js の TypeScript ライブラリ(`npm install`)、Python ライブラリの開発環境(`python setup.py develop`)のセットアップを完了していること。
 
 ```
 sudo apt install pandoc

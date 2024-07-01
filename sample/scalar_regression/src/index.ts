@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
 import VariableResolvable = K.nn.VariableResolvable;

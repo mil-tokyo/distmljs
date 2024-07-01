@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="kakiage",
+    name="distmljs",
     packages=find_packages(),
     version="1.0.0",
-    install_requires=["numpy", "fastapi", "uvicorn[standard]"]
+    install_requires=["numpy", "fastapi", "uvicorn[standard]"],
 )

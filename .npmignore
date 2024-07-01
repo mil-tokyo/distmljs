@@ -104,7 +104,7 @@ typings/
 
 # Project specific
 /_docbuild
-/test/kakiage-test.js
+/test/distmljs-test.js
 /webpack
 pytorch_data
 /shader/webgpu/autogen

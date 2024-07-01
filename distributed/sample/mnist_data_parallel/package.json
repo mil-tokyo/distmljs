@@ -14,7 +14,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "kakiage": "file:../../.."
+    "distmljs": "file:../../.."
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178",

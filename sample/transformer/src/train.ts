@@ -1,4 +1,4 @@
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
 import TensorDeserializer = K.tensor.TensorDeserializer;
@@ -49,8 +49,7 @@ export async function startTraining() {
           );
           const [lossValue] = await loss.data.toArrayAsync();
           log(
-            `iter ${i}/${trainBatches} loss ${lossValue} ${
-              Date.now() - startTime
+            `iter ${i}/${trainBatches} loss ${lossValue} ${Date.now() - startTime
             } ms`
           );
           await loss.backward();

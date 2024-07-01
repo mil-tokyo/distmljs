@@ -28,12 +28,12 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from kakiage.server import (
-    KakiageServerWSConnectEvent,
-    KakiageServerWSReceiveEvent,
+from distmljs.server import (
+    DistMLJSServerWSConnectEvent,
+    DistMLJSServerWSReceiveEvent,
     setup_server,
 )
-from kakiage.tensor_serializer import (
+from distmljs.tensor_serializer import (
     serialize_tensors_to_bytes,
     deserialize_tensor_from_bytes,
 )
@@ -67,8 +67,8 @@ def init_logger():
 init_logger()
 
 # setup server to distribute javascript and communicate
-kakiage_server = setup_server()
-app = kakiage_server.app
+distmljs_server = setup_server()
+app = distmljs_server.app
 
 
 def test(model, loader):
@@ -91,7 +91,7 @@ def test(model, loader):
 def snake2camel(name):
     """
     running_mean -> runningMean
-    PyTorch uses snake_case, kakiage uses camelCase
+    PyTorch uses snake_case, distmljs uses camelCase
     """
     upper = False
     cs = []
@@ -142,13 +142,13 @@ async def main():
     # Gets server event
     async def get_event():
         while True:
-            event = await kakiage_server.event_queue.get()
-            if isinstance(event, KakiageServerWSConnectEvent):
+            event = await distmljs_server.event_queue.get()
+            if isinstance(event, DistMLJSServerWSConnectEvent):
                 client_ids.append(event.client_id)
                 logging.debug(
                     json.dumps(
                         {
-                            "event": "KakiageServerWSConnectEvent",
+                            "event": "DistMLJSServerWSConnectEvent",
                             "client_id": event.client_id,
                         }
                     )
@@ -194,7 +194,7 @@ async def main():
 
                 item_ids_to_delete = []
                 weight_item_id = uuid4().hex
-                kakiage_server.blobs[weight_item_id] = serialize_tensors_to_bytes(
+                distmljs_server.blobs[weight_item_id] = serialize_tensors_to_bytes(
                     weights
                 )
                 item_ids_to_delete.append(weight_item_id)
@@ -205,7 +205,7 @@ async def main():
                     chunk_sizes.append(len(image_chunk))
                     dataset_item_id = uuid4().hex
                     # set blob (binary data) in server so that client can download by spceifying id
-                    kakiage_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(
+                    distmljs_server.blobs[dataset_item_id] = serialize_tensors_to_bytes(
                         {
                             "image": image_chunk.detach().numpy().astype(np.float32),
                             "label": label_chunk.detach().numpy().astype(np.int32),
@@ -214,7 +214,7 @@ async def main():
                     item_ids_to_delete.append(dataset_item_id)
                     grad_item_id = uuid4().hex
                     # send client to calculate gradient given the weight and batch
-                    await kakiage_server.send_message(
+                    await distmljs_server.send_message(
                         client_id,
                         {
                             "model": model_name,
@@ -230,14 +230,14 @@ async def main():
                 complete_count = 0
                 # Wait for all clients to complete
                 # No support for disconnection and dynamic addition of clients (this implementation waits disconnected client forever)
-                # To support, handle event such as KakiageServerWSConnectEvent
+                # To support, handle event such as DistMLJSServerWSConnectEvent
                 while True:
                     event = await get_event()
-                    if isinstance(event, KakiageServerWSReceiveEvent):
+                    if isinstance(event, DistMLJSServerWSReceiveEvent):
                         logging.debug(
                             json.dumps(
                                 {
-                                    "event": "KakiageServerWSReceiveEvent",
+                                    "event": "DistMLJSServerWSReceiveEvent",
                                     "client_id": event.client_id,
                                     "message": event.message,
                                 }
@@ -255,7 +255,7 @@ async def main():
                 for chunk_size, grad_item_id in zip(chunk_sizes, grad_item_ids):
                     chunk_weight = chunk_size / batch_size_this_batch
                     chunk_grad_arrays = deserialize_tensor_from_bytes(
-                        kakiage_server.blobs[grad_item_id]
+                        distmljs_server.blobs[grad_item_id]
                     )
                     for k, v in chunk_grad_arrays.items():
                         if k in grad_arrays:
@@ -271,7 +271,7 @@ async def main():
                         # not trainable = BN stats = average latest value
                         v[...] = grad
                 for item_id in item_ids_to_delete:
-                    del kakiage_server.blobs[item_id]
+                    del distmljs_server.blobs[item_id]
                 logging.debug(json.dumps({"event": "minibatch_end", "i": i}))
                 iter_count += 1
                 if max_iter > 0 and iter_count >= max_iter:
@@ -301,10 +301,12 @@ async def main():
         logging.info(test_result)
         test_results.append(test_result)
         logging.debug(json.dumps({"event": "epoch_end", "epoch": epoch}))
-    torch.save(model.state_dict(), os.path.join(output_dir, "kakiage_trained_model.pt"))
-    with open(os.path.join(output_dir, "kakiage_training.pkl"), "wb") as f:
+    torch.save(
+        model.state_dict(), os.path.join(output_dir, "distmljs_trained_model.pt")
+    )
+    with open(os.path.join(output_dir, "distmljs_training.pkl"), "wb") as f:
         pickle.dump({"test_results": test_results}, f)
-    onnx_path = os.path.join(output_dir, "kakiage_trained_model.onnx")
+    onnx_path = os.path.join(output_dir, "distmljs_trained_model.onnx")
     logging.info("exporting trained model with ONNX format: " + onnx_path)
     torch.onnx.export(
         model,

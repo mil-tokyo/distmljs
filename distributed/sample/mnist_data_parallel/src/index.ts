@@ -1,5 +1,5 @@
 import { throttle } from 'lodash';
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import T = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;
 import TensorDeserializer = K.tensor.TensorDeserializer;
@@ -234,7 +234,7 @@ const writeBatchInfo = throttle((processedBatches: number, lastLoss: number, bat
 
 async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
   const blob = new Blob([data]);
-  const f = await fetch(`/kakiage/blob/${itemId}`, {
+  const f = await fetch(`/distmljs/blob/${itemId}`, {
     method: 'PUT',
     body: blob,
     headers: { 'Content-Type': 'application/octet-stream' },
@@ -246,7 +246,7 @@ async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
 }
 
 async function recvBlob(itemId: string): Promise<Uint8Array> {
-  const f = await fetch(`/kakiage/blob/${itemId}`, { method: 'GET' });
+  const f = await fetch(`/distmljs/blob/${itemId}`, { method: 'GET' });
   if (!f.ok) {
     throw new Error('Server response to save is not ok');
   }
@@ -308,7 +308,7 @@ async function run() {
   ws = new WebSocket(
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
     window.location.host +
-    '/kakiage/ws'
+    '/distmljs/ws'
   );
   ws.onopen = () => {
     writeState('Connected to server');

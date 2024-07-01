@@ -1,4 +1,4 @@
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import Variable = K.nn.Variable;
 import VariableResolvable = K.nn.VariableResolvable;
 import F = K.nn.functions;

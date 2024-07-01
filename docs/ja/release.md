@@ -15,7 +15,7 @@ npm run build
 npm pack
 ```
 
-`kakiage-<version>.tgz` が生成される。
+`distmljs-<version>.tgz` が生成される。
 
 ## single js
 
@@ -23,7 +23,7 @@ npm pack
 npm run webpack
 ```
 
-`webpack/kakiage.js` が生成される。
+`webpack/distmljs.js` が生成される。
 
 ## python package
 
@@ -32,7 +32,7 @@ cd distributed
 python setup.py bdist_wheel
 ```
 
-`distributed/dist/kakiage-<version>-py3-none-any.whl` が生成される。
+`distributed/dist/distmljs-<version>-py3-none-any.whl` が生成される。
 
 ## document
 
@@ -40,4 +40,4 @@ python setup.py bdist_wheel
 ./tools/generate_document.sh
 ```
 
-`kakiage-document.zip` が生成される。
+`distmljs-document.zip` が生成される。

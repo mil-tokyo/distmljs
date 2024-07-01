@@ -3,7 +3,7 @@ module.exports = {
   entry: './src/test/entry.ts',
 
   output: {
-    filename: 'kakiage-test.js',
+    filename: 'distmljs-test.js',
     path: __dirname + '/test',
   },
 

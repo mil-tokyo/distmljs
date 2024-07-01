@@ -3,9 +3,9 @@ module.exports = {
   entry: './src/index.ts',
 
   output: {
-    filename: 'kakiage.js',
+    filename: 'distmljs.js',
     path: __dirname + '/webpack',
-    library: 'kakiage',
+    library: 'distmljs',
     libraryTarget: 'var',
   },
 

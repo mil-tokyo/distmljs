@@ -1,4 +1,4 @@
-# kakiage
+# DistML.js
 
 Web ブラウザで動作する、分散学習対応 DNN フレームワーク
 
@@ -55,11 +55,11 @@ npm run build
 npm pack
 ```
 
-`kakiage-<version>.tgz` が生成される。
+`distmljs-<version>.tgz` が生成される。
 
 ## JavaScript (Webpack)
 
-HTML から`<script>`タグで直接読み込まれる単一ファイル形式。`webpack/kakiage.js`に生成される。
+HTML から`<script>`タグで直接読み込まれる単一ファイル形式。`webpack/distmljs.js`に生成される。
 
 ```
 npm run webpack
@@ -67,7 +67,7 @@ npm run webpack
 
 # テスト
 
-Kakiage は、WebGL 等、node.js では動作せず、かつ Web ブラウザ間で実装差がある要素の単体テストを行う必要がある。
+DistML.js は、WebGL 等、node.js では動作せず、かつ Web ブラウザ間で実装差がある要素の単体テストを行う必要がある。
 そのため、mocha を用いて Web ブラウザ上でテストを行う。
 
 ## ビルド
@@ -89,7 +89,7 @@ Web ブラウザで [http://localhost:8080/test/](http://localhost:8080/test/) �
 ここでは、`scalar_regression`を例に説明する。
 他のサンプルは、`sample`ディレクトリを参照。
 
-## kakiage 自体のビルド
+## DistML.js 自体のビルド
 
 ```
 npm run build

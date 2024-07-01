@@ -1,6 +1,6 @@
-# kakiage
+# DistML.js
 
-Kakiage is the web browser-based deep learning library with distributed training tools.
+DistML.js is the web browser-based deep learning library with distributed training tools.
 
 # Features
 
@@ -55,11 +55,11 @@ Then run below to generate archive for distribution.
 npm pack
 ```
 
-`kakiage-<version>.tgz` is generated.
+`distmljs-<version>.tgz` is generated.
 
 ## JavaScript (Webpack)
 
-Single file format for directly loading from HTML using `<script>` tag. It is generated to `webpack/kakiage.js`.
+Single file format for directly loading from HTML using `<script>` tag. It is generated to `webpack/distmljs.js`.
 
 ```
 npm run webpack
@@ -67,7 +67,7 @@ npm run webpack
 
 # Test
 
-Kakiage needs to unit test elements such as WebGL that do not work in node.js and have implementation differences between Web browsers.
+DistML.js needs to unit test elements such as WebGL that do not work in node.js and have implementation differences between Web browsers.
 For this reason, testing is performed on a Web browser using mocha.
 
 ## Build
@@ -88,7 +88,7 @@ Open [http://localhost:8080/test/](http://localhost:8080/test/) with web browser
 
 This section describes `scalar_regression` as an sample. For other samples, see `sample` directory.
 
-## Build of kakiage itself
+## Build of DistML.js itself
 
 ```
 npm run build

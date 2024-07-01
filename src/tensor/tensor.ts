@@ -96,7 +96,7 @@ export abstract class Tensor {
   abstract transpose(axes?: ReadonlyArray<number> | null): Tensor;
 
   /**
-   * Disposes buffer. For WebGLTensor / WebGPUTensor, the buffer will not be garbage collected, so calling dispose() or using kakiage.tidy() is needed.
+   * Disposes buffer. For WebGLTensor / WebGPUTensor, the buffer will not be garbage collected, so calling dispose() or using distmljs.tidy() is needed.
    */
   abstract dispose(): void;
 }

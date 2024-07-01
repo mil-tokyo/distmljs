@@ -3,7 +3,7 @@
  * implementation is based on PyTorch
  */
 
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import Random = K.math.Random;
 import CPUTensor = K.tensor.CPUTensor;
 import Variable = K.nn.Variable;

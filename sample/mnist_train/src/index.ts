@@ -1,12 +1,12 @@
 import Chart from 'chart.js/auto';
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import Variable = K.nn.Variable;
 import VariableResolvable = K.nn.VariableResolvable;
 import CPUTensor = K.tensor.CPUTensor;
 import FetchDataset = K.dataset.datasets.FetchDataset;
 import DataLoader = K.dataset.DataLoader;
 
-const localStorageKey = 'localstorage://kakiage/mnistTrain';
+const localStorageKey = 'localstorage://distmljs/mnistTrain';
 
 function status(message: string): void {
   document.getElementById('status')!.innerText = message;

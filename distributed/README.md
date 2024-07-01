@@ -1,4 +1,4 @@
-# kakiage distributed training server
+# DistML.js distributed training server
 
 Server-side code is implemented as Python library.
 
@@ -19,4 +19,4 @@ How to run sample: see `samples/*/README.md`
 python setup.py bdist_wheel
 ```
 
-`dist/kakiage-<version>-py3-none-any.whl` will be generated. The user runs `pip install /path/to/kakiage-<version>-py3-none-any.whl` to install kakiage along with required dependencies (numpy, etc.).
+`dist/distmljs-<version>-py3-none-any.whl` will be generated. The user runs `pip install /path/to/distmljs-<version>-py3-none-any.whl` to install DistML.js along with required dependencies (numpy, etc.).

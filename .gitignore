@@ -105,8 +105,8 @@ dist
 
 # Project specific
 /_docbuild
-/test/kakiage-test.js
+/test/distmljs-test.js
 /webpack
 pytorch_data
-kakiage-document.zip
+distmljs-document.zip
 /shader/webgpu/autogen

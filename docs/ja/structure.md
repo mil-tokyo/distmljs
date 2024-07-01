@@ -2,7 +2,7 @@
 
 - `/distributed` - 分散学習
   - `/docs` - Python ライブラリの自動ドキュメント生成設定ファイル
-  - `/kakiage` - Python ライブラリ
+  - `/distmljs` - Python ライブラリ
   - `/sample` - 分散学習サンプル
 - `/sample` - サンプル(分散学習以外)
 - `/shader` - WebGPU シェーダ(実験的機能)

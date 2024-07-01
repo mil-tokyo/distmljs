@@ -1,4 +1,4 @@
-import * as K from 'kakiage';
+import * as K from 'distmljs';
 import T = K.tensor.CPUTensor;
 import TensorDeserializer = K.tensor.TensorDeserializer;
 import TensorSerializer = K.tensor.TensorSerializer;
@@ -11,7 +11,7 @@ function writeLog(message: string) {
 
 async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
   const blob = new Blob([data]);
-  const f = await fetch(`/kakiage/blob/${itemId}`, {
+  const f = await fetch(`/distmljs/blob/${itemId}`, {
     method: 'PUT',
     body: blob,
     headers: { 'Content-Type': 'application/octet-stream' },
@@ -22,7 +22,7 @@ async function sendBlob(itemId: string, data: Uint8Array): Promise<void> {
 }
 
 async function recvBlob(itemId: string): Promise<Uint8Array> {
-  const f = await fetch(`/kakiage/blob/${itemId}`, { method: 'GET' });
+  const f = await fetch(`/distmljs/blob/${itemId}`, { method: 'GET' });
   if (!f.ok) {
     throw new Error('Server response to save is not ok');
   }
@@ -30,14 +30,14 @@ async function recvBlob(itemId: string): Promise<Uint8Array> {
   return new Uint8Array(resp);
 }
 
-async function compute(msg: {src: string; dst:string}) {
+async function compute(msg: { src: string; dst: string }) {
   writeLog("receiving src");
   const srcBlob = await recvBlob(msg.src);
   writeLog("deserializing src");
   const srcTensor = (new TensorDeserializer()).deserialize(srcBlob).get("src")!;
   const dstTensor = T.mul(srcTensor, T.fromArray([2]));
   writeLog("sending dst");
-  await sendBlob(msg.dst, (new TensorSerializer()).serialize({"dst": dstTensor}));
+  await sendBlob(msg.dst, (new TensorSerializer()).serialize({ "dst": dstTensor }));
   writeLog("sent dst");
 }
 
@@ -45,8 +45,8 @@ async function run() {
   writeLog("Connecting");
   ws = new WebSocket(
     (window.location.protocol === "https:" ? "wss://" : "ws://") +
-      window.location.host +
-      "/kakiage/ws"
+    window.location.host +
+    "/distmljs/ws"
   );
   ws.onopen = () => {
     writeLog("Connected to WS server");

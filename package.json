@@ -1,5 +1,5 @@
 {
-  "name": "kakiage",
+  "name": "distmljs",
   "version": "1.0.0",
   "description": "Distributed Deep Learning Framework for Web",
   "main": "./dist/index.js",
@@ -17,9 +17,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/edgeintelligence/kakiage.git"
+    "url": "https://github.com/mil-tokyo/distmljs.git"
   },
-  "author": "Edge Intelligence Systems",
+  "author": "The University of Tokyo and Edge Intelligence Systems",
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.3.0",

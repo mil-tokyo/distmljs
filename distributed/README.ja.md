@@ -1,4 +1,4 @@
-# kakiage 分散機械学習サーバ
+# DistML.js 分散機械学習サーバ
 
 サーバ側は Python ライブラリとして実装されている。
 
@@ -19,4 +19,4 @@ python setup.py develop
 python setup.py bdist_wheel
 ```
 
-`dist/kakiage-<version>-py3-none-any.whl` が生成される。利用者は、`pip install /path/to/kakiage-<version>-py3-none-any.whl`を実行することで必須依存パッケージ(numpy 等)とともに kakiage をインストールすることが可能。
+`dist/distmljs-<version>-py3-none-any.whl` が生成される。利用者は、`pip install /path/to/distmljs-<version>-py3-none-any.whl`を実行することで必須依存パッケージ(numpy 等)とともに DistML.js をインストールすることが可能。

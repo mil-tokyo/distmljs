@@ -1,51 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kakiage Standalone MNIST Training Sample</title>
-    <script src="index.js"></script>
-  </head>
-  <body>
-    <h1>Kakiage Standalone MNIST Training Sample</h1>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DistML.js Standalone MNIST Training Sample</title>
+  <script src="index.js"></script>
+</head>
+
+<body>
+  <h1>DistML.js Standalone MNIST Training Sample</h1>
+  <div>
     <div>
-      <div>
-        Backend:
-        <label><input type="radio" name="backend" value="cpu" />CPU</label>
-        <label
-          ><input
-            type="radio"
-            name="backend"
-            value="webgl"
-            checked
-          />WebGL</label
-        ><label
-          ><input type="radio" name="backend" value="webgpu" />WebGPU</label
-        >
-      </div>
-      <div>
-        <p>Start training</p>
-        <button type="button" id="start-training">
-          from random initialization
-        </button>
-        <button type="button" id="start-training-with-saved">
-          with saved data in browser
-        </button>
-        <button type="button" id="start-training-with-file">with file</button
-        ><input type="file" id="upload-file" />
-      </div>
+      Backend:
+      <label><input type="radio" name="backend" value="cpu" />CPU</label>
+      <label><input type="radio" name="backend" value="webgl" checked />WebGL</label><label><input type="radio"
+          name="backend" value="webgpu" />WebGPU</label>
     </div>
-    <div style="width: 400px">
-      <canvas id="myChart" width="400" height="400"></canvas>
+    <div>
+      <p>Start training</p>
+      <button type="button" id="start-training">
+        from random initialization
+      </button>
+      <button type="button" id="start-training-with-saved">
+        with saved data in browser
+      </button>
+      <button type="button" id="start-training-with-file">with file</button><input type="file" id="upload-file" />
     </div>
-    <div id="status"></div>
-    <div id="result"></div>
-    <div id="save-control" style="display: none">
-      <p>Save trained model</p>
-      <button type="button" id="save-inside-browser">
-        inside browser (localStorage)</button
-      ><button type="button" id="download-to-file">to download file</button>
-    </div>
-  </body>
+  </div>
+  <div style="width: 400px">
+    <canvas id="myChart" width="400" height="400"></canvas>
+  </div>
+  <div id="status"></div>
+  <div id="result"></div>
+  <div id="save-control" style="display: none">
+    <p>Save trained model</p>
+    <button type="button" id="save-inside-browser">
+      inside browser (localStorage)</button><button type="button" id="download-to-file">to download file</button>
+  </div>
+</body>
+
 </html>

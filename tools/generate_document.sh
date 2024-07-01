@@ -33,11 +33,11 @@ cd ../..
 cp -r distributed/docs/_build _docbuild/server
 
 # zip
-rm -rf /tmp/kakiage-document
-cp -a _docbuild /tmp/kakiage-document
+rm -rf /tmp/distmljs-document
+cp -a _docbuild /tmp/distmljs-document
 pushd /tmp
-rm kakiage-document.zip
-zip -r kakiage-document.zip kakiage-document
-rm -rf kakiage-document
+rm distmljs-document.zip
+zip -r distmljs-document.zip distmljs-document
+rm -rf distmljs-document
 popd
-mv /tmp/kakiage-document.zip .
+mv /tmp/distmljs-document.zip .
