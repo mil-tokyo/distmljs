@@ -37,6 +37,10 @@ def _compress_tensor_raw(data: np.ndarray) -> bytes:
 
 
 def _compress_tensor(data: np.ndarray, compression_algorithm: int) -> bytes:
+    # NOTE: compression_algorithm 1 (eight bit) has no decoder, neither here
+    # (see _parse_tensor_chunk) nor in the TypeScript client
+    # (see src/tensor/serializer/tensorSerializer.ts). Data written with it
+    # cannot be read back.
     if compression_algorithm == 0:
         return _compress_tensor_raw(data)
     elif compression_algorithm == 1:
