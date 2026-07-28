@@ -1,7 +1,35 @@
 import { assert } from 'chai';
+import { DType } from '../../dtype';
+import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGPUTensor } from '../../tensor/webgpu/webgpuTensor';
 import { testFlag } from '../testFlag';
 import { arrayNearlyEqual } from '../testUtil';
+
+/**
+ * 同じ入力に対するCPU実装の結果を期待値として、WebGPU実装を検証する。
+ */
+async function assertEqualsCPU(
+  inputs: { data: number[]; shape: number[]; dtype?: DType }[],
+  webgpuOp: (...xs: WebGPUTensor[]) => WebGPUTensor,
+  cpuOp: (...xs: CPUTensor[]) => CPUTensor,
+  message?: string
+): Promise<void> {
+  const cpuInputs = inputs.map((i) =>
+    CPUTensor.fromArray(i.data, i.shape, i.dtype)
+  );
+  const webgpuInputs = inputs.map((i) =>
+    WebGPUTensor.fromArray(i.data, i.shape, i.dtype)
+  );
+  const expected = cpuOp(...cpuInputs);
+  const actual = webgpuOp(...webgpuInputs);
+  assert.deepEqual(actual.shape, expected.shape, `${message}: shape`);
+  assert.equal(actual.dtype, expected.dtype, `${message}: dtype`);
+  arrayNearlyEqual(
+    await actual.toArrayAsync(),
+    await expected.toArrayAsync(),
+    message
+  );
+}
 
 describe('webgpuTensor', () => {
   if (!testFlag.webgpu) {
@@ -124,6 +152,123 @@ describe('webgpuTensor', () => {
       assert.isFalse(x.buffer.gpuBuffer === y.buffer.gpuBuffer);
       assert.deepEqual(y.shape, [6]);
       assert.deepEqual(await y.toArrayAsync(), [0, 1, 2, 3, 4, 5]);
+    });
+  });
+
+  describe('minimum / maximum / equal', () => {
+    const lhs = { data: [1, -2, 3, 3.5, -5, 6], shape: [2, 3] };
+    const rhs = { data: [2, -1, 3, 0.5, -6, 7], shape: [2, 3] };
+
+    it('minimum', async () => {
+      await assertEqualsCPU(
+        [lhs, rhs],
+        (a, b) => WebGPUTensor.minimum(a, b),
+        (a, b) => CPUTensor.minimum(a, b),
+        'minimum'
+      );
+    });
+
+    it('maximum', async () => {
+      await assertEqualsCPU(
+        [lhs, rhs],
+        (a, b) => WebGPUTensor.maximum(a, b),
+        (a, b) => CPUTensor.maximum(a, b),
+        'maximum'
+      );
+    });
+
+    it('equal', async () => {
+      await assertEqualsCPU(
+        [lhs, rhs],
+        (a, b) => WebGPUTensor.equal(a, b),
+        (a, b) => CPUTensor.equal(a, b),
+        'equal'
+      );
+    });
+
+    it('minimum int32', async () => {
+      await assertEqualsCPU(
+        [
+          { ...lhs, data: [1, -2, 3, 4, -5, 6], dtype: 'int32' },
+          { ...rhs, data: [2, -1, 3, 0, -6, 7], dtype: 'int32' },
+        ],
+        (a, b) => WebGPUTensor.minimum(a, b),
+        (a, b) => CPUTensor.minimum(a, b),
+        'minimum int32'
+      );
+    });
+
+    it('clamp', async () => {
+      await assertEqualsCPU(
+        [lhs, rhs],
+        (a, b) => WebGPUTensor.clamp(a, undefined, b),
+        (a, b) => CPUTensor.clamp(a, undefined, b),
+        'clamp'
+      );
+    });
+  });
+
+  describe('tril / triu', () => {
+    const x = {
+      data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      shape: [3, 4],
+    };
+
+    for (const diagonal of [-1, 0, 2]) {
+      it(`tril diagonal=${diagonal}`, async () => {
+        await assertEqualsCPU(
+          [x],
+          (a) => WebGPUTensor.tril(a, diagonal),
+          (a) => CPUTensor.tril(a, diagonal),
+          `tril ${diagonal}`
+        );
+      });
+
+      it(`triu diagonal=${diagonal}`, async () => {
+        await assertEqualsCPU(
+          [x],
+          (a) => WebGPUTensor.triu(a, diagonal),
+          (a) => CPUTensor.triu(a, diagonal),
+          `triu ${diagonal}`
+        );
+      });
+    }
+  });
+
+  describe('chunk', () => {
+    it('divides evenly', async () => {
+      const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      const expected = CPUTensor.chunk(CPUTensor.fromArray(data, [6, 2]), 3);
+      const actual = WebGPUTensor.chunk(
+        WebGPUTensor.fromArray(data, [6, 2]),
+        3
+      );
+      assert.equal(actual.length, expected.length);
+      for (let i = 0; i < expected.length; i++) {
+        assert.deepEqual(actual[i].shape, expected[i].shape);
+        assert.deepEqual(
+          await actual[i].toArrayAsync(),
+          await expected[i].toArrayAsync()
+        );
+      }
+    });
+
+    it('divides with a remainder along dim 1', async () => {
+      const data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const expected = CPUTensor.chunk(CPUTensor.fromArray(data, [2, 5]), 3, 1);
+      const actual = WebGPUTensor.chunk(
+        WebGPUTensor.fromArray(data, [2, 5]),
+        3,
+        1
+      );
+      assert.equal(actual.length, expected.length);
+      for (let i = 0; i < expected.length; i++) {
+        assert.deepEqual(actual[i].shape, expected[i].shape);
+        assert.deepEqual(
+          await actual[i].toArrayAsync(),
+          await expected[i].toArrayAsync()
+        );
+      }
     });
   });
 });

@@ -46,12 +46,12 @@ npm install
 以下の処理は WebGPU シェーダを編集した場合のみ必要。
 
 ```
-python tools/generate_webgputensor_wgsl_unary_op.py
-python tools/generate_webgputensor_wgsl_binary_op.py
-python tools/generate_webgputensor_wgsl_copy_op.py
-python tools/generate_webgputensor_wgsl_reduction_op.py
+python tools/generate_webgpu_shaders.py
 node tools/compile_webgpu_shader.js
 ```
+
+`generate_webgpu_shaders.py` は `tools/generate_webgputensor_wgsl_*.py` を
+すべて実行する。
 
 全シェーダをブラウザの WGSL コンパイラでコンパイルし、エラーを表示するには以下を実行する。
 

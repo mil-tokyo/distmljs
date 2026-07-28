@@ -47,12 +47,12 @@ templates in `tools` (the `autogen` directory is not checked in).
 needed only when a WebGPU shader is modified.
 
 ```
-python tools/generate_webgputensor_wgsl_unary_op.py
-python tools/generate_webgputensor_wgsl_binary_op.py
-python tools/generate_webgputensor_wgsl_copy_op.py
-python tools/generate_webgputensor_wgsl_reduction_op.py
+python tools/generate_webgpu_shaders.py
 node tools/compile_webgpu_shader.js
 ```
+
+`generate_webgpu_shaders.py` runs every `tools/generate_webgputensor_wgsl_*.py`
+generator.
 
 To compile every shader with the WGSL compiler of a browser and report errors:
 

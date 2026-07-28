@@ -4,4 +4,5 @@ export * from './loss';
 export * from './manipulation';
 export * from './reduction';
 export * from './standard';
+export * from './tri';
 export * from './unary';

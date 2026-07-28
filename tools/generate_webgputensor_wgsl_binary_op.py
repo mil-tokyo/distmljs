@@ -51,8 +51,12 @@ def generateDecomposeDim(dim) -> str:
 # algorithms. implementation: pow(abs(-1.5), 2)
 #
 # WGSL has no ternary operator; select(false_value, true_value, condition) is used.
-for name, op, supported_types in sorted([
+for name, op_template, supported_types in sorted([
     ["add", "lhs + rhs", D_FIU],
+    ["minimum", "min(lhs, rhs)", D_FIU],
+    ["maximum", "max(lhs, rhs)", D_FIU],
+    # {s}はスカラー型に置換される。boolからの変換で0/1になる。
+    ["equal", "{s}(lhs == rhs)", D_FIU],
     ["sub", "lhs - rhs", D_FIU],
     ["mul", "lhs * rhs", D_FIU],
     ["div", "lhs / rhs", D_FIU],
@@ -65,6 +69,7 @@ for name, op, supported_types in sorted([
 ]):
     for t in supported_types:
         scalar_type = DTYPE_TO_SCALAR_TYPE[t]
+        op = op_template.replace("{s}", scalar_type)
         for dim in range(8):
             kernel_name = f"binary_{name}_{t}_{dim}"
 

@@ -16,11 +16,21 @@ import {
   getBroadcastStride,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import {
+  coreadd,
+  corediv,
+  coreequal,
+  coremaximum,
+  coreminimum,
+  coremul,
+  corepow,
+  coresub,
+} from './core/binary';
 import { stridedCopy } from './core/copy';
-import { cat, split } from './core/manipulation';
+import { cat, chunk, split } from './core/manipulation';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
+import { tril, triu } from './core/tri';
 import {
   coreabs,
   coreacos,
@@ -592,7 +602,7 @@ export class WebGPUTensor extends Tensor {
         `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
       );
     }
-    throw new Error('WebGPUTensor.minimum is not implemented');
+    return coreminimum(lhs, rhs);
   }
   minimum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.minimum(this, other);
@@ -604,7 +614,7 @@ export class WebGPUTensor extends Tensor {
         `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
       );
     }
-    throw new Error('WebGPUTensor.maximum is not implemented');
+    return coremaximum(lhs, rhs);
   }
   maximum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.maximum(this, other);
@@ -630,7 +640,7 @@ export class WebGPUTensor extends Tensor {
         `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
       );
     }
-    throw new Error('WebGPUTensor.equal is not implemented');
+    return coreequal(lhs, rhs);
   }
   equal(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.equal(this, other);
@@ -646,5 +656,17 @@ export class WebGPUTensor extends Tensor {
     dim = 0
   ): WebGPUTensor[] {
     return split(x, split_size_or_sections, dim);
+  }
+
+  static chunk(x: WebGPUTensor, chunks: number, dim?: number): WebGPUTensor[] {
+    return chunk(x, chunks, dim);
+  }
+
+  static tril(input: WebGPUTensor, diagonal = 0): WebGPUTensor {
+    return tril(input, diagonal);
+  }
+
+  static triu(input: WebGPUTensor, diagonal = 0): WebGPUTensor {
+    return triu(input, diagonal);
   }
 }

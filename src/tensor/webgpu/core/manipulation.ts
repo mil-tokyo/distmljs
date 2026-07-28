@@ -35,6 +35,19 @@ export function cat_backprop_webgpu(
   return gxs;
 }
 
+export function chunk(
+  x: WebGPUTensor,
+  chunks: number,
+  dim = 0
+): WebGPUTensor[] {
+  if (x.ndim === 0) {
+    throw new Error('chunk: chunk expects at least a 1-dimensional tensor');
+  }
+  //1つあたりの大きさ
+  const size = Math.ceil(x.shape[dim] / chunks);
+  return split(x, size, dim);
+}
+
 export function split(
   x: WebGPUTensor,
   split_size_or_sections: number | number[],

@@ -89,6 +89,27 @@ export function corediv(
   return binaryWrap(lhs, rhs, 'div');
 }
 
+export function coreminimum(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'minimum');
+}
+
+export function coremaximum(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'maximum');
+}
+
+export function coreequal(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'equal');
+}
+
 export function corepow(
   lhs: WebGPUTensor | number,
   rhs: WebGPUTensor | number
