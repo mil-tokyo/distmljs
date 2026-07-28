@@ -7,8 +7,8 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc -w",
-    "eslint": "eslint . --ext .ts",
-    "eslint:fix": "eslint . --ext .ts --fix",
+    "eslint": "eslint .",
+    "eslint:fix": "eslint . --fix",
     "serve": "http-server -c-1",
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
@@ -30,14 +30,13 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
-    "@typescript-eslint/eslint-plugin": "^5.9.0",
-    "@typescript-eslint/parser": "^5.9.0",
     "@webgpu/types": "^0.1.71",
     "chai": "^6.2.2",
-    "eslint": "^8.6.0",
-    "eslint-config-prettier": "^8.3.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
     "http-server": "^14.0.0",
     "mocha": "^11.7.6",
     "prettier": "^2.5.1",
@@ -46,6 +45,7 @@
     "ts-node": "^10.4.0",
     "typedoc": "^0.28.20",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0",
     "webpack": "^5.65.0",
     "webpack-cli": "^4.9.1"
   },

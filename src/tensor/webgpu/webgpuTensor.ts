@@ -443,23 +443,38 @@ export class WebGPUTensor extends Tensor {
     return coretanh(x);
   }
 
-  static add(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static add(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static sub(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static mul(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static div(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static pow(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return corepow(lhs, rhs);
   }
 
@@ -572,7 +587,9 @@ export class WebGPUTensor extends Tensor {
 
   static minimum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     throw new Error('WebGPUTensor.minimum is not implemented');
   }
@@ -582,7 +599,9 @@ export class WebGPUTensor extends Tensor {
 
   static maximum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     throw new Error('WebGPUTensor.maximum is not implemented');
   }
@@ -592,9 +611,13 @@ export class WebGPUTensor extends Tensor {
 
   static clamp(input: WebGPUTensor, min?: WebGPUTensor, max?: WebGPUTensor) {
     let output;
-    if (min) { output = WebGPUTensor.maximum(input, min) }
-    if (max) { output = WebGPUTensor.minimum(output || input, max) }
-    return output || input
+    if (min) {
+      output = WebGPUTensor.maximum(input, min);
+    }
+    if (max) {
+      output = WebGPUTensor.minimum(output || input, max);
+    }
+    return output || input;
   }
   clamp(min?: WebGPUTensor, max?: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.clamp(this, min, max);
@@ -602,7 +625,9 @@ export class WebGPUTensor extends Tensor {
 
   static equal(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     throw new Error('WebGPUTensor.equal is not implemented');
   }
@@ -610,6 +635,7 @@ export class WebGPUTensor extends Tensor {
     return WebGPUTensor.equal(this, other);
   }
 
+  /* eslint-disable @typescript-eslint/no-unused-vars -- 未実装のため引数を使用しない */
   static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
     throw new Error('WebGPUTensor.cat is not implemented');
   }
@@ -621,4 +647,5 @@ export class WebGPUTensor extends Tensor {
   ): WebGPUTensor[] {
     throw new Error('WebGPUTensor.split is not implemented');
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 }

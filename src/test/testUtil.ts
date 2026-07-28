@@ -7,7 +7,7 @@ import { assert } from 'chai';
  */
 export function assertInstanceOf(
   value: unknown,
-  ctor: Function, // eslint-disable-line @typescript-eslint/ban-types
+  ctor: { readonly prototype: unknown },
   message?: string
 ): void {
   assert.instanceOf(value, ctor as new (...args: never[]) => unknown, message);

@@ -235,8 +235,11 @@ export function cat(tensors: ReadonlyArray<CPUTensor>, axis = 0): CPUTensor {
   return y;
 }
 
-
-export function cat_backprop_cpu(gy: CPUTensor, shapes: ReadonlyArray<ReadonlyArray<number>>, axis: number): CPUTensor[] {
+export function cat_backprop_cpu(
+  gy: CPUTensor,
+  shapes: ReadonlyArray<ReadonlyArray<number>>,
+  axis: number
+): CPUTensor[] {
   const axisOffsets: number[] = [];
   let ofs = 0;
   for (let i = 0; i < shapes.length; ++i) {
@@ -260,10 +263,7 @@ export function cat_backprop_cpu(gy: CPUTensor, shapes: ReadonlyArray<ReadonlyAr
       let idx = axisOffset * gyStrides[axis];
       for (let d = 0; d < ndim; d++) {
         // k: index along axis d
-        let k = Math.floor(j / gxStrides[d]) % gxShape[d];
-        // if (d === axis) {
-        //   k += axisOffset;
-        // }
+        const k = Math.floor(j / gxStrides[d]) % gxShape[d];
         idx += k * gyStrides[d];
       }
       dgx[j] = dgy[idx];

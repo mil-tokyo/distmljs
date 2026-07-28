@@ -21,7 +21,6 @@ import {
 } from './testFlag';
 
 function makeTargetList() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const tl = document.getElementById('target-list')!;
   const currentTarget = testFlag;
   for (const name of AllTestTargets) {

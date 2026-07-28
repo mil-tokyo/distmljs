@@ -111,7 +111,6 @@ export class Variable {
     if (this.creator) {
       const funcs = [this.creator];
       while (funcs.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const f = funcs.pop()!;
         f.inputs?.forEach((v) => {
           if (v.creator) {

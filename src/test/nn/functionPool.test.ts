@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import {

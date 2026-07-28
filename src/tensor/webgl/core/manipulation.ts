@@ -14,19 +14,29 @@ import {
   webglShaderHeader,
 } from './shaderHelper';
 
-export function cat(tensors: ReadonlyArray<WebGLTensor>, axis = 0): WebGLTensor {
+export function cat(
+  tensors: ReadonlyArray<WebGLTensor>,
+  axis = 0
+): WebGLTensor {
   assertFloat32R(tensors, 'cat');
   const { axisOffsets, yShape, dtype } = calcCatShape(tensors, axis);
   const ndim = yShape.length;
 
   const output = WebGLTensor.empty(yShape, dtype);
   const ctx = getNNWebGLContext();
-  const kernelName = `cat_${dtype}_${tensors.length}_${ndim}_${axis}_${makeTensorDimKey(output, ...tensors)}`;
+  const kernelName = `cat_${dtype}_${
+    tensors.length
+  }_${ndim}_${axis}_${makeTensorDimKey(output, ...tensors)}`;
   if (!ctx.hasKernel(kernelName)) {
     let ndget = '';
     let axis_offset_defs = '';
     for (let i = 0; i < tensors.length; i++) {
-      ndget += shaderGenTensorNDGet(`tex_${i}`, ndim, tensors[i].buffer.textureShape.dim, dtype);
+      ndget += shaderGenTensorNDGet(
+        `tex_${i}`,
+        ndim,
+        tensors[i].buffer.textureShape.dim,
+        dtype
+      );
       axis_offset_defs += `uniform int axis_offset_${i};`;
     }
     const get_tex_idxs: string[] = [];
@@ -53,7 +63,7 @@ export function cat(tensors: ReadonlyArray<WebGLTensor>, axis = 0): WebGLTensor 
     ctx.addKernel(
       kernelName,
       webglShaderHeader +
-      `
+        `
 ${axis_offset_defs}
 ${shaderGenTensorOutputUniform(ndim, output.buffer.textureShape.dim, dtype)}
 ${ndget}
@@ -69,17 +79,30 @@ void main() {
     );
   }
 
-  let uniforms: WebGLUniformItem[] = [];
+  const uniforms: WebGLUniformItem[] = [];
   uniforms.push(...shaderGenTensorOutputUniformItem(output));
   for (let i = 0; i < tensors.length; i++) {
     uniforms.push(...shaderGenTensorNDGetUniformItem(`tex_${i}`, tensors[i]));
-    uniforms.push({ name: `axis_offset_${i}`, value: axisOffsets[i], type: 'int' });
+    uniforms.push({
+      name: `axis_offset_${i}`,
+      value: axisOffsets[i],
+      type: 'int',
+    });
   }
-  ctx.runKernel(kernelName, tensors.map((t, i) => ({ tensor: t, name: `tex_${i}` })), output, uniforms);
+  ctx.runKernel(
+    kernelName,
+    tensors.map((t, i) => ({ tensor: t, name: `tex_${i}` })),
+    output,
+    uniforms
+  );
   return output;
 }
 
-export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<ReadonlyArray<number>>, axis: number): WebGLTensor[] {
+export function cat_backprop_webgl(
+  gy: WebGLTensor,
+  shapes: ReadonlyArray<ReadonlyArray<number>>,
+  axis: number
+): WebGLTensor[] {
   assertFloat32R([gy], 'cat_backprop_webgl');
   const dtype = gy.dtype;
   const axisOffsets: number[] = [];
@@ -100,7 +123,10 @@ export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<Readon
     const gxShape = gx.shape;
     const ndim = gxShape.length;
 
-    const kernelName = `catbackprop_${dtype}_${ndim}_${axis}_${makeTensorDimKey(gx, gy)}`;
+    const kernelName = `catbackprop_${dtype}_${ndim}_${axis}_${makeTensorDimKey(
+      gx,
+      gy
+    )}`;
     if (!ctx.hasKernel(kernelName)) {
       const get_tex_idxs: string[] = [];
       for (let d = 0; d < ndim; d++) {
@@ -114,7 +140,7 @@ export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<Readon
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-        `
+          `
         uniform int axis_offset;
   ${shaderGenTensorNDGet('tex_input', ndim, gy.buffer.textureShape.dim, dtype)}
   ${shaderGenTensorOutputUniform(ndim, gx.buffer.textureShape.dim, dtype)}
@@ -128,7 +154,6 @@ export function cat_backprop_webgl(gy: WebGLTensor, shapes: ReadonlyArray<Readon
   `
       );
     }
-
 
     ctx.runKernel(kernelName, [{ tensor: gy, name: 'tex_input' }], gx, [
       ...shaderGenTensorOutputUniformItem(gx),

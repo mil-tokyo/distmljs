@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Backend } from '../../backend';
 import { Layer, Variable, VariableResolvable } from '../../nn/core';

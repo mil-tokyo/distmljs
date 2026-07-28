@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { assert } from 'chai';
 import { Backend } from '../../backend';
 import { Variable } from '../../nn/core';
 import { sum } from '../../nn/functions';
@@ -158,9 +156,9 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.0840,  0.1453, -0.5475, -0.5527, -0.2711,  0.0125, -0.1500,  0.2040]
+          [-0.084, 0.1453, -0.5475, -0.5527, -0.2711, 0.0125, -0.15, 0.204]
         );
-        arrayNearlyEqual(await ta(linear.bias!.data), [-0.3440, -0.1690]);
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.344, -0.169]);
 
         opt.zeroGrad();
         x = new Variable(
@@ -178,7 +176,10 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.3210, -0.1511, -0.7426, -0.8331, -0.5044, -0.2813, -0.3526, -0.0908]
+          [
+            -0.321, -0.1511, -0.7426, -0.8331, -0.5044, -0.2813, -0.3526,
+            -0.0908,
+          ]
         );
         arrayNearlyEqual(await ta(linear.bias!.data), [-0.9101, -0.7385]);
       });
@@ -210,9 +211,9 @@ for (const { backend, ctor } of [
 
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.1037,  0.1682, -0.5115, -0.4680, -0.2926,  0.0341, -0.1099,  0.2964]
+          [-0.1037, 0.1682, -0.5115, -0.468, -0.2926, 0.0341, -0.1099, 0.2964]
         );
-        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444,  0.0323]);
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444, 0.0323]);
 
         opt.zeroGrad();
         x = new Variable(
@@ -230,7 +231,7 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.1999,  0.0693, -0.6062, -0.5645, -0.3888, -0.0648, -0.2046,  0.1999]
+          [-0.1999, 0.0693, -0.6062, -0.5645, -0.3888, -0.0648, -0.2046, 0.1999]
         );
         arrayNearlyEqual(await ta(linear.bias!.data), [-0.2444, -0.0677]);
       });
@@ -261,9 +262,9 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.1037,  0.1682, -0.5115, -0.4680, -0.2926,  0.0341, -0.1099,  0.2964]
+          [-0.1037, 0.1682, -0.5115, -0.468, -0.2926, 0.0341, -0.1099, 0.2964]
         );
-        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444,  0.0323]);
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444, 0.0323]);
 
         opt.zeroGrad();
         x = new Variable(
@@ -281,7 +282,7 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.2004,  0.0688, -0.6025, -0.5629, -0.3886, -0.0652, -0.2035,  0.1998]
+          [-0.2004, 0.0688, -0.6025, -0.5629, -0.3886, -0.0652, -0.2035, 0.1998]
         );
         arrayNearlyEqual(await ta(linear.bias!.data), [-0.2444, -0.0676]);
       });
@@ -312,9 +313,9 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.1037,  0.1679, -0.5111, -0.4676, -0.2924,  0.0340, -0.1099,  0.2960]
+          [-0.1037, 0.1679, -0.5111, -0.4676, -0.2924, 0.034, -0.1099, 0.296]
         );
-        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444,  0.0322]);
+        arrayNearlyEqual(await ta(linear.bias!.data), [-0.1444, 0.0322]);
 
         opt.zeroGrad();
         x = new Variable(
@@ -332,7 +333,7 @@ for (const { backend, ctor } of [
         await opt.step();
         arrayNearlyEqual(
           await ta(linear.weight.data),
-          [-0.1998,  0.0688, -0.6053, -0.5636, -0.3883, -0.0650, -0.2045,  0.1992]
+          [-0.1998, 0.0688, -0.6053, -0.5636, -0.3883, -0.065, -0.2045, 0.1992]
         );
         arrayNearlyEqual(await ta(linear.bias!.data), [-0.2442, -0.0679]);
       });

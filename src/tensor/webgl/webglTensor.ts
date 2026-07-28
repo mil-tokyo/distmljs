@@ -14,7 +14,16 @@ import {
   calcUnsqueeze,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import { coreadd, corediv, coreequal, coremaximum, coreminimum, coremul, corepow, coresub } from './core/binary';
+import {
+  coreadd,
+  corediv,
+  coreequal,
+  coremaximum,
+  coreminimum,
+  coremul,
+  corepow,
+  coresub,
+} from './core/binary';
 import { broadcastTo, stridedCopy } from './core/copy';
 import { gemm } from './core/gemm';
 import { cat, split } from './core/manipulation';
@@ -233,7 +242,7 @@ export class WebGLTensorBuffer {
     if (this.isBoundToDrawFrameBuffer)
       throw Error(
         'This buffer is already registered as draw buffer. ' +
-        'You may forgot to unbind the binding while previous operations.'
+          'You may forgot to unbind the binding while previous operations.'
       );
 
     const ctx = getNNWebGLContext();
@@ -264,12 +273,12 @@ export class WebGLTensorBuffer {
     if (this.readTextureUnitIndices.length > 0)
       throw Error(
         'This buffer is already registered as read buffer. ' +
-        'You cannot bind a texture as both read and draw texture buffer at same time.'
+          'You cannot bind a texture as both read and draw texture buffer at same time.'
       );
     if (this.isBoundToDrawFrameBuffer)
       throw Error(
         'This buffer is already registered as draw buffer. ' +
-        'You may forgot to unbind the binding while previous operations.'
+          'You may forgot to unbind the binding while previous operations.'
       );
 
     const ctx = getNNWebGLContext();
@@ -386,7 +395,7 @@ export class WebGLTensorBuffer {
       ctx.addKernel(
         kernelName,
         webglShaderHeader +
-        `
+          `
 ${shaderGenTensorOutputUniform(1, dst.textureShape.dim, dstDtype)}
 ${shaderGenTensorNDGet('tex_input', 1, this.textureShape.dim, srcDtype)}
 uniform int input_pixels;
@@ -616,12 +625,12 @@ export class WebGLTensor extends Tensor {
     } else {
       this.buffer = new WebGLTensorBuffer(
         textureShape ||
-        this.calcDefaultTextureShape(
-          this.size,
-          this.dtype,
-          ctx.maxTextureSize,
-          ctx.supportsTexture32bit
-        )
+          this.calcDefaultTextureShape(
+            this.size,
+            this.dtype,
+            ctx.maxTextureSize,
+            ctx.supportsTexture32bit
+          )
       );
     }
   }
@@ -652,10 +661,9 @@ export class WebGLTensor extends Tensor {
         ...format,
       };
     } else {
-      let height = Math.ceil(length / maxTextureSize);
+      const height = Math.ceil(length / maxTextureSize);
       if (height > maxTextureSize) {
         const depth = Math.ceil(height / maxTextureSize);
-        height = maxTextureSize;
         return {
           dim: '2DArray',
           width: maxTextureSize,
@@ -808,23 +816,38 @@ export class WebGLTensor extends Tensor {
     return corecopy(this);
   }
 
-  static add(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  static add(
+    lhs: WebGLTensor | number,
+    rhs: WebGLTensor | number
+  ): WebGLTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  static sub(
+    lhs: WebGLTensor | number,
+    rhs: WebGLTensor | number
+  ): WebGLTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  static mul(
+    lhs: WebGLTensor | number,
+    rhs: WebGLTensor | number
+  ): WebGLTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  static div(
+    lhs: WebGLTensor | number,
+    rhs: WebGLTensor | number
+  ): WebGLTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+  static pow(
+    lhs: WebGLTensor | number,
+    rhs: WebGLTensor | number
+  ): WebGLTensor {
     return corepow(lhs, rhs);
   }
 
@@ -1016,7 +1039,9 @@ export class WebGLTensor extends Tensor {
 
   static minimum(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     return coreminimum(lhs, rhs);
   }
@@ -1026,7 +1051,9 @@ export class WebGLTensor extends Tensor {
 
   static maximum(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     return coremaximum(lhs, rhs);
   }
@@ -1036,9 +1063,13 @@ export class WebGLTensor extends Tensor {
 
   static clamp(input: WebGLTensor, min?: WebGLTensor, max?: WebGLTensor) {
     let output;
-    if (min) { output = WebGLTensor.maximum(input, min) }
-    if (max) { output = WebGLTensor.minimum(output || input, max) }
-    return output || input
+    if (min) {
+      output = WebGLTensor.maximum(input, min);
+    }
+    if (max) {
+      output = WebGLTensor.minimum(output || input, max);
+    }
+    return output || input;
   }
   clamp(min?: WebGLTensor, max?: WebGLTensor): WebGLTensor {
     return WebGLTensor.clamp(this, min, max);
@@ -1046,7 +1077,9 @@ export class WebGLTensor extends Tensor {
 
   static equal(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
     return coreequal(lhs, rhs);
   }
