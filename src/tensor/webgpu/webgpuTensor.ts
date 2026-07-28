@@ -162,9 +162,8 @@ export class WebGPUTensorBuffer {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function calcDefaultBufferShape(size: number, dtype: DType): WebGPUBufferShape {
-  // glslのlayoutがbyte単位の要素をサポートしておらず、uint8/boolでも1要素32bitのuintとして扱う
+function calcDefaultBufferShape(size: number): WebGPUBufferShape {
+  // WGSLがbyte単位の要素をサポートしておらず、uint8/boolでも1要素32bitのuintとして扱う
   const bytePerElement = 4;
   let byteLength = size * bytePerElement;
   // 将来4の倍数でない要素をサポートする場合、4の倍数に切り上げる必要あり
@@ -185,10 +184,7 @@ export class WebGPUTensor extends Tensor {
     bufferShape?: WebGPUBufferShape
   ) {
     super('webgpu', shape, dtype);
-    const bShape = bufferShape || calcDefaultBufferShape(this.size, this.dtype);
-    if (bShape.forWriteFromCPU && bShape.forReadToCPU) {
-      throw new Error('WebGPUTensor cannot be both for read and write');
-    }
+    const bShape = bufferShape || calcDefaultBufferShape(this.size);
     this.buffer = buffer || new WebGPUTensorBuffer(bShape);
   }
 
@@ -233,7 +229,7 @@ export class WebGPUTensor extends Tensor {
     if (bufferShape) {
       bShape = bufferShape;
     } else {
-      bShape = calcDefaultBufferShape(arrayProd(shape), dtype);
+      bShape = calcDefaultBufferShape(arrayProd(shape));
       // CPUへの読み取りに使われると仮定
       bShape.forReadToCPU = true;
     }
@@ -244,7 +240,7 @@ export class WebGPUTensor extends Tensor {
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
-    const data = new Float32Array(arrayProd(shape));
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
     return WebGPUTensor.fromArray(data, shape, dtype);
   }
 
@@ -252,7 +248,7 @@ export class WebGPUTensor extends Tensor {
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
-    const data = new Float32Array(arrayProd(shape));
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(1);
     return WebGPUTensor.fromArray(data, shape, dtype);
   }
@@ -280,8 +276,11 @@ export class WebGPUTensor extends Tensor {
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
     const shape_ = shape || [data.length];
-    const bShape = calcDefaultBufferShape(arrayProd(shape_), dtype);
+    const bShape = calcDefaultBufferShape(arrayProd(shape_));
     bShape.forWriteFromCPU = true;
+    // mappedAtCreationによるCPUからの書き込みと、COPY_SRCによるCPUへの読み出しは
+    // 同一のバッファで両立できる
+    bShape.forReadToCPU = true;
     const t = new WebGPUTensor(shape_, dtype, undefined, bShape);
     t.setArray(data);
     return t;
@@ -575,7 +574,7 @@ export class WebGPUTensor extends Tensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
       throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
     }
-    throw new Error(`not implemented yet`);
+    throw new Error('WebGPUTensor.minimum is not implemented');
   }
   minimum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.minimum(this, other);
@@ -585,7 +584,7 @@ export class WebGPUTensor extends Tensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
       throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
     }
-    throw new Error(`not implemented yet`);
+    throw new Error('WebGPUTensor.maximum is not implemented');
   }
   maximum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.maximum(this, other);
@@ -605,14 +604,14 @@ export class WebGPUTensor extends Tensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
       throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
     }
-    throw new Error(`not implemented yet`);
+    throw new Error('WebGPUTensor.equal is not implemented');
   }
   equal(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.equal(this, other);
   }
 
   static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
-    throw new Error('Not implemented');
+    throw new Error('WebGPUTensor.cat is not implemented');
   }
 
   static split(
@@ -620,6 +619,6 @@ export class WebGPUTensor extends Tensor {
     split_size_or_sections: number | number[],
     dim = 0
   ): WebGPUTensor[] {
-    throw new Error('Not implemented');
+    throw new Error('WebGPUTensor.split is not implemented');
   }
 }

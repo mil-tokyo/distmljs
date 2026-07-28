@@ -136,13 +136,30 @@ async function collectResult(page) {
       const el = document.querySelector(selector);
       return el ? el.textContent : '0';
     };
+    // The mocha HTML reporter nests each test under li.suite elements, so the
+    // enclosing suite titles are collected to make the test identifiable.
+    const suitePath = (el) => {
+      const titles = [];
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        if (p.classList && p.classList.contains('suite')) {
+          const h1 = p.querySelector('h1');
+          if (h1) {
+            titles.unshift(h1.textContent.trim());
+          }
+        }
+      }
+      return titles;
+    };
     const failures = Array.from(
       document.querySelectorAll('#mocha .test.fail')
     ).map((el) => {
       const title = el.querySelector('h2');
       const error = el.querySelector('.error');
       return {
-        title: title ? title.childNodes[0].textContent.trim() : '(unknown)',
+        title: [
+          ...suitePath(el),
+          title ? title.childNodes[0].textContent.trim() : '(unknown)',
+        ].join(' > '),
         error: error ? error.textContent.split('\n')[0] : '',
       };
     });

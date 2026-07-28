@@ -2,6 +2,7 @@ import { WebGPUMetaBufferContent } from './webgpuContext';
 import { WebGPUTensorBuffer } from './webgpuTensor';
 
 const metaBufferPool: WebGPUMetaBuffer[] = [];
+const metaBufferPoolMaxLength = 1000;
 
 export class WebGPUMetaBuffer {
   constructor(
@@ -91,9 +92,13 @@ export class WebGPUMetaBuffer {
 
   pushToPool(): void {
     metaBufferPool.push(this);
-    if (metaBufferPool.length >= 1000) {
-      // TODO: remove old buffer
-      console.warn('1000 buffers stored to meta buffer pool');
+    // プールが際限なく増えるとGPUメモリを圧迫し、findPooledの線形探索も遅くなるため、
+    // 上限を超えたら最も古いものから破棄する。
+    // GPUに投入済みのコマンドから参照されているバッファをdestroyしても、
+    // そのコマンドは正しく完了することが仕様で保証されている。
+    while (metaBufferPool.length > metaBufferPoolMaxLength) {
+      const removed = metaBufferPool.shift();
+      removed?.buffer.dispose();
     }
   }
 }
