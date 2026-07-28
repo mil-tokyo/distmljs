@@ -10,7 +10,7 @@ import { Tensor, WebGPUTensor } from '../../tensor';
 import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { testFlag } from '../testFlag';
-import { arrayNearlyEqual } from '../testUtil';
+import { arrayNearlyEqual, assertInstanceOf } from '../testUtil';
 
 for (const { backend, ctor } of [
   { backend: 'cpu' as Backend, ctor: CPUTensor },
@@ -24,7 +24,7 @@ for (const { backend, ctor } of [
     continue;
   }
   const ta = async (tensor: unknown): Promise<number[]> => {
-    assert.instanceOf(tensor, ctor);
+    assertInstanceOf(tensor, ctor);
     return await (tensor as Tensor).toArrayAsync();
   };
   describe(`nn/optimizer/${backend}`, () => {

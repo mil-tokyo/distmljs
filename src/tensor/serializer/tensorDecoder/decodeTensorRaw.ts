@@ -4,7 +4,7 @@ import { TensorSerializerDataType } from '../tensorSerializer';
 import { clipLong } from '../tensorSerializerUtil';
 
 export function decodeTensorRaw(
-  buf: ArrayBuffer,
+  buf: ArrayBufferLike,
   bodyByteOffset: number,
   bodyCompressedLength: number,
   dataType: number,

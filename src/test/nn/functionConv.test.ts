@@ -7,7 +7,7 @@ import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
 import { testFlag } from '../testFlag';
-import { arrayNearlyEqual } from '../testUtil';
+import { arrayNearlyEqual, assertInstanceOf } from '../testUtil';
 
 for (const { backend, ctor } of [
   { backend: 'cpu', ctor: CPUTensor },
@@ -21,7 +21,7 @@ for (const { backend, ctor } of [
     continue;
   }
   const ta = async (tensor: unknown): Promise<number[]> => {
-    assert.instanceOf(tensor, ctor);
+    assertInstanceOf(tensor, ctor);
     return await (tensor as Tensor).toArrayAsync();
   };
   describe(`nn/function/conv/${backend}`, () => {

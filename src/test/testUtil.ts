@@ -1,5 +1,18 @@
 import { assert } from 'chai';
 
+/**
+ * assert.instanceOfの型定義はpublicなコンストラクタを持つクラスしか受け付けないが、
+ * Tensorの各実装クラスはprivateコンストラクタを持つ。実行時にはinstanceof演算子で
+ * 判定されるだけなので、キャストしてchaiに渡す。
+ */
+export function assertInstanceOf(
+  value: unknown,
+  ctor: Function, // eslint-disable-line @typescript-eslint/ban-types
+  message?: string
+): void {
+  assert.instanceOf(value, ctor as new (...args: never[]) => unknown, message);
+}
+
 export function arrayNearlyEqual(
   a: ReadonlyArray<number>,
   b: ReadonlyArray<number>,

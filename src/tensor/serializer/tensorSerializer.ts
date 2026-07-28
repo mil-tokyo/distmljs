@@ -123,7 +123,7 @@ export class TensorDeserializer {
   }
 
   private extractChunk(
-    buf: ArrayBuffer,
+    buf: ArrayBufferLike,
     byteOffset: number
   ): {
     signature: number;
@@ -146,7 +146,7 @@ export class TensorDeserializer {
   }
 
   private parseTensorChunk(
-    buf: ArrayBuffer,
+    buf: ArrayBufferLike,
     bodyByteOffset: number,
     bodyByteLength: number
   ): { name: string; tensor: CPUTensor } {
@@ -206,7 +206,7 @@ export class TensorDeserializer {
   }
 
   private parseString(
-    buf: ArrayBuffer,
+    buf: ArrayBufferLike,
     byteOffset: number,
     byteLength: number
   ): string {
@@ -216,7 +216,7 @@ export class TensorDeserializer {
   }
 
   private parseTensorBody(
-    buf: ArrayBuffer,
+    buf: ArrayBufferLike,
     compressionAlgorithm: number,
     bodyByteOffset: number,
     bodyCompressedLength: number,
@@ -241,7 +241,7 @@ export class TensorDeserializer {
 export class TensorSerializer {
   serialize(
     tensors: Map<string, CPUTensor> | Record<string, CPUTensor> | CPUTensor
-  ): Uint8Array {
+  ): Uint8Array<ArrayBuffer> {
     let map: Map<string, CPUTensor>;
     if (tensors instanceof Map) {
       map = tensors;
@@ -305,7 +305,9 @@ export class TensorSerializer {
     document.body.removeChild(a);
   }
 
-  private serializeCore(tensors: Map<string, CPUTensor>): Uint8Array {
+  private serializeCore(
+    tensors: Map<string, CPUTensor>
+  ): Uint8Array<ArrayBuffer> {
     let totalLength = 4;
     const tensorEntries: [string, CPUTensor, number, number][] = [];
     for (const [name, tensor] of tensors.entries()) {
