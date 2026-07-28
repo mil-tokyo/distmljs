@@ -27,7 +27,7 @@ import {
   coresub,
 } from './core/binary';
 import { stridedCopy } from './core/copy';
-import { cat, chunk, split } from './core/manipulation';
+import { cat, chunk, repeat, split, tile } from './core/manipulation';
 import { argmax, argmin, max, min } from './core/minmax';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
@@ -657,6 +657,21 @@ export class WebGPUTensor extends Tensor {
     dim = 0
   ): WebGPUTensor[] {
     return split(x, split_size_or_sections, dim);
+  }
+
+  static repeat(
+    x: WebGPUTensor,
+    repeats: ReadonlyArray<number> | number,
+    axis?: number
+  ): WebGPUTensor {
+    return repeat(x, repeats, axis);
+  }
+
+  static tile(
+    x: WebGPUTensor,
+    reps: ReadonlyArray<number> | number
+  ): WebGPUTensor {
+    return tile(x, reps);
   }
 
   static chunk(x: WebGPUTensor, chunks: number, dim?: number): WebGPUTensor[] {

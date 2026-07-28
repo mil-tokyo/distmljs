@@ -337,4 +337,86 @@ describe('webgpuTensor', () => {
       }
     }
   });
+
+  describe('repeat / tile', () => {
+    const x2d = { data: [1, 2, 3, 4], shape: [2, 2] };
+    const x4d = {
+      data: Array.from({ length: 2 * 3 * 4 * 5 }, (_, i) => i),
+      shape: [2, 3, 4, 5],
+    };
+
+    it('repeat a scalar', async () => {
+      await assertEqualsCPU(
+        [{ data: [3], shape: [] }],
+        (a) => WebGPUTensor.repeat(a, 4),
+        (a) => CPUTensor.repeat(a, 4),
+        'repeat scalar'
+      );
+    });
+
+    it('repeat without axis', async () => {
+      await assertEqualsCPU(
+        [x2d],
+        (a) => WebGPUTensor.repeat(a, 2),
+        (a) => CPUTensor.repeat(a, 2),
+        'repeat without axis'
+      );
+    });
+
+    for (const axis of [0, 1]) {
+      it(`repeat along axis=${axis}`, async () => {
+        await assertEqualsCPU(
+          [x2d],
+          (a) => WebGPUTensor.repeat(a, 2, axis),
+          (a) => CPUTensor.repeat(a, 2, axis),
+          `repeat axis=${axis}`
+        );
+      });
+    }
+
+    it('repeat with a repeats array', async () => {
+      await assertEqualsCPU(
+        [x2d],
+        (a) => WebGPUTensor.repeat(a, [1, 2], 0),
+        (a) => CPUTensor.repeat(a, [1, 2], 0),
+        'repeat array'
+      );
+    });
+
+    it('repeat with a repeats array on 4d', async () => {
+      await assertEqualsCPU(
+        [x4d],
+        (a) => WebGPUTensor.repeat(a, [3, 2, 4, 1], 2),
+        (a) => CPUTensor.repeat(a, [3, 2, 4, 1], 2),
+        'repeat array 4d'
+      );
+    });
+
+    for (const reps of [2, [2, 3], [3], [2, 1, 2]] as (number | number[])[]) {
+      it(`tile reps=${JSON.stringify(reps)}`, async () => {
+        await assertEqualsCPU(
+          [x2d],
+          (a) => WebGPUTensor.tile(a, reps),
+          (a) => CPUTensor.tile(a, reps),
+          `tile ${JSON.stringify(reps)}`
+        );
+      });
+    }
+
+    it('tile a scalar', async () => {
+      await assertEqualsCPU(
+        [{ data: [3], shape: [] }],
+        (a) => WebGPUTensor.tile(a, [2, 3]),
+        (a) => CPUTensor.tile(a, [2, 3]),
+        'tile scalar'
+      );
+    });
+
+    it('tile with reps of 1 copies the tensor', async () => {
+      const g = WebGPUTensor.fromArray([1, 2, 3, 4], [2, 2]);
+      const y = WebGPUTensor.tile(g, [1, 1]);
+      assert.isFalse(g.buffer.gpuBuffer === y.buffer.gpuBuffer);
+      assert.deepEqual(await y.toArrayAsync(), [1, 2, 3, 4]);
+    });
+  });
 });

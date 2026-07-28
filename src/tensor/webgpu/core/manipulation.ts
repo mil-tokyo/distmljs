@@ -3,6 +3,116 @@ import { calcCatShape } from '../../shapeUtil';
 import { WebGPUTensor } from '../webgpuTensor';
 import { stridedCopy, stridedSet } from './copy';
 
+/**
+ * xのaxis番目の軸に、大きさcountでストライド0の軸を挿入して読み出し、
+ * 元の軸と併合した結果を返す。beforeがtrueなら挿入した軸が外側になる。
+ *
+ * before=false は repeat (各要素を連続して繰り返す)、
+ * before=true は tile (全体を繰り返す) に対応する。
+ */
+function expandAxis(
+  x: WebGPUTensor,
+  axis: number,
+  count: number,
+  before: boolean
+): WebGPUTensor {
+  const expandedShape = [...x.shape];
+  const xStride = [...x.strides];
+  const insertAt = before ? axis : axis + 1;
+  expandedShape.splice(insertAt, 0, count);
+  xStride.splice(insertAt, 0, 0);
+  const expanded = stridedCopy(x, expandedShape, xStride);
+  const mergedShape = [...x.shape];
+  mergedShape[axis] = x.shape[axis] * count;
+  const merged = expanded.reshape(mergedShape);
+  expanded.dispose();
+  return merged;
+}
+
+export function repeat(
+  x: WebGPUTensor,
+  repeats: ReadonlyArray<number> | number,
+  axis?: number
+): WebGPUTensor {
+  if (axis == undefined) {
+    if (typeof repeats !== 'number') {
+      throw new Error('repeat: repeats must be number when axis === undefined');
+    }
+    // 平坦化して各要素を繰り返す
+    const flat = x.reshape([x.size]);
+    const y = expandAxis(flat, 0, repeats, false);
+    flat.dispose();
+    return y;
+  }
+  if (typeof repeats === 'number') {
+    return expandAxis(x, axis, repeats, false);
+  }
+  if (repeats.length !== x.shape[axis]) {
+    throw new Error(
+      `repeat: length of repeats (${repeats.length}) must match the size of axis ${axis} (${x.shape[axis]})`
+    );
+  }
+  // 繰り返し回数が要素ごとに異なる場合は、軸方向のスライスごとに処理して連結する
+  const sliceShape = [...x.shape];
+  sliceShape[axis] = 1;
+  const parts: WebGPUTensor[] = [];
+  try {
+    for (let i = 0; i < repeats.length; i++) {
+      if (repeats[i] <= 0) {
+        continue;
+      }
+      const slice = stridedCopy(x, sliceShape, x.strides, i * x.strides[axis]);
+      if (repeats[i] === 1) {
+        parts.push(slice);
+      } else {
+        parts.push(expandAxis(slice, axis, repeats[i], false));
+        slice.dispose();
+      }
+    }
+    if (parts.length === 0) {
+      throw new Error('repeat: the result must not be empty');
+    }
+    return cat(parts, axis);
+  } finally {
+    for (const part of parts) {
+      part.dispose();
+    }
+  }
+}
+
+export function tile(
+  x: WebGPUTensor,
+  reps: ReadonlyArray<number> | number
+): WebGPUTensor {
+  const yreps = typeof reps === 'number' ? [reps] : [...reps];
+  const yDim = Math.max(x.ndim, yreps.length);
+  // numpyと同じく、短いほうを先頭に1を補って右詰めで対応させる
+  while (yreps.length < yDim) {
+    yreps.unshift(1);
+  }
+  const alignedShape = [...x.shape];
+  while (alignedShape.length < yDim) {
+    alignedShape.unshift(1);
+  }
+
+  let y = x.reshape(alignedShape);
+  for (let d = 0; d < yDim; d++) {
+    if (yreps[d] === 1) {
+      continue;
+    }
+    const next = expandAxis(y, d, yreps[d], true);
+    y.dispose();
+    y = next;
+  }
+  if (y.buffer === x.buffer) {
+    // 一度も繰り返しがない場合はコピーを返す
+    const copied = y.copy();
+    y.dispose();
+    return copied;
+  }
+  return y;
+}
+
 export function cat(
   tensors: ReadonlyArray<WebGPUTensor>,
   axis = 0
