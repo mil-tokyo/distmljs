@@ -172,7 +172,7 @@ for (const { backend, ctor } of [
       });
     });
 
-    if (backend === 'cpu') {
+    if (backend === 'cpu' || backend === 'webgpu') {
       describe('bmm', () => {
         it('forward, backward', async () => {
           const x = new Variable(
@@ -392,7 +392,7 @@ for (const { backend, ctor } of [
           await ta(y.data),
           [0.0321, 0.0871, 0.2369, 0.6439, 0.0045, 0.2436, 0.0896, 0.6623]
         );
-        if (backend === 'cpu') {
+        if (backend === 'cpu' || backend === 'webgpu') {
           // backward of webgl is not yet implemented
           const weight = new Variable(
             ctor.fromArray([1, 2, 3, 4, 5, 6, 7, 8], [2, 4])

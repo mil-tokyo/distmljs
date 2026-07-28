@@ -498,6 +498,7 @@ export class Bmm extends NNFunction {
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
     return genCall([a, b], {
       cpu: (c, [a, b]) => [bmm_cpu(a, b, this.transa, this.transb)],
+      webgpu: (c, [a, b]) => [webgpuCore.bmm(a, b, this.transa, this.transb)],
     });
   }
 
@@ -535,6 +536,7 @@ export class SoftmaxBackward extends NNFunction {
   async forward([softmax, gy]: Tensor[]): Promise<Tensor[]> {
     return genCall([softmax, gy], {
       cpu: (c, [softmax, gy]) => [cpuCore.softmaxBackward(softmax, gy)],
+      webgpu: (c, [softmax, gy]) => [webgpuCore.softmaxBackward(softmax, gy)],
     });
   }
 }

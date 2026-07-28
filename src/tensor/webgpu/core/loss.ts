@@ -49,6 +49,42 @@ export function softmax(x: WebGPUTensor): WebGPUTensor {
   return output;
 }
 
+export function softmaxBackward(
+  y: WebGPUTensor,
+  gy: WebGPUTensor
+): WebGPUTensor {
+  assertFloat32([y, gy], 'softmaxBackward');
+  if (y.ndim < 2) {
+    throw new Error('softmaxBackward needs 2d input');
+  }
+  const cs = y.shape[y.ndim - 1];
+  const shaderName = 'softmax_backward';
+
+  const ctx = getNNWebGPUContext();
+  if (!ctx.hasPipeline(shaderName)) {
+    const shader = webgpuShaders[shaderName];
+    if (!shader) {
+      throw new Error(`${shaderName}: shader not found`);
+    }
+    ctx.createPipeline(shaderName, shader);
+  }
+  const output = WebGPUTensor.empty(y.shape);
+  const metaElements: WebGPUMetaBufferContentElement[] = [
+    { value: output.size, type: 'uint32' },
+    { value: cs, type: 'uint32' },
+  ];
+  ctx.runKernel({
+    pipelineName: shaderName,
+    tensors: [y, gy, output],
+    meta: {
+      elements: metaElements,
+    },
+    workGroups: { x: Math.ceil(Math.min(output.size, 4096) / 64), y: 1, z: 1 },
+  });
+
+  return output;
+}
+
 export function softmaxCrossEntropyBackward(
   softmax: WebGPUTensor,
   label: WebGPUTensor,
