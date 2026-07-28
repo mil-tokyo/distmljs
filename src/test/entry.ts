@@ -51,25 +51,62 @@ function makeTargetList() {
   tl.appendChild(submit);
 }
 
+/**
+ * 初期化エラーの表示。alertはヘッドレスブラウザでのテスト自動実行を阻害するため使用しない。
+ */
+function showInitError(message: string): void {
+  console.error(message);
+  const div = document.getElementById('error');
+  if (div) {
+    const p = document.createElement('p');
+    p.style.color = 'red';
+    p.innerText = message;
+    div.appendChild(p);
+  }
+}
+
+/**
+ * ヘッドレスブラウザではGPUプロセスの起動が完了する前にrequestAdapterが呼ばれ、
+ * nullや"A valid external Instance reference no longer exists"エラーが返ることがある。
+ * 成功するまで一定回数リトライする。
+ */
+async function initializeWebGPUWithRetry(retry = 20): Promise<void> {
+  for (let i = 0; ; i++) {
+    try {
+      await initializeNNWebGPUContext();
+      return;
+    } catch (error) {
+      if (i >= retry) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+}
+
 window.addEventListener('load', async () => {
   makeTargetList();
   if (testFlag.webgl) {
     try {
       await initializeNNWebGLContext();
     } catch (error) {
-      alert(
+      showInitError(
         `Failed to initialize WebGL. Uncheck webgl in target selection. ${error}`
       );
     }
   }
   if (testFlag.webgpu) {
     try {
-      await initializeNNWebGPUContext();
+      await initializeWebGPUWithRetry();
     } catch (error) {
-      alert(
+      showInitError(
         `Failed to initialize WebGPU. Uncheck webgpu in target selection. ${error}`
       );
     }
   }
-  mocha.run();
+  // ヘッドレスブラウザからテスト完了を検知するためのフラグ
+  mocha.run((failures: number) => {
+    (window as unknown as Record<string, unknown>).__mochaFailures = failures;
+    (window as unknown as Record<string, unknown>).__mochaDone = true;
+  });
 });

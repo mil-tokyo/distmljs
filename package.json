@@ -13,7 +13,12 @@
     "webpack": "webpack",
     "webpack:watch": "webpack --watch",
     "webpack:test": "webpack --config webpack-test.config.js",
-    "webpack:test:watch": "webpack --config webpack-test.config.js --watch"
+    "webpack:test:watch": "webpack --config webpack-test.config.js --watch",
+    "test": "npm run webpack:test && npm run test:cpu && npm run test:webgl && npm run test:webgpu",
+    "test:cpu": "node tools/run_browser_test.mjs",
+    "test:webgl": "node tools/run_browser_test.mjs --target=webgl",
+    "test:webgpu": "node tools/run_browser_test.mjs --target=webgpu",
+    "test:heavy": "node tools/run_browser_test.mjs --target=heavy"
   },
   "repository": {
     "type": "git",
@@ -34,6 +39,7 @@
     "http-server": "^14.0.0",
     "mocha": "^9.1.3",
     "prettier": "^2.5.1",
+    "puppeteer-core": "^25.4.0",
     "ts-loader": "^9.2.6",
     "ts-node": "^10.4.0",
     "typedoc": "^0.22.12",
