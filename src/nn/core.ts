@@ -15,7 +15,10 @@ export class Variable {
   grad?: Variable;
   creator?: NNFunction;
   generation: number;
-  constructor(public data: Tensor, public name?: string) {
+  constructor(
+    public data: Tensor,
+    public name?: string
+  ) {
     this.generation = 0;
   }
 

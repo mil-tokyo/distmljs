@@ -179,8 +179,7 @@ export interface TensorTextureShape2DArray extends TensorTextureShapeFormat {
 }
 
 export type TensorTextureShape =
-  | TensorTextureShape2D
-  | TensorTextureShape2DArray;
+  TensorTextureShape2D | TensorTextureShape2DArray;
 
 export class WebGLTensorBuffer {
   public readonly texture: WebGLTexture;

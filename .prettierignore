@@ -1,0 +1,14 @@
+node_modules
+# build output
+dist
+webpack
+_docbuild
+test/distmljs-test.js
+# generated from shader/webgpu/**/*.wgsl by tools/compile_webgpu_shader.js
+src/tensor/webgpu/shaders.ts
+# samples have their own dependencies and are not part of the library source
+sample
+distributed
+package-lock.json
+# tsc --init が生成したコメント付きレイアウトを保持する
+tsconfig.json

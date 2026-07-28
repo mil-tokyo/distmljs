@@ -305,10 +305,7 @@ export function layer_norm_backprop_cpu(
   const xScaled = CPUTensor.mul(CPUTensor.sub(x, mean), invStd);
   const gxh = CPUTensor.mul(gy, w);
   const tmp = CPUTensor.sub(
-    CPUTensor.sub(
-      CPUTensor.mul(n, gxh),
-      CPUTensor.sum(gxh, axesCh, true)
-    ),
+    CPUTensor.sub(CPUTensor.mul(n, gxh), CPUTensor.sum(gxh, axesCh, true)),
     CPUTensor.mul(
       xScaled,
       CPUTensor.sum(CPUTensor.mul(gxh, xScaled), axesCh, true)

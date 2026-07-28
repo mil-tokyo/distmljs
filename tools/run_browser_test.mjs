@@ -163,9 +163,9 @@ async function collectResult(page) {
         error: error ? error.textContent.split('\n')[0] : '',
       };
     });
-    const initErrors = Array.from(
-      document.querySelectorAll('#error p')
-    ).map((el) => el.textContent);
+    const initErrors = Array.from(document.querySelectorAll('#error p')).map(
+      (el) => el.textContent
+    );
     return {
       passes: Number(text('#mocha-stats .passes em')),
       reportedFailures: Number(text('#mocha-stats .failures em')),

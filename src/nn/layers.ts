@@ -63,9 +63,7 @@ export class Conv2d extends Layer {
   readonly kernelSize: [number, number];
   readonly stride: number | [number, number];
   readonly padding:
-    | number
-    | [number, number]
-    | [number, number, number, number];
+    number | [number, number] | [number, number, number, number];
   readonly dilation: number | [number, number];
   readonly groups: number;
   weight: Parameter;

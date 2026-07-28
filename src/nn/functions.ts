@@ -138,7 +138,10 @@ export class Div extends NNFunction {
   }
 }
 
-async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<[Variable, Variable]> {
+async function _toVariablePair(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<[Variable, Variable]> {
   // TODO: support scalar as input of Add. Currently, unnecessary backpropagation to the scalar is performed.
   let resLhs: Variable, resRhs: Variable;
   if (typeof lhs === 'number') {
@@ -169,40 +172,52 @@ async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableRe
  * Add two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function add(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Add().c(...await _toVariablePair(lhs, rhs));
+export async function add(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Add().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Subtract two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function sub(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Sub().c(...await _toVariablePair(lhs, rhs));
+export async function sub(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Sub().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Multiply two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function mul(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Mul().c(...await _toVariablePair(lhs, rhs));
+export async function mul(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Mul().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Divide two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function div(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Div().c(...await _toVariablePair(lhs, rhs));
+export async function div(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Div().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 export class Exp extends NNFunction {
@@ -238,7 +253,7 @@ export class Log extends NNFunction {
     if (!x) {
       throw new Error();
     }
-    const gx = (await new Div().c(gy, x));
+    const gx = await new Div().c(gy, x);
     return [gx];
   }
 }
@@ -330,7 +345,7 @@ export class Clamp extends NNFunction {
     const ret = genCall([x, this.min, this.max], {
       all: (c, [x, min, max]) => [c.clamp(x, min, max)],
     });
-    return ret
+    return ret;
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -343,15 +358,22 @@ export class Clamp extends NNFunction {
       throw new Error();
     }
     const [gx] = genCall([x.data, y.data], {
-      all: (c, [xd, yd]) => [(c.equal(xd, yd))],
+      all: (c, [xd, yd]) => [c.equal(xd, yd)],
     });
     return [await mul(new Variable(gx), gy)];
   }
 }
 
-export async function clamp(x: Variable, min: number = 0.0, max: number = 1.0): Promise<Variable> {
+export async function clamp(
+  x: Variable,
+  min: number = 0.0,
+  max: number = 1.0
+): Promise<Variable> {
   // todo: min/max側のTensorは定数扱いで微分未実装（torchではmin/maxにも微分が通る）
-  return await new Clamp(x.data.getClass().full(x.data.shape, min), x.data.getClass().full(x.data.shape, max)).c(x);
+  return await new Clamp(
+    x.data.getClass().full(x.data.shape, min),
+    x.data.getClass().full(x.data.shape, max)
+  ).c(x);
 }
 
 export class Tanh extends NNFunction {
@@ -392,7 +414,7 @@ export class Softplus extends NNFunction {
     if (!x) {
       throw new Error();
     }
-    const gx = (await mul(await sigmoid(x), gy));
+    const gx = await mul(await sigmoid(x), gy);
     return [gx];
   }
 }
@@ -402,7 +424,10 @@ export async function softplus(x: Variable): Promise<Variable> {
 }
 
 export class MatMul extends NNFunction {
-  constructor(public transa = false, public transb = false) {
+  constructor(
+    public transa = false,
+    public transb = false
+  ) {
     super();
   }
 
@@ -443,7 +468,10 @@ export async function matmul(
 }
 
 export class Bmm extends NNFunction {
-  constructor(public transa = false, public transb = false) {
+  constructor(
+    public transa = false,
+    public transb = false
+  ) {
     super();
   }
 
@@ -598,7 +626,10 @@ export class MSELoss extends NNFunction {
   }
 }
 
-export async function mseLoss(a: VariableResolvable, b: VariableResolvable): Promise<Variable> {
+export async function mseLoss(
+  a: VariableResolvable,
+  b: VariableResolvable
+): Promise<Variable> {
   return await new MSELoss().c(a, b);
 }
 
@@ -792,7 +823,6 @@ export async function flatten(x: VariableResolvable): Promise<Variable> {
   return new Flatten().c(x);
 }
 
-
 export class Cat extends NNFunction {
   private inputShapes?: ReadonlyArray<number>[];
   constructor(readonly axis: number) {
@@ -800,7 +830,7 @@ export class Cat extends NNFunction {
   }
 
   async forward(xs: Tensor[]): Promise<Tensor[]> {
-    this.inputShapes = xs.map(x => x.shape);
+    this.inputShapes = xs.map((x) => x.shape);
     return genCall(xs, {
       cpu: (c, xs) => [c.cat(xs, this.axis)],
       webgl: (c, xs) => [c.cat(xs, this.axis)],
@@ -826,14 +856,18 @@ export class Cat extends NNFunction {
  * @param xs
  * @returns
  */
-export async function cat(xs: ReadonlyArray<VariableResolvable>, axis = 0): Promise<Variable> {
+export async function cat(
+  xs: ReadonlyArray<VariableResolvable>,
+  axis = 0
+): Promise<Variable> {
   return new Cat(axis).c(...xs);
 }
 
-
 export class Split extends NNFunction {
-  constructor(readonly split_size_or_sections: number | number[],
-    readonly dim: number) {
+  constructor(
+    readonly split_size_or_sections: number | number[],
+    readonly dim: number
+  ) {
     super();
   }
 
@@ -854,8 +888,11 @@ export class Split extends NNFunction {
  * @param xs
  * @returns
  */
-export async function split(x: VariableResolvable, split_size_or_sections: number | number[],
-  dim = 0): Promise<Variable[]> {
+export async function split(
+  x: VariableResolvable,
+  split_size_or_sections: number | number[],
+  dim = 0
+): Promise<Variable[]> {
   return new Split(split_size_or_sections, dim).call(x);
 }
 
@@ -879,8 +916,7 @@ export interface MaxPool2dParamsReturnIndicesTrue {
 }
 
 export type MaxPool2dParams =
-  | MaxPool2dParamsReturnIndicesTrue
-  | MaxPool2dParamsReturnIndicesFalse;
+  MaxPool2dParamsReturnIndicesTrue | MaxPool2dParamsReturnIndicesFalse;
 
 export class MaxPool2d extends NNFunction {
   kernelSize: number; // TODO: support [number, number] to specify different size for height and width
@@ -1642,6 +1678,9 @@ export class Dropout extends NNFunction {
     return [await mul(gy, new Variable(this.maskForBackprop!))];
   }
 }
-export async function dropout(input: VariableResolvable, p?: number): Promise<Variable> {
+export async function dropout(
+  input: VariableResolvable,
+  p?: number
+): Promise<Variable> {
   return new Dropout(p).c(input);
 }

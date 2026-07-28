@@ -304,7 +304,10 @@ export function calcUnsqueeze(
   return newShape;
 }
 
-export function calcCatShape(tensors: ReadonlyArray<Tensor>, axis = 0): { axisOffsets: number[]; dtype: DType; yShape: number[] } {
+export function calcCatShape(
+  tensors: ReadonlyArray<Tensor>,
+  axis = 0
+): { axisOffsets: number[]; dtype: DType; yShape: number[] } {
   if (tensors.length === 0) {
     throw new Error('tensors must not be empty');
   }

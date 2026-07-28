@@ -61,23 +61,38 @@ function binaryWrap(
   return output;
 }
 
-export function coreadd(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coreadd(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'add');
 }
 
-export function coresub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coresub(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'sub');
 }
 
-export function coremul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coremul(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'mul');
 }
 
-export function corediv(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function corediv(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'div');
 }
 
-export function corepow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function corepow(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'pow');
 }
 

@@ -20,12 +20,12 @@ export class SGD extends Optimizer {
     const prevData = parameter.data;
     const [vel, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = this.weightDecay ?
-        T.add(
-          parameter.grad!.data as any,
-          T.mul(prevData as any, this.weightDecay) as any
-        ) :
-        parameter.grad!.data as any;
+      const grad = this.weightDecay
+        ? T.add(
+            parameter.grad!.data as any,
+            T.mul(prevData as any, this.weightDecay) as any
+          )
+        : (parameter.grad!.data as any);
       let vel = prevVel;
       if (!vel) {
         vel = T.zeros(parameter.data.shape);
@@ -80,12 +80,12 @@ export class Adam extends Optimizer {
     const prevData = parameter.data;
     const [momentum, variance, newData] = await tidy(async () => {
       // TODO: as anyを回避
-      const grad = this.weightDecay ?
-        T.add(
-          parameter.grad!.data as any,
-          T.mul(prevData as any, this.weightDecay) as any
-        ) :
-        parameter.grad!.data as any;
+      const grad = this.weightDecay
+        ? T.add(
+            parameter.grad!.data as any,
+            T.mul(prevData as any, this.weightDecay) as any
+          )
+        : (parameter.grad!.data as any);
 
       // momentum
       let m = prevMom || T.zeros(parameter.data.shape);
@@ -193,9 +193,9 @@ export class AdamW extends Optimizer {
         1 - Math.pow(this.beta2, this.deviceStateSteps + 1)
       );
 
-      let newData = this.weightDecay ?
-        T.mul(prevData as any, 1 - this.lr * this.weightDecay) as any :
-        prevData as any;
+      let newData = this.weightDecay
+        ? (T.mul(prevData as any, 1 - this.lr * this.weightDecay) as any)
+        : (prevData as any);
       newData = T.sub(
         newData as any,
         T.mul(

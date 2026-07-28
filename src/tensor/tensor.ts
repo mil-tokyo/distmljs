@@ -157,9 +157,5 @@ export interface TensorStatic<B extends Tensor> {
   clamp: (a: B, min?: B, max?: B) => B;
   equal: (a: B, b: B) => B;
   cat(tensors: ReadonlyArray<B>, axis?: number): B;
-  split(
-    x: B,
-    split_size_or_sections: number | number[],
-    dim?: number
-  ): B[];
+  split(x: B, split_size_or_sections: number | number[], dim?: number): B[];
 }

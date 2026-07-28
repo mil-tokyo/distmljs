@@ -5,7 +5,14 @@
 //   node tools/validate_wgsl.mjs
 
 import { spawn } from 'child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from 'fs';
 import { createServer } from 'http';
 import { tmpdir } from 'os';
 import { basename, dirname, join } from 'path';
@@ -63,7 +70,12 @@ function collectShaders(dir) {
 async function startChrome(executablePath, userDataDir) {
   const chrome = spawn(
     executablePath,
-    [...CHROME_ARGS, '--remote-debugging-port=0', `--user-data-dir=${userDataDir}`, 'about:blank'],
+    [
+      ...CHROME_ARGS,
+      '--remote-debugging-port=0',
+      `--user-data-dir=${userDataDir}`,
+      'about:blank',
+    ],
     { stdio: ['ignore', 'pipe', 'pipe'] }
   );
   const endpoint = await new Promise((resolve, reject) => {

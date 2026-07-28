@@ -52,7 +52,10 @@ import { tril, triu } from './core/tri';
 
 class CPUTensorBuffer {
   public readonly data: TypedArrayTypes;
-  constructor(public readonly length: number, public readonly dtype: DType) {
+  constructor(
+    public readonly length: number,
+    public readonly dtype: DType
+  ) {
     this.data = new TypedArrayForDType[dtype](this.length);
   }
 }

@@ -642,7 +642,6 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
       });
     });
 
-
     describe('cat', () => {
       it('cat 1d', async () => {
         const x1 = T.fromArray([1, 2, 3, 4], [4]);
@@ -665,7 +664,10 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         const x2 = T.fromArray([5, 6, 7, 8, 9, 10], [2, 3]);
         const y = T.cat([x1, x2], 1);
         assert.deepEqual(y.shape, [2, 5]);
-        assert.deepEqual(await y.toArrayAsync(), [1, 2, 5, 6, 7, 3, 4, 8, 9, 10]);
+        assert.deepEqual(
+          await y.toArrayAsync(),
+          [1, 2, 5, 6, 7, 3, 4, 8, 9, 10]
+        );
       });
 
       it('cat 2d 3', async () => {
@@ -677,8 +679,8 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(
           await y.toArrayAsync(),
           [
-            0, 1, 2, 100, 101, 102, 103, 200, 201, 202, 203, 204, 205, 206, 3, 4, 5,
-            104, 105, 106, 107, 207, 208, 209, 210, 211, 212, 213,
+            0, 1, 2, 100, 101, 102, 103, 200, 201, 202, 203, 204, 205, 206, 3,
+            4, 5, 104, 105, 106, 107, 207, 208, 209, 210, 211, 212, 213,
           ]
         );
       });
@@ -691,9 +693,10 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(
           await y.toArrayAsync(),
           [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-            20, 21, 22, 23, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
-            111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+            19, 20, 21, 22, 23, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+            109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+            122, 123,
           ]
         );
       });
@@ -710,7 +713,6 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(cpu.get(0, 2, 7), 111);
       });
     });
-
 
     describe('split', () => {
       it('split 1', async () => {
@@ -758,8 +760,10 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         );
         assert.deepEqual(
           await y[1].toArrayAsync(),
-          [108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
-            122, 123]
+          [
+            108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,
+            121, 122, 123,
+          ]
         );
       });
 
@@ -769,20 +773,25 @@ function addtests<B extends CPUTensor | WebGLTensor | WebGPUTensor>(
         assert.deepEqual(y[0].shape, [3, 4, 1]);
         assert.deepEqual(y[1].shape, [3, 4, 2]);
         assert.deepEqual(y[2].shape, [3, 4, 1]);
-        assert.deepEqual(await y[0].toArrayAsync(), [100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144]);
+        assert.deepEqual(
+          await y[0].toArrayAsync(),
+          [100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144]
+        );
         assert.deepEqual(
           await y[1].toArrayAsync(),
-          [101, 102, 105, 106, 109, 110, 113, 114, 117, 118, 121, 122, 125, 126,
-            129, 130, 133, 134, 137, 138, 141, 142, 145, 146]
+          [
+            101, 102, 105, 106, 109, 110, 113, 114, 117, 118, 121, 122, 125,
+            126, 129, 130, 133, 134, 137, 138, 141, 142, 145, 146,
+          ]
         );
-        assert.deepEqual(await y[2].toArrayAsync(), [103, 107, 111, 115, 119, 123, 127, 131, 135, 139, 143, 147]);
+        assert.deepEqual(
+          await y[2].toArrayAsync(),
+          [103, 107, 111, 115, 119, 123, 127, 131, 135, 139, 143, 147]
+        );
       });
 
       it('split 3d 3', async () => {
-        const x = T.fromArray(
-          [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6],
-          [2, 3, 2]
-        );
+        const x = T.fromArray([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6], [2, 3, 2]);
         const y = T.split(x, [1, 2], 1);
         assert.deepEqual(y[0].shape, [2, 1, 2]);
         assert.deepEqual(y[1].shape, [2, 2, 2]);
