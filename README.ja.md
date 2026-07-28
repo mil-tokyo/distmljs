@@ -7,7 +7,7 @@ Web ブラウザで動作する、分散学習対応 DNN フレームワーク
 - 多次元テンソル
   - GPU によるアクセラレーション
     - WebGL (WebGL2 only), WebGPU (experimental; WebGPU バックエンドでは
-      `cat`, `split`, `conv2d`, `batchNorm` が未実装)
+      `maxPool2d`, `avgPool2d`, `Tensor.minimum` / `maximum` / `equal` が未実装)
   - 前処理・後処理に有用なテンソル操作
 - Define-by-Run によるニューラルネットワーク構築
   - ResNet に必要なオペレータをすべて実装
