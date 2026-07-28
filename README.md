@@ -6,9 +6,9 @@ DistML.js is the web browser-based deep learning library with distributed traini
 
 - Multi-dimensional tensor
   - Acceleration with GPU
-    - WebGL (WebGL2 only), WebGPU (experimental; `maxPool2d`, `avgPool2d` and
-      `Tensor.minimum` / `maximum` / `equal` are not implemented for the
-      WebGPU backend yet)
+    - WebGL (WebGL2 only), WebGPU (experimental; `Tensor.sort` / `topk` and
+      the `gets` / `sets` indexing are not implemented for the WebGPU
+      backend yet)
   - Useful tensor operations for pre / post processing
 - Neural network building with define-by-run
   - All operators needed by ResNet are implemented

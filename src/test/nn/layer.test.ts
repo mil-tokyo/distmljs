@@ -367,7 +367,7 @@ for (const { backend, ctor } of [
     });
   });
 
-  if (backend === 'cpu') {
+  if (backend === 'cpu' || backend === 'webgpu') {
     describe('layerNorm', () => {
       it('forward / backward', async () => {
         const bn = new LayerNorm([2, 3, 4], {});

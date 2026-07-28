@@ -76,6 +76,15 @@ import {
   batch_norm_backprop_webgpu,
   batch_norm_webgpu,
 } from '../tensor/webgpu/nnfunction/batch_norm';
+import {
+  layer_norm_backprop_webgpu,
+  layer_norm_webgpu,
+} from '../tensor/webgpu/nnfunction/layer_norm';
+import {
+  embedding_backprop_webgpu,
+  embedding_webgpu,
+} from '../tensor/webgpu/nnfunction/embedding';
+import { dropout_webgpu } from '../tensor/webgpu/nnfunction/dropout';
 import { CPUTensor } from '../tensor';
 import {
   embedding_backprop_cpu,
@@ -1680,6 +1689,12 @@ export class LayerNormFunction extends NNFunction {
     const ts = [x, weight, bias];
     if (isAllCPUTensor(ts)) {
       outputs = layer_norm_cpu(ts[0], { weight: ts[1], bias: ts[2] }, params);
+    } else if (isAllWebGPUTensor(ts)) {
+      outputs = layer_norm_webgpu(
+        ts[0],
+        { weight: ts[1], bias: ts[2] },
+        params
+      );
     } else {
       throw new Error('not implemented');
     }
@@ -1708,6 +1723,10 @@ export class LayerNormFunction extends NNFunction {
           const xwb = layer_norm_backprop_cpu(x, w, gyd, sfb, params);
           return [xwb.gx, xwb.gweight, xwb.gbias];
         },
+        webgpu: (c, [x, w, gyd, sfb]) => {
+          const xwb = layer_norm_backprop_webgpu(x, w, gyd, sfb, params);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
       }
     );
     return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
@@ -1724,9 +1743,11 @@ export class EmbeddingFunction extends NNFunction {
 
   async forward([x, weight]: Tensor[]): Promise<Tensor[]> {
     const ts = [x, weight];
-    let output: CPUTensor;
+    let output: Tensor;
     if (isAllCPUTensor(ts)) {
       output = embedding_cpu(ts[0], ts[1]);
+    } else if (isAllWebGPUTensor(ts)) {
+      output = embedding_webgpu(ts[0], ts[1]);
     } else {
       throw new Error('not implemented');
     }
@@ -1739,6 +1760,16 @@ export class EmbeddingFunction extends NNFunction {
       cpu: (c, [x, gyd]) => {
         return [
           embedding_backprop_cpu(x, gyd, this.numEmbeddings, this.embeddingDim),
+        ];
+      },
+      webgpu: (c, [x, gyd]) => {
+        return [
+          embedding_backprop_webgpu(
+            x,
+            gyd,
+            this.numEmbeddings,
+            this.embeddingDim
+          ),
         ];
       },
     });
@@ -1755,9 +1786,11 @@ export class Dropout extends NNFunction {
 
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     const ts = [x];
-    let outputs: CPUTensor[];
+    let outputs: Tensor[];
     if (isAllCPUTensor(ts)) {
       outputs = dropout_cpu(ts[0], this.p);
+    } else if (isAllWebGPUTensor(ts)) {
+      outputs = dropout_webgpu(ts[0], this.p);
     } else {
       throw new Error('not implemented');
     }
