@@ -28,6 +28,7 @@ import {
 } from './core/binary';
 import { stridedCopy } from './core/copy';
 import { cat, chunk, split } from './core/manipulation';
+import { argmax, argmin, max, min } from './core/minmax';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
 import { tril, triu } from './core/tri';
@@ -660,6 +661,67 @@ export class WebGPUTensor extends Tensor {
 
   static chunk(x: WebGPUTensor, chunks: number, dim?: number): WebGPUTensor[] {
     return chunk(x, chunks, dim);
+  }
+
+  static max(input: WebGPUTensor): WebGPUTensor;
+  static max(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [WebGPUTensor, WebGPUTensor];
+
+  static max(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor | [WebGPUTensor, WebGPUTensor] {
+    // オーバーロードの解決のために分岐する
+    return dim == undefined ? max(input) : max(input, dim, keepdim);
+  }
+
+  static min(input: WebGPUTensor): WebGPUTensor;
+  static min(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [WebGPUTensor, WebGPUTensor];
+
+  static min(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor | [WebGPUTensor, WebGPUTensor] {
+    return dim == undefined ? min(input) : min(input, dim, keepdim);
+  }
+
+  static argmax(input: WebGPUTensor): WebGPUTensor;
+  static argmax(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): WebGPUTensor;
+
+  static argmax(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor {
+    return argmax(input, dim, keepdim);
+  }
+
+  static argmin(input: WebGPUTensor): WebGPUTensor;
+  static argmin(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): WebGPUTensor;
+
+  static argmin(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor {
+    return argmin(input, dim, keepdim);
   }
 
   static tril(input: WebGPUTensor, diagonal = 0): WebGPUTensor {

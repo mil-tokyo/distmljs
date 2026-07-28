@@ -271,4 +271,70 @@ describe('webgpuTensor', () => {
       }
     });
   });
+
+  describe('max / min / argmax / argmin', () => {
+    // 同値を含めて、同着のときに先頭のインデックスが返ることを確認する
+    const data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 9];
+    const shape = [2, 2, 3];
+
+    const compare = async (
+      actual: WebGPUTensor,
+      expected: CPUTensor,
+      message: string
+    ) => {
+      assert.deepEqual(actual.shape, expected.shape, `${message}: shape`);
+      assert.equal(actual.dtype, expected.dtype, `${message}: dtype`);
+      assert.deepEqual(
+        await actual.toArrayAsync(),
+        await expected.toArrayAsync(),
+        message
+      );
+    };
+
+    it('max / min over all elements', async () => {
+      const g = WebGPUTensor.fromArray(data, shape);
+      const c = CPUTensor.fromArray(data, shape);
+      await compare(WebGPUTensor.max(g), CPUTensor.max(c), 'max');
+      await compare(WebGPUTensor.min(g), CPUTensor.min(c), 'min');
+    });
+
+    it('argmax / argmin over all elements', async () => {
+      const g = WebGPUTensor.fromArray(data, shape);
+      const c = CPUTensor.fromArray(data, shape);
+      await compare(WebGPUTensor.argmax(g), CPUTensor.argmax(c), 'argmax');
+      await compare(WebGPUTensor.argmin(g), CPUTensor.argmin(c), 'argmin');
+    });
+
+    for (const dim of [0, 1, 2, -1]) {
+      for (const keepdim of [false, true]) {
+        it(`max / min along dim=${dim} keepdim=${keepdim}`, async () => {
+          const g = WebGPUTensor.fromArray(data, shape);
+          const c = CPUTensor.fromArray(data, shape);
+          const [gv, gi] = WebGPUTensor.max(g, dim, keepdim);
+          const [cv, ci] = CPUTensor.max(c, dim, keepdim);
+          await compare(gv, cv, 'max values');
+          await compare(gi, ci, 'max indices');
+          const [gv2, gi2] = WebGPUTensor.min(g, dim, keepdim);
+          const [cv2, ci2] = CPUTensor.min(c, dim, keepdim);
+          await compare(gv2, cv2, 'min values');
+          await compare(gi2, ci2, 'min indices');
+        });
+
+        it(`argmax / argmin along dim=${dim} keepdim=${keepdim}`, async () => {
+          const g = WebGPUTensor.fromArray(data, shape);
+          const c = CPUTensor.fromArray(data, shape);
+          await compare(
+            WebGPUTensor.argmax(g, dim, keepdim),
+            CPUTensor.argmax(c, dim, keepdim),
+            'argmax'
+          );
+          await compare(
+            WebGPUTensor.argmin(g, dim, keepdim),
+            CPUTensor.argmin(c, dim, keepdim),
+            'argmin'
+          );
+        });
+      }
+    }
+  });
 });
