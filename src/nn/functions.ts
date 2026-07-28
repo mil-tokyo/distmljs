@@ -21,6 +21,7 @@ import {
   genCall,
   isAllCPUTensor,
   isAllWebGLTensor,
+  isAllWebGPUTensor,
 } from '../tensor/tensorTypeUtil';
 import {
   avg_pool2d_backprop_webgl,
@@ -57,6 +58,10 @@ import {
   batch_norm_backprop_webgl,
   batch_norm_webgl,
 } from '../tensor/webgl/nnfunction/batch_norm';
+import {
+  batch_norm_backprop_webgpu,
+  batch_norm_webgpu,
+} from '../tensor/webgpu/nnfunction/batch_norm';
 import { CPUTensor } from '../tensor';
 import {
   embedding_backprop_cpu,
@@ -1492,6 +1497,13 @@ export class BatchNormFunction extends NNFunction {
           { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
           params
         );
+      } else if (isAllWebGPUTensor(ts)) {
+        outputs = batch_norm_webgpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
       } else {
         throw new Error('not implemented');
       }
@@ -1506,6 +1518,13 @@ export class BatchNormFunction extends NNFunction {
         );
       } else if (isAllWebGLTensor(ts)) {
         outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else if (isAllWebGPUTensor(ts)) {
+        outputs = batch_norm_webgpu(
           ts[0],
           { weight: ts[1], bias: ts[2] },
           null,
@@ -1542,6 +1561,10 @@ export class BatchNormFunction extends NNFunction {
         },
         webgl: (c, [x, gyd, sfb]) => {
           const xwb = batch_norm_backprop_webgl(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+        webgpu: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_webgpu(x, gyd, sfb, 1);
           return [xwb.gx, xwb.gweight, xwb.gbias];
         },
       }
