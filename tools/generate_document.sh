@@ -1,11 +1,12 @@
 #!/bin/bash
+set -eu
 
 OUTDIR=_docbuild
 
 cd "${0%/*}"
 cd ..
 
-rm -r $OUTDIR
+rm -rf $OUTDIR
 
 # manually written manual
 find ./docs -type f | while read -r p
@@ -30,13 +31,14 @@ npx typedoc src/index.ts --out _docbuild/client
 cd distributed/docs
 make html
 cd ../..
-cp -r distributed/docs/_build _docbuild/server
+# _build contains the html directory, and docs/index.md links to ./server
+cp -r distributed/docs/_build/html _docbuild/server
 
 # zip
 rm -rf /tmp/distmljs-document
 cp -a _docbuild /tmp/distmljs-document
 pushd /tmp
-rm distmljs-document.zip
+rm -f distmljs-document.zip
 zip -r distmljs-document.zip distmljs-document
 rm -rf distmljs-document
 popd

@@ -2,7 +2,17 @@
 
 # Build
 
+Build DistML.js itself first, at the project root.
+
 ```
+cd ../..
+npm run build
+```
+
+Then build this sample.
+
+```
+cd sample/scalar_regression
 npm install
 npm run build
 ```

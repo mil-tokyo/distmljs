@@ -6,7 +6,8 @@ DistML.js is the web browser-based deep learning library with distributed traini
 
 - Multi-dimensional tensor
   - Acceleration with GPU
-    - WebGL (WebGL2 only), WebGPU (experimental)
+    - WebGL (WebGL2 only), WebGPU (experimental; `cat`, `split`, `conv2d` and
+      `batchNorm` are not implemented for the WebGPU backend yet)
   - Useful tensor operations for pre / post processing
 - Neural network building with define-by-run
   - All operators needed by ResNet are implemented
@@ -18,11 +19,14 @@ DistML.js is the web browser-based deep learning library with distributed traini
 
 # Setup
 
-node 20.x is needed.
+node 20 or later is needed (verified with node 24.7).
 
 ```
 npm install
 ```
+
+Google Chrome (or Chromium) is needed to run the unit tests. If it is not
+installed in a well-known location, set the `CHROME_PATH` environment variable.
 
 ## Python environment
 
@@ -34,11 +38,25 @@ The installation of distributed training server library is described in [distrib
 
 ## WebGPU shader
 
-This commands are needed only when WebGPU shader is modified.
+The shaders are written in WGSL. Those under `shader/webgpu/standard` are
+written by hand and those under `shader/webgpu/autogen` are generated from the
+templates in `tools` (the `autogen` directory is not checked in).
+`tools/compile_webgpu_shader.js` bundles every `.wgsl` file into
+`src/tensor/webgpu/shaders.ts`, which is checked in, so these commands are
+needed only when a WebGPU shader is modified.
 
 ```
-python tools/generate_webgputensor_glsl_unary_op.py
+python tools/generate_webgputensor_wgsl_unary_op.py
+python tools/generate_webgputensor_wgsl_binary_op.py
+python tools/generate_webgputensor_wgsl_copy_op.py
+python tools/generate_webgputensor_wgsl_reduction_op.py
 node tools/compile_webgpu_shader.js
+```
+
+To compile every shader with the WGSL compiler of a browser and report errors:
+
+```
+node tools/validate_wgsl.mjs
 ```
 
 ## JavaScript (CommonJS)
@@ -70,19 +88,36 @@ npm run webpack
 DistML.js needs to unit test elements such as WebGL that do not work in node.js and have implementation differences between Web browsers.
 For this reason, testing is performed on a Web browser using mocha.
 
-## Build
+## Run on a headless browser
+
+```
+npm test
+```
+
+This builds the test bundle and runs it on a headless Chrome, once per
+backend. The process exits with a non-zero status if any test fails. WebGL and
+WebGPU are provided by SwiftShader, so a GPU is not required, but a real
+browser should be used for the final check.
+
+Each backend can also be run on its own:
 
 ```
 npm run webpack:test
+npm run test:cpu
+npm run test:webgl
+npm run test:webgpu
+npm run test:heavy
 ```
 
-## Run
+## Run on a browser manually
 
 ```
+npm run webpack:test
 npm run serve
 ```
 
 Open [http://localhost:8080/test/](http://localhost:8080/test/) with web browser. Test automatically starts and the result will be displayed.
+The backend to test is selected with the checkboxes at the top of the page.
 
 # Samples
 
@@ -104,9 +139,10 @@ npm run build
 
 ## Run
 
-Run HTTP server
+Run HTTP server at the project root.
 
 ```
+cd ../..
 npm run serve
 ```
 

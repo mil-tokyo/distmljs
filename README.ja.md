@@ -6,7 +6,8 @@ Web ブラウザで動作する、分散学習対応 DNN フレームワーク
 
 - 多次元テンソル
   - GPU によるアクセラレーション
-    - WebGL (WebGL2 only), WebGPU (experimental)
+    - WebGL (WebGL2 only), WebGPU (experimental; WebGPU バックエンドでは
+      `cat`, `split`, `conv2d`, `batchNorm` が未実装)
   - 前処理・後処理に有用なテンソル操作
 - Define-by-Run によるニューラルネットワーク構築
   - ResNet に必要なオペレータをすべて実装
@@ -18,11 +19,14 @@ Web ブラウザで動作する、分散学習対応 DNN フレームワーク
 
 # 環境構築
 
-node 20.x が必要。
+node 20 以降が必要 (node 24.7 で動作確認)。
 
 ```
 npm install
 ```
+
+単体テストの実行には Google Chrome (または Chromium) が必要。既定の場所に
+インストールされていない場合は、環境変数 `CHROME_PATH` で指定する。
 
 ## Python 環境
 
@@ -34,11 +38,25 @@ npm install
 
 ## WebGPU シェーダ
 
-この処理は、WebGPU シェーダ関係の編集を行った場合のみ必要。
+シェーダは WGSL で記述されている。`shader/webgpu/standard` 以下は手書き、
+`shader/webgpu/autogen` 以下は `tools` 内のテンプレートから生成される
+(`autogen` ディレクトリはリポジトリに含まれない)。
+`tools/compile_webgpu_shader.js` が全ての `.wgsl` を
+`src/tensor/webgpu/shaders.ts` にまとめ、これはリポジトリに含まれるため、
+以下の処理は WebGPU シェーダを編集した場合のみ必要。
 
 ```
-python tools/generate_webgputensor_glsl_unary_op.py
+python tools/generate_webgputensor_wgsl_unary_op.py
+python tools/generate_webgputensor_wgsl_binary_op.py
+python tools/generate_webgputensor_wgsl_copy_op.py
+python tools/generate_webgputensor_wgsl_reduction_op.py
 node tools/compile_webgpu_shader.js
+```
+
+全シェーダをブラウザの WGSL コンパイラでコンパイルし、エラーを表示するには以下を実行する。
+
+```
+node tools/validate_wgsl.mjs
 ```
 
 ## JavaScript (CommonJS)
@@ -70,19 +88,35 @@ npm run webpack
 DistML.js は、WebGL 等、node.js では動作せず、かつ Web ブラウザ間で実装差がある要素の単体テストを行う必要がある。
 そのため、mocha を用いて Web ブラウザ上でテストを行う。
 
-## ビルド
+## ヘッドレスブラウザでの実行
+
+```
+npm test
+```
+
+テスト用バンドルをビルドし、ヘッドレス Chrome 上でバックエンドごとに実行する。
+テストが失敗した場合、終了ステータスが 0 以外となる。WebGL・WebGPU は
+SwiftShader により提供されるため GPU は不要だが、最終確認は実機のブラウザで行うこと。
+
+バックエンドごとの個別実行も可能。
 
 ```
 npm run webpack:test
+npm run test:cpu
+npm run test:webgl
+npm run test:webgpu
+npm run test:heavy
 ```
 
-## 実行
+## ブラウザでの手動実行
 
 ```
+npm run webpack:test
 npm run serve
 ```
 
 Web ブラウザで [http://localhost:8080/test/](http://localhost:8080/test/) を開く。テストが開始し結果が表示される。
+テスト対象のバックエンドは、ページ上部のチェックボックスで選択する。
 
 # サンプル
 
@@ -105,9 +139,10 @@ npm run build
 
 ## 実行
 
-HTTP サーバを実行
+プロジェクトルートで HTTP サーバを実行
 
 ```
+cd ../..
 npm run serve
 ```
 
