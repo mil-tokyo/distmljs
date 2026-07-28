@@ -2,6 +2,9 @@ export type TestTarget = 'heavy' | 'webgl' | 'webgpu';
 export const AllTestTargets: TestTarget[] = ['heavy', 'webgl', 'webgpu'];
 /*
 一部環境でしか動作しないテストや、時間がかかるテストの実行可否を手動設定する機構
+
+heavyは時間がかかるテスト用の枠だが、現時点でtestFlag.heavyを参照するテストは
+存在しないため、heavyを選択してもCPUのみの場合と実行内容は変わらない。
 */
 
 export type TestFlag = { [K in TestTarget]?: boolean };

@@ -108,6 +108,9 @@ npm run test:webgpu
 npm run test:heavy
 ```
 
+`heavy` は時間がかかるテスト用の枠だが、現時点で該当するテストが存在しないため、
+実行内容は `test:cpu` と同じになる。
+
 ## ブラウザでの手動実行
 
 ```

@@ -109,6 +109,9 @@ npm run test:webgpu
 npm run test:heavy
 ```
 
+`heavy` is a slot for slow tests, but no test currently uses it, so it runs
+the same set as `test:cpu`.
+
 ## Run on a browser manually
 
 ```
