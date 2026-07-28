@@ -66,6 +66,7 @@ import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 import { bmm_cpu } from '../tensor/cpu/core';
 import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
 import { cat_backprop_webgl } from '../tensor/webgl/core/manipulation';
+import { cat_backprop_webgpu } from '../tensor/webgpu/core/manipulation';
 
 export async function broadcastTo(
   x: VariableResolvable,
@@ -834,6 +835,7 @@ export class Cat extends NNFunction {
     return genCall(xs, {
       cpu: (c, xs) => [c.cat(xs, this.axis)],
       webgl: (c, xs) => [c.cat(xs, this.axis)],
+      webgpu: (c, xs) => [c.cat(xs, this.axis)],
     });
   }
 
@@ -846,6 +848,7 @@ export class Cat extends NNFunction {
     const gxs = genCall([gy.data], {
       cpu: (c, [gy]) => cat_backprop_cpu(gy, inputShapes, this.axis),
       webgl: (c, [gy]) => cat_backprop_webgl(gy, inputShapes, this.axis),
+      webgpu: (c, [gy]) => cat_backprop_webgpu(gy, inputShapes, this.axis),
     });
     return gxs.map((gx) => new Variable(gx));
   }
@@ -875,6 +878,7 @@ export class Split extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
       webgl: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+      webgpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
     });
   }
 

@@ -18,6 +18,7 @@ import {
 import { Tensor } from '../tensor';
 import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
 import { stridedCopy } from './core/copy';
+import { cat, split } from './core/manipulation';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
 import {
@@ -635,9 +636,8 @@ export class WebGPUTensor extends Tensor {
     return WebGPUTensor.equal(this, other);
   }
 
-  /* eslint-disable @typescript-eslint/no-unused-vars -- 未実装のため引数を使用しない */
   static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
-    throw new Error('WebGPUTensor.cat is not implemented');
+    return cat(tensors, axis);
   }
 
   static split(
@@ -645,7 +645,6 @@ export class WebGPUTensor extends Tensor {
     split_size_or_sections: number | number[],
     dim = 0
   ): WebGPUTensor[] {
-    throw new Error('WebGPUTensor.split is not implemented');
+    return split(x, split_size_or_sections, dim);
   }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
 }

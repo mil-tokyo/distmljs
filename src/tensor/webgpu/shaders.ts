@@ -6536,6 +6536,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
 }
 
 @group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
@@ -6543,10 +6544,9 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
-
+  let srcOffset = metaBuffer.srcOffset;
   for (var i = global_id.x; i < len; i = i + 4096u) {
-    let v = array_x[0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset];
   }
 }
 `,
@@ -6557,6 +6557,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   xStride0: u32,
 }
@@ -6566,14 +6567,14 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let xStride0 = metaBuffer.xStride0;
   for (var i = global_id.x; i < len; i = i + 4096u) {
     var dec_tmp = i;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0];
   }
 }
 `,
@@ -6584,6 +6585,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   xStride0: u32,
@@ -6595,6 +6597,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let xStride0 = metaBuffer.xStride0;
@@ -6605,8 +6608,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1];
   }
 }
 `,
@@ -6617,6 +6619,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6630,6 +6633,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6644,8 +6648,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
   }
 }
 `,
@@ -6656,6 +6659,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6671,6 +6675,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6689,8 +6694,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
   }
 }
 `,
@@ -6701,6 +6705,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6718,6 +6723,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6740,8 +6746,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
   }
 }
 `,
@@ -6752,6 +6757,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6771,6 +6777,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6797,8 +6804,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
   }
 }
 `,
@@ -6809,6 +6815,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6830,6 +6837,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6860,8 +6868,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
   }
 }
 `,
@@ -6872,6 +6879,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
 }
 
 @group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
@@ -6879,10 +6887,9 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
-
+  let srcOffset = metaBuffer.srcOffset;
   for (var i = global_id.x; i < len; i = i + 4096u) {
-    let v = array_x[0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset];
   }
 }
 `,
@@ -6893,6 +6900,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   xStride0: u32,
 }
@@ -6902,14 +6910,14 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let xStride0 = metaBuffer.xStride0;
   for (var i = global_id.x; i < len; i = i + 4096u) {
     var dec_tmp = i;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0];
   }
 }
 `,
@@ -6920,6 +6928,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   xStride0: u32,
@@ -6931,6 +6940,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let xStride0 = metaBuffer.xStride0;
@@ -6941,8 +6951,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1];
   }
 }
 `,
@@ -6953,6 +6962,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -6966,6 +6976,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -6980,8 +6991,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
   }
 }
 `,
@@ -6992,6 +7002,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7007,6 +7018,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7025,8 +7037,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
   }
 }
 `,
@@ -7037,6 +7048,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7054,6 +7066,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7076,8 +7089,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
   }
 }
 `,
@@ -7088,6 +7100,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7107,6 +7120,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7133,8 +7147,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
   }
 }
 `,
@@ -7145,6 +7158,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7166,6 +7180,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7196,8 +7211,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
   }
 }
 `,
@@ -7208,6 +7222,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
 }
 
 @group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
@@ -7215,10 +7230,9 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
-
+  let srcOffset = metaBuffer.srcOffset;
   for (var i = global_id.x; i < len; i = i + 4096u) {
-    let v = array_x[0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset];
   }
 }
 `,
@@ -7229,6 +7243,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   xStride0: u32,
 }
@@ -7238,14 +7253,14 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let xStride0 = metaBuffer.xStride0;
   for (var i = global_id.x; i < len; i = i + 4096u) {
     var dec_tmp = i;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0];
   }
 }
 `,
@@ -7256,6 +7271,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   xStride0: u32,
@@ -7267,6 +7283,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let xStride0 = metaBuffer.xStride0;
@@ -7277,8 +7294,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1];
   }
 }
 `,
@@ -7289,6 +7305,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7302,6 +7319,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7316,8 +7334,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
   }
 }
 `,
@@ -7328,6 +7345,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7343,6 +7361,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7361,8 +7380,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
   }
 }
 `,
@@ -7373,6 +7391,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7390,6 +7409,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7412,8 +7432,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
   }
 }
 `,
@@ -7424,6 +7443,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7443,6 +7463,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7469,8 +7490,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
   }
 }
 `,
@@ -7481,6 +7501,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7502,6 +7523,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7532,8 +7554,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
   }
 }
 `,
@@ -7544,6 +7565,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
 }
 
 @group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
@@ -7551,10 +7573,9 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
-
+  let srcOffset = metaBuffer.srcOffset;
   for (var i = global_id.x; i < len; i = i + 4096u) {
-    let v = array_x[0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset];
   }
 }
 `,
@@ -7565,6 +7586,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   xStride0: u32,
 }
@@ -7574,14 +7596,14 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let xStride0 = metaBuffer.xStride0;
   for (var i = global_id.x; i < len; i = i + 4096u) {
     var dec_tmp = i;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0];
   }
 }
 `,
@@ -7592,6 +7614,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   xStride0: u32,
@@ -7603,6 +7626,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let xStride0 = metaBuffer.xStride0;
@@ -7613,8 +7637,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1];
   }
 }
 `,
@@ -7625,6 +7648,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7638,6 +7662,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7652,8 +7677,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2];
   }
 }
 `,
@@ -7664,6 +7688,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7679,6 +7704,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7697,8 +7723,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3];
   }
 }
 `,
@@ -7709,6 +7734,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7726,6 +7752,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7748,8 +7775,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4];
   }
 }
 `,
@@ -7760,6 +7786,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7779,6 +7806,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7805,8 +7833,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5];
   }
 }
 `,
@@ -7817,6 +7844,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
 struct MetaBuffer {
   len: u32,
+  srcOffset: u32,
   outShape0: u32,
   outShape1: u32,
   outShape2: u32,
@@ -7838,6 +7866,7 @@ struct MetaBuffer {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let len = metaBuffer.len;
+  let srcOffset = metaBuffer.srcOffset;
   let outShape0 = metaBuffer.outShape0;
   let outShape1 = metaBuffer.outShape1;
   let outShape2 = metaBuffer.outShape2;
@@ -7868,8 +7897,1379 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     dec_tmp = dec_tmp / outShape1;
     let dim0 = dec_tmp % outShape0;
 
-    let v = array_x[dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
-    array_y[i] = v;
+    array_y[i] = array_x[srcOffset + dim0 * xStride0+dim1 * xStride1+dim2 * xStride2+dim3 * xStride3+dim4 * xStride4+dim5 * xStride5+dim6 * xStride6];
+  }
+}
+`,
+  "strided_set_bool_0": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    array_y[dstOffset] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_1": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  yStride0: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let yStride0 = metaBuffer.yStride0;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_2": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  yStride0: u32,
+  yStride1: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_3": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_4": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_5": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_6": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5] = array_x[i];
+  }
+}
+`,
+  "strided_set_bool_7": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  srcShape6: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+  yStride6: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let srcShape6 = metaBuffer.srcShape6;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  let yStride6 = metaBuffer.yStride6;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim6 = dec_tmp % srcShape6;
+    dec_tmp = dec_tmp / srcShape6;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5+dim6 * yStride6] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_0": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    array_y[dstOffset] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_1": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  yStride0: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let yStride0 = metaBuffer.yStride0;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_2": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  yStride0: u32,
+  yStride1: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_3": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_4": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_5": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_6": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5] = array_x[i];
+  }
+}
+`,
+  "strided_set_float32_7": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<f32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<f32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  srcShape6: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+  yStride6: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let srcShape6 = metaBuffer.srcShape6;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  let yStride6 = metaBuffer.yStride6;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim6 = dec_tmp % srcShape6;
+    dec_tmp = dec_tmp / srcShape6;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5+dim6 * yStride6] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_0": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    array_y[dstOffset] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_1": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  yStride0: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let yStride0 = metaBuffer.yStride0;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_2": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  yStride0: u32,
+  yStride1: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_3": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_4": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_5": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_6": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5] = array_x[i];
+  }
+}
+`,
+  "strided_set_int32_7": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<i32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<i32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  srcShape6: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+  yStride6: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let srcShape6 = metaBuffer.srcShape6;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  let yStride6 = metaBuffer.yStride6;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim6 = dec_tmp % srcShape6;
+    dec_tmp = dec_tmp / srcShape6;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5+dim6 * yStride6] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_0": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    array_y[dstOffset] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_1": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  yStride0: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let yStride0 = metaBuffer.yStride0;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_2": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  yStride0: u32,
+  yStride1: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_3": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_4": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_5": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_6": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5] = array_x[i];
+  }
+}
+`,
+  "strided_set_uint8_7": `// Auto-generated by tools/generate_webgputensor_wgsl_copy_op.py
+
+@group(0) @binding(0) var<storage, read> array_x: array<u32>;
+@group(0) @binding(1) var<storage, read_write> array_y: array<u32>;
+
+struct MetaBuffer {
+  len: u32,
+  dstOffset: u32,
+  srcShape0: u32,
+  srcShape1: u32,
+  srcShape2: u32,
+  srcShape3: u32,
+  srcShape4: u32,
+  srcShape5: u32,
+  srcShape6: u32,
+  yStride0: u32,
+  yStride1: u32,
+  yStride2: u32,
+  yStride3: u32,
+  yStride4: u32,
+  yStride5: u32,
+  yStride6: u32,
+}
+
+@group(0) @binding(2) var<storage, read> metaBuffer: MetaBuffer;
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  let len = metaBuffer.len;
+  let dstOffset = metaBuffer.dstOffset;
+  let srcShape0 = metaBuffer.srcShape0;
+  let srcShape1 = metaBuffer.srcShape1;
+  let srcShape2 = metaBuffer.srcShape2;
+  let srcShape3 = metaBuffer.srcShape3;
+  let srcShape4 = metaBuffer.srcShape4;
+  let srcShape5 = metaBuffer.srcShape5;
+  let srcShape6 = metaBuffer.srcShape6;
+  let yStride0 = metaBuffer.yStride0;
+  let yStride1 = metaBuffer.yStride1;
+  let yStride2 = metaBuffer.yStride2;
+  let yStride3 = metaBuffer.yStride3;
+  let yStride4 = metaBuffer.yStride4;
+  let yStride5 = metaBuffer.yStride5;
+  let yStride6 = metaBuffer.yStride6;
+  for (var i = global_id.x; i < len; i = i + 4096u) {
+    var dec_tmp = i;
+    let dim6 = dec_tmp % srcShape6;
+    dec_tmp = dec_tmp / srcShape6;
+    let dim5 = dec_tmp % srcShape5;
+    dec_tmp = dec_tmp / srcShape5;
+    let dim4 = dec_tmp % srcShape4;
+    dec_tmp = dec_tmp / srcShape4;
+    let dim3 = dec_tmp % srcShape3;
+    dec_tmp = dec_tmp / srcShape3;
+    let dim2 = dec_tmp % srcShape2;
+    dec_tmp = dec_tmp / srcShape2;
+    let dim1 = dec_tmp % srcShape1;
+    dec_tmp = dec_tmp / srcShape1;
+    let dim0 = dec_tmp % srcShape0;
+
+    array_y[dstOffset + dim0 * yStride0+dim1 * yStride1+dim2 * yStride2+dim3 * yStride3+dim4 * yStride4+dim5 * yStride5+dim6 * yStride6] = array_x[i];
   }
 }
 `,
