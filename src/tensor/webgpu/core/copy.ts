@@ -19,7 +19,7 @@ export function stridedCopy(
     if (!shader) {
       throw new Error(`stridedCopy: dtype ${dtype} is not supported`);
     }
-    ctx.createPipeline(shaderName, shader, 3);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty(newShape, dtype);
   const metaElements: WebGPUMetaBufferContentElement[] = [

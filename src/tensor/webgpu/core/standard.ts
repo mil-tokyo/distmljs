@@ -45,7 +45,7 @@ export function gemm(
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 4);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty([m, n], 'float32');
   const metaElements: WebGPUMetaBufferContentElement[] = [

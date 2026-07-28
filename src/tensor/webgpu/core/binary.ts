@@ -34,7 +34,7 @@ function binaryWrap(
     if (!shader) {
       throw new Error(`${name}: dtype ${dtype} is not supported`);
     }
-    ctx.createPipeline(shaderName, shader, 4);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty(outShape, dtype);
   const metaElements: WebGPUMetaBufferContentElement[] = [
