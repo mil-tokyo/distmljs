@@ -34,10 +34,6 @@ for (const { backend, ctor } of [
   };
   describe(`nn/function/pool/${backend}`, () => {
     describe('maxpool', () => {
-      if (backend === 'webgpu') {
-        // not implemented
-        return;
-      }
       it('forward', async () => {
         let y: Variable, t: Variable;
         const x = new Variable(ctor.fromArray(maxPoolSrcArray, [2, 2, 7, 8]));
@@ -316,11 +312,6 @@ for (const { backend, ctor } of [
     });
 
     describe('avgpool', () => {
-      if (backend === 'webgpu') {
-        // not implemented
-        return;
-      }
-
       const doAvgPool = async (
         params: AvgPool2dParams,
         expectedYShape: number[],

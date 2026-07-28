@@ -42,6 +42,15 @@ import {
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
 } from '../tensor/webgl/nnfunction/max_pool2d';
+import {
+  avg_pool2d_backprop_webgpu,
+  avg_pool2d_webgpu,
+} from '../tensor/webgpu/nnfunction/avg_pool2d';
+import {
+  max_pool2d_backprop_webgpu,
+  max_pool2d_webgpu,
+  max_pool2d_with_indices_webgpu,
+} from '../tensor/webgpu/nnfunction/max_pool2d';
 import { arange, arrayEqual, arrayProd, nonNull } from '../util';
 import {
   Add,
@@ -982,6 +991,15 @@ export class MaxPool2d extends NNFunction {
             returnIndices: rit,
             ceilMode: this.ceilMode,
           }),
+        webgpu: (c, [x]) =>
+          max_pool2d_with_indices_webgpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: rit,
+            ceilMode: this.ceilMode,
+          }),
       });
       if (defaultNNContext.get('enableBackprop')) {
         this.xShape = x.shape;
@@ -1014,6 +1032,16 @@ export class MaxPool2d extends NNFunction {
             ceilMode: this.ceilMode,
           }),
         ],
+        webgpu: (c, [x]) => [
+          max_pool2d_webgpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
       });
     }
   }
@@ -1033,6 +1061,16 @@ export class MaxPool2d extends NNFunction {
       ],
       webgl: (c, [idx, gyd]) => [
         max_pool2d_backprop_webgl(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+      webgpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgpu(idx, gyd, nonNull(this.xShape), {
           kernelSize: this.kernelSize,
           stride: this.stride,
           padding: this.padding,
@@ -1104,6 +1142,7 @@ export class AdaptiveMaxPool2d extends NNFunction {
       const [max, idx] = genCall([x], {
         cpu: (c, [x]) => max_pool2d_with_indices_cpu(x, params),
         webgl: (c, [x]) => max_pool2d_with_indices_webgl(x, params),
+        webgpu: (c, [x]) => max_pool2d_with_indices_webgpu(x, params),
       });
       if (defaultNNContext.get('enableBackprop')) {
         this.xShape = x.shape;
@@ -1126,6 +1165,7 @@ export class AdaptiveMaxPool2d extends NNFunction {
       return genCall([x], {
         cpu: (c, [x]) => [max_pool2d_cpu(x, params)],
         webgl: (c, [x]) => [max_pool2d_webgl(x, params)],
+        webgpu: (c, [x]) => [max_pool2d_webgpu(x, params)],
       });
     }
   }
@@ -1148,6 +1188,9 @@ export class AdaptiveMaxPool2d extends NNFunction {
       ],
       webgl: (c, [idx, gyd]) => [
         max_pool2d_backprop_webgl(idx, gyd, xShape, params),
+      ],
+      webgpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgpu(idx, gyd, xShape, params),
       ],
     });
     return [new Variable(gxd)];
@@ -1211,6 +1254,7 @@ export class AvgPool2d extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
       webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+      webgpu: (c, [x]) => [avg_pool2d_webgpu(x, params)],
     });
   }
 
@@ -1230,6 +1274,9 @@ export class AvgPool2d extends NNFunction {
       ],
       webgl: (c, [gyd]) => [
         avg_pool2d_backprop_webgl(gyd, nonNull(this.xShape), params),
+      ],
+      webgpu: (c, [gyd]) => [
+        avg_pool2d_backprop_webgpu(gyd, nonNull(this.xShape), params),
       ],
     });
     return [new Variable(gxd)];
@@ -1279,6 +1326,7 @@ export class AdaptiveAvgPool2d extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
       webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+      webgpu: (c, [x]) => [avg_pool2d_webgpu(x, params)],
     });
   }
 
@@ -1296,6 +1344,7 @@ export class AdaptiveAvgPool2d extends NNFunction {
     const [gxd] = genCall([gy.data], {
       cpu: (c, [gyd]) => [avg_pool2d_backprop_cpu(gyd, xShape, params)],
       webgl: (c, [gyd]) => [avg_pool2d_backprop_webgl(gyd, xShape, params)],
+      webgpu: (c, [gyd]) => [avg_pool2d_backprop_webgpu(gyd, xShape, params)],
     });
     return [new Variable(gxd)];
   }
