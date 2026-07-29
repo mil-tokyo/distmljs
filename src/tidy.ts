@@ -27,14 +27,12 @@ export async function tidy<T extends TidyResult>(
   nameOrFn: string | (() => Promise<T>),
   fn?: () => Promise<T>
 ): Promise<T> {
+  // nameは現状デバッグ表示等に使用していないため保持しない
   let fn_: () => Promise<T>;
-  let name: string | null;
   if (fn) {
     fn_ = fn;
-    name = nameOrFn as string;
   } else {
     fn_ = nameOrFn as () => Promise<T>;
-    name = null;
   }
   const keepWebGLBuffers = new Set(existingWebGLBuffers);
   const keepWebGPUBuffers = new Set(existingWebGPUBuffers);
@@ -91,14 +89,12 @@ export function tidySync<T extends TidyResult>(
   nameOrFn: string | (() => T),
   fn?: () => T
 ): T {
+  // nameは現状デバッグ表示等に使用していないため保持しない
   let fn_: () => T;
-  let name: string | null;
   if (fn) {
     fn_ = fn;
-    name = nameOrFn as string;
   } else {
     fn_ = nameOrFn as () => T;
-    name = null;
   }
   const keepWebGLBuffers = new Set(existingWebGLBuffers);
   const keepWebGPUBuffers = new Set(existingWebGPUBuffers);

@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import { add, mul } from '../../nn/functions';
 import { WebGPUTensor } from '../../tensor/webgpu/webgpuTensor';
 import { testFlag } from '../testFlag';
+import { assertInstanceOf } from '../testUtil';
 
 async function ta(tensor: unknown): Promise<number[]> {
-  assert.instanceOf(tensor, WebGPUTensor);
+  assertInstanceOf(tensor, WebGPUTensor);
   return await (tensor as WebGPUTensor).toArrayAsync();
 }
 
@@ -20,7 +20,7 @@ describe('nn/core/webgpu', () => {
       const rhs = new Variable(WebGPUTensor.fromArray([20]));
       const y = await add(lhs, rhs);
       await y.backward();
-      assert.instanceOf(y.data, WebGPUTensor);
+      assertInstanceOf(y.data, WebGPUTensor);
       // CPU側から1を代入したテンソルがそのまま返るため、copyがないと読み取れない(WebGPUの制約)
       assert.deepEqual(await ta(lhs.grad!.data.copy()), [1]);
       assert.deepEqual(await ta(rhs.grad!.data.copy()), [1]);
@@ -30,7 +30,7 @@ describe('nn/core/webgpu', () => {
       const lhs = new Variable(WebGPUTensor.fromArray([10]));
       const y = await add(lhs, 20);
       await y.backward();
-      assert.instanceOf(y.data, WebGPUTensor);
+      assertInstanceOf(y.data, WebGPUTensor);
       // CPU側から1を代入したテンソルがそのまま返るため、copyがないと読み取れない(WebGPUの制約)
       assert.deepEqual(await ta(lhs.grad!.data.copy()), [1]);
     });
@@ -39,7 +39,7 @@ describe('nn/core/webgpu', () => {
       const rhs = new Variable(WebGPUTensor.fromArray([20]));
       const y = await add(10, rhs);
       await y.backward();
-      assert.instanceOf(y.data, WebGPUTensor);
+      assertInstanceOf(y.data, WebGPUTensor);
       // CPU側から1を代入したテンソルがそのまま返るため、copyがないと読み取れない(WebGPUの制約)
       assert.deepEqual(await ta(rhs.grad!.data.copy()), [1]);
     });

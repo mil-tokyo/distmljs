@@ -234,7 +234,7 @@ export function max_pool2d_backprop_webgl(
   indices: WebGLTensor,
   gy: WebGLTensor,
   xShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   params: {
     kernelSize: number | number[];
     stride: number | number[];

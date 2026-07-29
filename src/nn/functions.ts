@@ -21,6 +21,7 @@ import {
   genCall,
   isAllCPUTensor,
   isAllWebGLTensor,
+  isAllWebGPUTensor,
 } from '../tensor/tensorTypeUtil';
 import {
   avg_pool2d_backprop_webgl,
@@ -32,10 +33,24 @@ import {
   conv2d_webgl,
 } from '../tensor/webgl/nnfunction/conv2d';
 import {
+  conv2d_backprop_gb_webgpu,
+  conv2d_backprop_gxgw_webgpu,
+  conv2d_webgpu,
+} from '../tensor/webgpu/nnfunction/conv2d';
+import {
   max_pool2d_backprop_webgl,
   max_pool2d_webgl,
   max_pool2d_with_indices_webgl,
 } from '../tensor/webgl/nnfunction/max_pool2d';
+import {
+  avg_pool2d_backprop_webgpu,
+  avg_pool2d_webgpu,
+} from '../tensor/webgpu/nnfunction/avg_pool2d';
+import {
+  max_pool2d_backprop_webgpu,
+  max_pool2d_webgpu,
+  max_pool2d_with_indices_webgpu,
+} from '../tensor/webgpu/nnfunction/max_pool2d';
 import { arange, arrayEqual, arrayProd, nonNull } from '../util';
 import {
   Add,
@@ -57,6 +72,19 @@ import {
   batch_norm_backprop_webgl,
   batch_norm_webgl,
 } from '../tensor/webgl/nnfunction/batch_norm';
+import {
+  batch_norm_backprop_webgpu,
+  batch_norm_webgpu,
+} from '../tensor/webgpu/nnfunction/batch_norm';
+import {
+  layer_norm_backprop_webgpu,
+  layer_norm_webgpu,
+} from '../tensor/webgpu/nnfunction/layer_norm';
+import {
+  embedding_backprop_webgpu,
+  embedding_webgpu,
+} from '../tensor/webgpu/nnfunction/embedding';
+import { dropout_webgpu } from '../tensor/webgpu/nnfunction/dropout';
 import { CPUTensor } from '../tensor';
 import {
   embedding_backprop_cpu,
@@ -66,6 +94,7 @@ import { dropout_cpu } from '../tensor/cpu/nnfunction/dropout';
 import { bmm_cpu } from '../tensor/cpu/core';
 import { cat_backprop_cpu } from '../tensor/cpu/core/manipulation';
 import { cat_backprop_webgl } from '../tensor/webgl/core/manipulation';
+import { cat_backprop_webgpu } from '../tensor/webgpu/core/manipulation';
 
 export async function broadcastTo(
   x: VariableResolvable,
@@ -138,7 +167,10 @@ export class Div extends NNFunction {
   }
 }
 
-async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<[Variable, Variable]> {
+async function _toVariablePair(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<[Variable, Variable]> {
   // TODO: support scalar as input of Add. Currently, unnecessary backpropagation to the scalar is performed.
   let resLhs: Variable, resRhs: Variable;
   if (typeof lhs === 'number') {
@@ -169,40 +201,52 @@ async function _toVariablePair(lhs: VariableResolvable | number, rhs: VariableRe
  * Add two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function add(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Add().c(...await _toVariablePair(lhs, rhs));
+export async function add(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Add().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Subtract two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function sub(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Sub().c(...await _toVariablePair(lhs, rhs));
+export async function sub(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Sub().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Multiply two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function mul(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Mul().c(...await _toVariablePair(lhs, rhs));
+export async function mul(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Mul().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 /**
  * Divide two variables.
  * @param lhs variable or number. If number, it is converted to variable (use tidy to release).
  * @param rhs variable or number. If number, it is converted to variable (use tidy to release).
- * @returns 
+ * @returns
  */
-export async function div(lhs: VariableResolvable | number, rhs: VariableResolvable | number): Promise<Variable> {
-  return await new Div().c(...await _toVariablePair(lhs, rhs));
+export async function div(
+  lhs: VariableResolvable | number,
+  rhs: VariableResolvable | number
+): Promise<Variable> {
+  return await new Div().c(...(await _toVariablePair(lhs, rhs)));
 }
 
 export class Exp extends NNFunction {
@@ -238,7 +282,7 @@ export class Log extends NNFunction {
     if (!x) {
       throw new Error();
     }
-    const gx = (await new Div().c(gy, x));
+    const gx = await new Div().c(gy, x);
     return [gx];
   }
 }
@@ -330,7 +374,7 @@ export class Clamp extends NNFunction {
     const ret = genCall([x, this.min, this.max], {
       all: (c, [x, min, max]) => [c.clamp(x, min, max)],
     });
-    return ret
+    return ret;
   }
 
   async backward([gy]: Variable[]): Promise<Variable[]> {
@@ -343,15 +387,22 @@ export class Clamp extends NNFunction {
       throw new Error();
     }
     const [gx] = genCall([x.data, y.data], {
-      all: (c, [xd, yd]) => [(c.equal(xd, yd))],
+      all: (c, [xd, yd]) => [c.equal(xd, yd)],
     });
     return [await mul(new Variable(gx), gy)];
   }
 }
 
-export async function clamp(x: Variable, min: number = 0.0, max: number = 1.0): Promise<Variable> {
+export async function clamp(
+  x: Variable,
+  min: number = 0.0,
+  max: number = 1.0
+): Promise<Variable> {
   // todo: min/max側のTensorは定数扱いで微分未実装（torchではmin/maxにも微分が通る）
-  return await new Clamp(x.data.getClass().full(x.data.shape, min), x.data.getClass().full(x.data.shape, max)).c(x);
+  return await new Clamp(
+    x.data.getClass().full(x.data.shape, min),
+    x.data.getClass().full(x.data.shape, max)
+  ).c(x);
 }
 
 export class Tanh extends NNFunction {
@@ -392,7 +443,7 @@ export class Softplus extends NNFunction {
     if (!x) {
       throw new Error();
     }
-    const gx = (await mul(await sigmoid(x), gy));
+    const gx = await mul(await sigmoid(x), gy);
     return [gx];
   }
 }
@@ -402,7 +453,10 @@ export async function softplus(x: Variable): Promise<Variable> {
 }
 
 export class MatMul extends NNFunction {
-  constructor(public transa = false, public transb = false) {
+  constructor(
+    public transa = false,
+    public transb = false
+  ) {
     super();
   }
 
@@ -443,13 +497,17 @@ export async function matmul(
 }
 
 export class Bmm extends NNFunction {
-  constructor(public transa = false, public transb = false) {
+  constructor(
+    public transa = false,
+    public transb = false
+  ) {
     super();
   }
 
   async forward([a, b]: Tensor[]): Promise<Tensor[]> {
     return genCall([a, b], {
       cpu: (c, [a, b]) => [bmm_cpu(a, b, this.transa, this.transb)],
+      webgpu: (c, [a, b]) => [webgpuCore.bmm(a, b, this.transa, this.transb)],
     });
   }
 
@@ -487,6 +545,7 @@ export class SoftmaxBackward extends NNFunction {
   async forward([softmax, gy]: Tensor[]): Promise<Tensor[]> {
     return genCall([softmax, gy], {
       cpu: (c, [softmax, gy]) => [cpuCore.softmaxBackward(softmax, gy)],
+      webgpu: (c, [softmax, gy]) => [webgpuCore.softmaxBackward(softmax, gy)],
     });
   }
 }
@@ -598,7 +657,10 @@ export class MSELoss extends NNFunction {
   }
 }
 
-export async function mseLoss(a: VariableResolvable, b: VariableResolvable): Promise<Variable> {
+export async function mseLoss(
+  a: VariableResolvable,
+  b: VariableResolvable
+): Promise<Variable> {
   return await new MSELoss().c(a, b);
 }
 
@@ -792,7 +854,6 @@ export async function flatten(x: VariableResolvable): Promise<Variable> {
   return new Flatten().c(x);
 }
 
-
 export class Cat extends NNFunction {
   private inputShapes?: ReadonlyArray<number>[];
   constructor(readonly axis: number) {
@@ -800,10 +861,11 @@ export class Cat extends NNFunction {
   }
 
   async forward(xs: Tensor[]): Promise<Tensor[]> {
-    this.inputShapes = xs.map(x => x.shape);
+    this.inputShapes = xs.map((x) => x.shape);
     return genCall(xs, {
       cpu: (c, xs) => [c.cat(xs, this.axis)],
       webgl: (c, xs) => [c.cat(xs, this.axis)],
+      webgpu: (c, xs) => [c.cat(xs, this.axis)],
     });
   }
 
@@ -816,6 +878,7 @@ export class Cat extends NNFunction {
     const gxs = genCall([gy.data], {
       cpu: (c, [gy]) => cat_backprop_cpu(gy, inputShapes, this.axis),
       webgl: (c, [gy]) => cat_backprop_webgl(gy, inputShapes, this.axis),
+      webgpu: (c, [gy]) => cat_backprop_webgpu(gy, inputShapes, this.axis),
     });
     return gxs.map((gx) => new Variable(gx));
   }
@@ -826,14 +889,18 @@ export class Cat extends NNFunction {
  * @param xs
  * @returns
  */
-export async function cat(xs: ReadonlyArray<VariableResolvable>, axis = 0): Promise<Variable> {
+export async function cat(
+  xs: ReadonlyArray<VariableResolvable>,
+  axis = 0
+): Promise<Variable> {
   return new Cat(axis).c(...xs);
 }
 
-
 export class Split extends NNFunction {
-  constructor(readonly split_size_or_sections: number | number[],
-    readonly dim: number) {
+  constructor(
+    readonly split_size_or_sections: number | number[],
+    readonly dim: number
+  ) {
     super();
   }
 
@@ -841,6 +908,7 @@ export class Split extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
       webgl: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
+      webgpu: (c, [x]) => c.split(x, this.split_size_or_sections, this.dim),
     });
   }
 
@@ -854,8 +922,11 @@ export class Split extends NNFunction {
  * @param xs
  * @returns
  */
-export async function split(x: VariableResolvable, split_size_or_sections: number | number[],
-  dim = 0): Promise<Variable[]> {
+export async function split(
+  x: VariableResolvable,
+  split_size_or_sections: number | number[],
+  dim = 0
+): Promise<Variable[]> {
   return new Split(split_size_or_sections, dim).call(x);
 }
 
@@ -879,8 +950,7 @@ export interface MaxPool2dParamsReturnIndicesTrue {
 }
 
 export type MaxPool2dParams =
-  | MaxPool2dParamsReturnIndicesTrue
-  | MaxPool2dParamsReturnIndicesFalse;
+  MaxPool2dParamsReturnIndicesTrue | MaxPool2dParamsReturnIndicesFalse;
 
 export class MaxPool2d extends NNFunction {
   kernelSize: number; // TODO: support [number, number] to specify different size for height and width
@@ -932,6 +1002,15 @@ export class MaxPool2d extends NNFunction {
             returnIndices: rit,
             ceilMode: this.ceilMode,
           }),
+        webgpu: (c, [x]) =>
+          max_pool2d_with_indices_webgpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: rit,
+            ceilMode: this.ceilMode,
+          }),
       });
       if (defaultNNContext.get('enableBackprop')) {
         this.xShape = x.shape;
@@ -964,6 +1043,16 @@ export class MaxPool2d extends NNFunction {
             ceilMode: this.ceilMode,
           }),
         ],
+        webgpu: (c, [x]) => [
+          max_pool2d_webgpu(x, {
+            kernelSize: this.kernelSize,
+            stride: this.stride,
+            padding: this.padding,
+            dilation: this.dilation,
+            returnIndices: false,
+            ceilMode: this.ceilMode,
+          }),
+        ],
       });
     }
   }
@@ -983,6 +1072,16 @@ export class MaxPool2d extends NNFunction {
       ],
       webgl: (c, [idx, gyd]) => [
         max_pool2d_backprop_webgl(idx, gyd, nonNull(this.xShape), {
+          kernelSize: this.kernelSize,
+          stride: this.stride,
+          padding: this.padding,
+          dilation: this.dilation,
+          ceilMode: this.ceilMode,
+          returnIndices: this.returnIndices || true,
+        }),
+      ],
+      webgpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgpu(idx, gyd, nonNull(this.xShape), {
           kernelSize: this.kernelSize,
           stride: this.stride,
           padding: this.padding,
@@ -1054,6 +1153,7 @@ export class AdaptiveMaxPool2d extends NNFunction {
       const [max, idx] = genCall([x], {
         cpu: (c, [x]) => max_pool2d_with_indices_cpu(x, params),
         webgl: (c, [x]) => max_pool2d_with_indices_webgl(x, params),
+        webgpu: (c, [x]) => max_pool2d_with_indices_webgpu(x, params),
       });
       if (defaultNNContext.get('enableBackprop')) {
         this.xShape = x.shape;
@@ -1076,6 +1176,7 @@ export class AdaptiveMaxPool2d extends NNFunction {
       return genCall([x], {
         cpu: (c, [x]) => [max_pool2d_cpu(x, params)],
         webgl: (c, [x]) => [max_pool2d_webgl(x, params)],
+        webgpu: (c, [x]) => [max_pool2d_webgpu(x, params)],
       });
     }
   }
@@ -1098,6 +1199,9 @@ export class AdaptiveMaxPool2d extends NNFunction {
       ],
       webgl: (c, [idx, gyd]) => [
         max_pool2d_backprop_webgl(idx, gyd, xShape, params),
+      ],
+      webgpu: (c, [idx, gyd]) => [
+        max_pool2d_backprop_webgpu(idx, gyd, xShape, params),
       ],
     });
     return [new Variable(gxd)];
@@ -1161,6 +1265,7 @@ export class AvgPool2d extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
       webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+      webgpu: (c, [x]) => [avg_pool2d_webgpu(x, params)],
     });
   }
 
@@ -1180,6 +1285,9 @@ export class AvgPool2d extends NNFunction {
       ],
       webgl: (c, [gyd]) => [
         avg_pool2d_backprop_webgl(gyd, nonNull(this.xShape), params),
+      ],
+      webgpu: (c, [gyd]) => [
+        avg_pool2d_backprop_webgpu(gyd, nonNull(this.xShape), params),
       ],
     });
     return [new Variable(gxd)];
@@ -1229,6 +1337,7 @@ export class AdaptiveAvgPool2d extends NNFunction {
     return genCall([x], {
       cpu: (c, [x]) => [avg_pool2d_cpu(x, params)],
       webgl: (c, [x]) => [avg_pool2d_webgl(x, params)],
+      webgpu: (c, [x]) => [avg_pool2d_webgpu(x, params)],
     });
   }
 
@@ -1246,6 +1355,7 @@ export class AdaptiveAvgPool2d extends NNFunction {
     const [gxd] = genCall([gy.data], {
       cpu: (c, [gyd]) => [avg_pool2d_backprop_cpu(gyd, xShape, params)],
       webgl: (c, [gyd]) => [avg_pool2d_backprop_webgl(gyd, xShape, params)],
+      webgpu: (c, [gyd]) => [avg_pool2d_backprop_webgpu(gyd, xShape, params)],
     });
     return [new Variable(gxd)];
   }
@@ -1306,11 +1416,17 @@ export class Conv2d extends NNFunction {
         webgl: (c, [x, weight, bias]) => [
           conv2d_webgl(x, weight, bias, params),
         ],
+        webgpu: (c, [x, weight, bias]) => [
+          conv2d_webgpu(x, weight, bias, params),
+        ],
       });
     } else {
       return genCall([x, weight], {
         cpu: (c, [x, weight]) => [conv2d_cpu(x, weight, undefined, params)],
         webgl: (c, [x, weight]) => [conv2d_webgl(x, weight, undefined, params)],
+        webgpu: (c, [x, weight]) => [
+          conv2d_webgpu(x, weight, undefined, params),
+        ],
       });
     }
   }
@@ -1331,12 +1447,16 @@ export class Conv2d extends NNFunction {
 
         webgl: (c, [gyd, x, weight]) =>
           conv2d_backprop_gxgw_webgl(gyd, x, weight, false, false, params),
+
+        webgpu: (c, [gyd, x, weight]) =>
+          conv2d_backprop_gxgw_webgpu(gyd, x, weight, false, false, params),
       }
     );
     if (this.hasBias) {
       const [gbd] = genCall([gy.data], {
         cpu: (c, [gyd]) => [conv2d_backprop_gb_cpu(gyd)],
         webgl: (c, [gyd]) => [conv2d_backprop_gb_webgl(gyd)],
+        webgpu: (c, [gyd]) => [conv2d_backprop_gb_webgpu(gyd)],
       });
       return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
     } else {
@@ -1452,6 +1572,13 @@ export class BatchNormFunction extends NNFunction {
           { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
           params
         );
+      } else if (isAllWebGPUTensor(ts)) {
+        outputs = batch_norm_webgpu(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          { runningMean: ts[3], runningVar: ts[4], numBatchesTracked: ts[5] },
+          params
+        );
       } else {
         throw new Error('not implemented');
       }
@@ -1466,6 +1593,13 @@ export class BatchNormFunction extends NNFunction {
         );
       } else if (isAllWebGLTensor(ts)) {
         outputs = batch_norm_webgl(
+          ts[0],
+          { weight: ts[1], bias: ts[2] },
+          null,
+          params
+        );
+      } else if (isAllWebGPUTensor(ts)) {
+        outputs = batch_norm_webgpu(
           ts[0],
           { weight: ts[1], bias: ts[2] },
           null,
@@ -1502,6 +1636,10 @@ export class BatchNormFunction extends NNFunction {
         },
         webgl: (c, [x, gyd, sfb]) => {
           const xwb = batch_norm_backprop_webgl(x, gyd, sfb, 1);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
+        webgpu: (c, [x, gyd, sfb]) => {
+          const xwb = batch_norm_backprop_webgpu(x, gyd, sfb, 1);
           return [xwb.gx, xwb.gweight, xwb.gbias];
         },
       }
@@ -1551,6 +1689,12 @@ export class LayerNormFunction extends NNFunction {
     const ts = [x, weight, bias];
     if (isAllCPUTensor(ts)) {
       outputs = layer_norm_cpu(ts[0], { weight: ts[1], bias: ts[2] }, params);
+    } else if (isAllWebGPUTensor(ts)) {
+      outputs = layer_norm_webgpu(
+        ts[0],
+        { weight: ts[1], bias: ts[2] },
+        params
+      );
     } else {
       throw new Error('not implemented');
     }
@@ -1579,6 +1723,10 @@ export class LayerNormFunction extends NNFunction {
           const xwb = layer_norm_backprop_cpu(x, w, gyd, sfb, params);
           return [xwb.gx, xwb.gweight, xwb.gbias];
         },
+        webgpu: (c, [x, w, gyd, sfb]) => {
+          const xwb = layer_norm_backprop_webgpu(x, w, gyd, sfb, params);
+          return [xwb.gx, xwb.gweight, xwb.gbias];
+        },
       }
     );
     return [new Variable(gxd), new Variable(gwd), new Variable(gbd)];
@@ -1595,9 +1743,11 @@ export class EmbeddingFunction extends NNFunction {
 
   async forward([x, weight]: Tensor[]): Promise<Tensor[]> {
     const ts = [x, weight];
-    let output: CPUTensor;
+    let output: Tensor;
     if (isAllCPUTensor(ts)) {
       output = embedding_cpu(ts[0], ts[1]);
+    } else if (isAllWebGPUTensor(ts)) {
+      output = embedding_webgpu(ts[0], ts[1]);
     } else {
       throw new Error('not implemented');
     }
@@ -1610,6 +1760,16 @@ export class EmbeddingFunction extends NNFunction {
       cpu: (c, [x, gyd]) => {
         return [
           embedding_backprop_cpu(x, gyd, this.numEmbeddings, this.embeddingDim),
+        ];
+      },
+      webgpu: (c, [x, gyd]) => {
+        return [
+          embedding_backprop_webgpu(
+            x,
+            gyd,
+            this.numEmbeddings,
+            this.embeddingDim
+          ),
         ];
       },
     });
@@ -1626,9 +1786,11 @@ export class Dropout extends NNFunction {
 
   async forward([x]: Tensor[]): Promise<Tensor[]> {
     const ts = [x];
-    let outputs: CPUTensor[];
+    let outputs: Tensor[];
     if (isAllCPUTensor(ts)) {
       outputs = dropout_cpu(ts[0], this.p);
+    } else if (isAllWebGPUTensor(ts)) {
+      outputs = dropout_webgpu(ts[0], this.p);
     } else {
       throw new Error('not implemented');
     }
@@ -1642,6 +1804,9 @@ export class Dropout extends NNFunction {
     return [await mul(gy, new Variable(this.maskForBackprop!))];
   }
 }
-export async function dropout(input: VariableResolvable, p?: number): Promise<Variable> {
+export async function dropout(
+  input: VariableResolvable,
+  p?: number
+): Promise<Variable> {
   return new Dropout(p).c(input);
 }

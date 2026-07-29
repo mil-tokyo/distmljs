@@ -29,7 +29,7 @@ npm run webpack
 
 ```
 cd distributed
-python setup.py bdist_wheel
+python -m build --wheel
 ```
 
 `distributed/dist/distmljs-<version>-py3-none-any.whl` が生成される。

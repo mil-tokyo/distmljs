@@ -16,10 +16,22 @@ import {
   getBroadcastStride,
 } from '../shapeUtil';
 import { Tensor } from '../tensor';
-import { coreadd, corediv, coremul, corepow, coresub } from './core/binary';
+import {
+  coreadd,
+  corediv,
+  coreequal,
+  coremaximum,
+  coreminimum,
+  coremul,
+  corepow,
+  coresub,
+} from './core/binary';
 import { stridedCopy } from './core/copy';
+import { cat, chunk, repeat, split, tile } from './core/manipulation';
+import { argmax, argmin, max, min } from './core/minmax';
 import { sum, sumTo } from './core/reduction';
 import { gemm } from './core/standard';
+import { tril, triu } from './core/tri';
 import {
   coreabs,
   coreacos,
@@ -162,9 +174,8 @@ export class WebGPUTensorBuffer {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function calcDefaultBufferShape(size: number, dtype: DType): WebGPUBufferShape {
-  // glslのlayoutがbyte単位の要素をサポートしておらず、uint8/boolでも1要素32bitのuintとして扱う
+function calcDefaultBufferShape(size: number): WebGPUBufferShape {
+  // WGSLがbyte単位の要素をサポートしておらず、uint8/boolでも1要素32bitのuintとして扱う
   const bytePerElement = 4;
   let byteLength = size * bytePerElement;
   // 将来4の倍数でない要素をサポートする場合、4の倍数に切り上げる必要あり
@@ -185,10 +196,7 @@ export class WebGPUTensor extends Tensor {
     bufferShape?: WebGPUBufferShape
   ) {
     super('webgpu', shape, dtype);
-    const bShape = bufferShape || calcDefaultBufferShape(this.size, this.dtype);
-    if (bShape.forWriteFromCPU && bShape.forReadToCPU) {
-      throw new Error('WebGPUTensor cannot be both for read and write');
-    }
+    const bShape = bufferShape || calcDefaultBufferShape(this.size);
     this.buffer = buffer || new WebGPUTensorBuffer(bShape);
   }
 
@@ -233,7 +241,7 @@ export class WebGPUTensor extends Tensor {
     if (bufferShape) {
       bShape = bufferShape;
     } else {
-      bShape = calcDefaultBufferShape(arrayProd(shape), dtype);
+      bShape = calcDefaultBufferShape(arrayProd(shape));
       // CPUへの読み取りに使われると仮定
       bShape.forReadToCPU = true;
     }
@@ -244,7 +252,7 @@ export class WebGPUTensor extends Tensor {
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
-    const data = new Float32Array(arrayProd(shape));
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
     return WebGPUTensor.fromArray(data, shape, dtype);
   }
 
@@ -252,7 +260,7 @@ export class WebGPUTensor extends Tensor {
     shape: ArrayLike<number>,
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
-    const data = new Float32Array(arrayProd(shape));
+    const data = new TypedArrayForDType[dtype](arrayProd(shape));
     data.fill(1);
     return WebGPUTensor.fromArray(data, shape, dtype);
   }
@@ -280,8 +288,11 @@ export class WebGPUTensor extends Tensor {
     dtype: DType = DTypeDefault
   ): WebGPUTensor {
     const shape_ = shape || [data.length];
-    const bShape = calcDefaultBufferShape(arrayProd(shape_), dtype);
+    const bShape = calcDefaultBufferShape(arrayProd(shape_));
     bShape.forWriteFromCPU = true;
+    // mappedAtCreationによるCPUからの書き込みと、COPY_SRCによるCPUへの読み出しは
+    // 同一のバッファで両立できる
+    bShape.forReadToCPU = true;
     const t = new WebGPUTensor(shape_, dtype, undefined, bShape);
     t.setArray(data);
     return t;
@@ -444,23 +455,38 @@ export class WebGPUTensor extends Tensor {
     return coretanh(x);
   }
 
-  static add(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static add(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coreadd(lhs, rhs);
   }
 
-  static sub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static sub(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coresub(lhs, rhs);
   }
 
-  static mul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static mul(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return coremul(lhs, rhs);
   }
 
-  static div(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static div(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return corediv(lhs, rhs);
   }
 
-  static pow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+  static pow(
+    lhs: WebGPUTensor | number,
+    rhs: WebGPUTensor | number
+  ): WebGPUTensor {
     return corepow(lhs, rhs);
   }
 
@@ -573,9 +599,11 @@ export class WebGPUTensor extends Tensor {
 
   static minimum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
-    throw new Error(`not implemented yet`);
+    return coreminimum(lhs, rhs);
   }
   minimum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.minimum(this, other);
@@ -583,9 +611,11 @@ export class WebGPUTensor extends Tensor {
 
   static maximum(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
-    throw new Error(`not implemented yet`);
+    return coremaximum(lhs, rhs);
   }
   maximum(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.maximum(this, other);
@@ -593,9 +623,13 @@ export class WebGPUTensor extends Tensor {
 
   static clamp(input: WebGPUTensor, min?: WebGPUTensor, max?: WebGPUTensor) {
     let output;
-    if (min) { output = WebGPUTensor.maximum(input, min) }
-    if (max) { output = WebGPUTensor.minimum(output || input, max) }
-    return output || input
+    if (min) {
+      output = WebGPUTensor.maximum(input, min);
+    }
+    if (max) {
+      output = WebGPUTensor.minimum(output || input, max);
+    }
+    return output || input;
   }
   clamp(min?: WebGPUTensor, max?: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.clamp(this, min, max);
@@ -603,16 +637,18 @@ export class WebGPUTensor extends Tensor {
 
   static equal(lhs: WebGPUTensor, rhs: WebGPUTensor): WebGPUTensor {
     if (!arrayEqual(lhs.shape, rhs.shape)) {
-      throw new Error(`The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`);
+      throw new Error(
+        `The size of tensor a ${lhs.shape} must match the size of tensor b ${rhs.shape}`
+      );
     }
-    throw new Error(`not implemented yet`);
+    return coreequal(lhs, rhs);
   }
   equal(other: WebGPUTensor): WebGPUTensor {
     return WebGPUTensor.equal(this, other);
   }
 
   static cat(tensors: ReadonlyArray<WebGPUTensor>, axis = 0): WebGPUTensor {
-    throw new Error('Not implemented');
+    return cat(tensors, axis);
   }
 
   static split(
@@ -620,6 +656,94 @@ export class WebGPUTensor extends Tensor {
     split_size_or_sections: number | number[],
     dim = 0
   ): WebGPUTensor[] {
-    throw new Error('Not implemented');
+    return split(x, split_size_or_sections, dim);
+  }
+
+  static repeat(
+    x: WebGPUTensor,
+    repeats: ReadonlyArray<number> | number,
+    axis?: number
+  ): WebGPUTensor {
+    return repeat(x, repeats, axis);
+  }
+
+  static tile(
+    x: WebGPUTensor,
+    reps: ReadonlyArray<number> | number
+  ): WebGPUTensor {
+    return tile(x, reps);
+  }
+
+  static chunk(x: WebGPUTensor, chunks: number, dim?: number): WebGPUTensor[] {
+    return chunk(x, chunks, dim);
+  }
+
+  static max(input: WebGPUTensor): WebGPUTensor;
+  static max(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [WebGPUTensor, WebGPUTensor];
+
+  static max(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor | [WebGPUTensor, WebGPUTensor] {
+    // オーバーロードの解決のために分岐する
+    return dim == undefined ? max(input) : max(input, dim, keepdim);
+  }
+
+  static min(input: WebGPUTensor): WebGPUTensor;
+  static min(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): [WebGPUTensor, WebGPUTensor];
+
+  static min(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor | [WebGPUTensor, WebGPUTensor] {
+    return dim == undefined ? min(input) : min(input, dim, keepdim);
+  }
+
+  static argmax(input: WebGPUTensor): WebGPUTensor;
+  static argmax(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): WebGPUTensor;
+
+  static argmax(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor {
+    return argmax(input, dim, keepdim);
+  }
+
+  static argmin(input: WebGPUTensor): WebGPUTensor;
+  static argmin(
+    input: WebGPUTensor,
+    dim: number,
+    keepdim?: boolean
+  ): WebGPUTensor;
+
+  static argmin(
+    input: WebGPUTensor,
+    dim?: number,
+    keepdim = false
+  ): WebGPUTensor {
+    return argmin(input, dim, keepdim);
+  }
+
+  static tril(input: WebGPUTensor, diagonal = 0): WebGPUTensor {
+    return tril(input, diagonal);
+  }
+
+  static triu(input: WebGPUTensor, diagonal = 0): WebGPUTensor {
+    return triu(input, diagonal);
   }
 }

@@ -34,7 +34,7 @@ function binaryWrap(
     if (!shader) {
       throw new Error(`${name}: dtype ${dtype} is not supported`);
     }
-    ctx.createPipeline(shaderName, shader, 4);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty(outShape, dtype);
   const metaElements: WebGPUMetaBufferContentElement[] = [
@@ -61,23 +61,59 @@ function binaryWrap(
   return output;
 }
 
-export function coreadd(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coreadd(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'add');
 }
 
-export function coresub(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coresub(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'sub');
 }
 
-export function coremul(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coremul(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'mul');
 }
 
-export function corediv(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function corediv(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'div');
 }
 
-export function corepow(lhs: WebGPUTensor | number, rhs: WebGPUTensor | number): WebGPUTensor {
+export function coreminimum(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'minimum');
+}
+
+export function coremaximum(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'maximum');
+}
+
+export function coreequal(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
+  return binaryWrap(lhs, rhs, 'equal');
+}
+
+export function corepow(
+  lhs: WebGPUTensor | number,
+  rhs: WebGPUTensor | number
+): WebGPUTensor {
   return binaryWrap(lhs, rhs, 'pow');
 }
 

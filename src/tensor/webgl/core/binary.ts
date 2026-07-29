@@ -63,7 +63,7 @@ function binaryWrap(
     ctx.addKernel(
       kernelName,
       webglShaderHeader +
-      `
+        `
 ${shaderGenTensorOutputUniform(ndim, output.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_lhs', ndim, lhs.buffer.textureShape.dim, dtype)}
 ${shaderGenTensorNDGet('tex_rhs', ndim, rhs.buffer.textureShape.dim, dtype)}
@@ -96,7 +96,10 @@ void main() {
   return output;
 }
 
-export function coreadd(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coreadd(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'add', {
     float32: 'float v = v_l + v_r;',
     int32: 'int v = v_l + v_r;',
@@ -104,7 +107,10 @@ export function coreadd(lhs: WebGLTensor | number, rhs: WebGLTensor | number): W
   });
 }
 
-export function coresub(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coresub(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'sub', {
     float32: 'float v = v_l - v_r;',
     int32: 'int v = v_l - v_r;',
@@ -112,7 +118,10 @@ export function coresub(lhs: WebGLTensor | number, rhs: WebGLTensor | number): W
   });
 }
 
-export function coremul(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coremul(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'mul', {
     float32: 'float v = v_l * v_r;',
     int32: 'int v = v_l * v_r;',
@@ -120,7 +129,10 @@ export function coremul(lhs: WebGLTensor | number, rhs: WebGLTensor | number): W
   });
 }
 
-export function corediv(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function corediv(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'div', {
     float32: 'float v = v_l / v_r;',
     int32: 'int v = v_l / v_r;',
@@ -128,7 +140,10 @@ export function corediv(lhs: WebGLTensor | number, rhs: WebGLTensor | number): W
   });
 }
 
-export function coreminimum(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coreminimum(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'minimum', {
     float32: 'float v = min(v_l,v_r);',
     int32: 'int v = min(v_l,v_r);',
@@ -136,7 +151,10 @@ export function coreminimum(lhs: WebGLTensor | number, rhs: WebGLTensor | number
   });
 }
 
-export function coremaximum(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coremaximum(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'maximum', {
     float32: 'float v = max(v_l,v_r);',
     int32: 'int v = max(v_l,v_r);',
@@ -144,7 +162,10 @@ export function coremaximum(lhs: WebGLTensor | number, rhs: WebGLTensor | number
   });
 }
 
-export function coreequal(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function coreequal(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   return binaryWrap(lhs, rhs, 'equal', {
     float32: 'float v = float(v_l==v_r);',
     int32: 'int v = int(v_l==v_r);',
@@ -152,7 +173,10 @@ export function coreequal(lhs: WebGLTensor | number, rhs: WebGLTensor | number):
   });
 }
 
-export function corepow(lhs: WebGLTensor | number, rhs: WebGLTensor | number): WebGLTensor {
+export function corepow(
+  lhs: WebGLTensor | number,
+  rhs: WebGLTensor | number
+): WebGLTensor {
   // pow(-1.5, 2) cases error in GLSL, but it is useful in normalization algorithm.
   // implementation: pow(abs(-1.5), 2)
   return binaryWrap(lhs, rhs, 'pow', {
@@ -169,10 +193,7 @@ export function sigmoidBackprop(
   });
 }
 
-export function tanhBackprop(
-  lhs: WebGLTensor,
-  rhs: WebGLTensor
-): WebGLTensor {
+export function tanhBackprop(lhs: WebGLTensor, rhs: WebGLTensor): WebGLTensor {
   return binaryWrap(lhs, rhs, 'tanhBackprop', {
     float32: 'float v = (1.0 - v_l * v_l) * v_r;',
   });

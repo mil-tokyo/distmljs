@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Variable } from '../../nn/core';
 import { add, mul } from '../../nn/functions';
 import { WebGLTensor } from '../../tensor';
 import { testFlag } from '../testFlag';
+import { assertInstanceOf } from '../testUtil';
 
 async function ta(tensor: unknown): Promise<number[]> {
-  assert.instanceOf(tensor, WebGLTensor);
+  assertInstanceOf(tensor, WebGLTensor);
   return await (tensor as WebGLTensor).toArrayAsync();
 }
 
@@ -20,7 +20,7 @@ describe('nn/core/webgl', () => {
       const rhs = new Variable(WebGLTensor.fromArray([20]));
       const y = await add(lhs, rhs);
       await y.backward();
-      assert.instanceOf(y.data, WebGLTensor);
+      assertInstanceOf(y.data, WebGLTensor);
       assert.deepEqual(await ta(lhs.grad!.data), [1]);
       assert.deepEqual(await ta(rhs.grad!.data), [1]);
     });
@@ -29,7 +29,7 @@ describe('nn/core/webgl', () => {
       const lhs = new Variable(WebGLTensor.fromArray([10]));
       const y = await add(lhs, 20);
       await y.backward();
-      assert.instanceOf(y.data, WebGLTensor);
+      assertInstanceOf(y.data, WebGLTensor);
       assert.deepEqual(await ta(lhs.grad!.data), [1]);
     });
 
@@ -37,7 +37,7 @@ describe('nn/core/webgl', () => {
       const rhs = new Variable(WebGLTensor.fromArray([20]));
       const y = await add(10, rhs);
       await y.backward();
-      assert.instanceOf(y.data, WebGLTensor);
+      assertInstanceOf(y.data, WebGLTensor);
       assert.deepEqual(await ta(rhs.grad!.data), [1]);
     });
 

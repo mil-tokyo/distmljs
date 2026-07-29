@@ -18,66 +18,62 @@ export function sumReduction00(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   reductionStrides: ReadonlyArray<number>
 ): void {
-  let id = 0;
   let sum = 0.0;
   sum += dx[0];
-  dy[id++] = sum;
+  dy[0] = sum;
 }
 
 function sumReduction01(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShapeStrides: ReadonlyArray<number>,
   reductionShape: ReadonlyArray<number>,
   reductionStrides: ReadonlyArray<number>
 ): void {
   const [rs0] = reductionShape;
   const [rt0] = reductionStrides;
-  let id = 0;
   let sum = 0.0;
   for (let r0 = 0; r0 < rs0; r0++) {
     sum += dx[r0 * rt0];
   }
-  dy[id++] = sum;
+  dy[0] = sum;
 }
 function sumReduction02(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShapeStrides: ReadonlyArray<number>,
   reductionShape: ReadonlyArray<number>,
   reductionStrides: ReadonlyArray<number>
 ): void {
   const [rs0, rs1] = reductionShape;
   const [rt0, rt1] = reductionStrides;
-  let id = 0;
   let sum = 0.0;
   for (let r0 = 0; r0 < rs0; r0++) {
     for (let r1 = 0; r1 < rs1; r1++) {
       sum += dx[r0 * rt0 + r1 * rt1];
     }
   }
-  dy[id++] = sum;
+  dy[0] = sum;
 }
 
 function sumReduction03(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShapeStrides: ReadonlyArray<number>,
   reductionShape: ReadonlyArray<number>,
   reductionStrides: ReadonlyArray<number>
 ): void {
   const [rs0, rs1, rs2] = reductionShape;
   const [rt0, rt1, rt2] = reductionStrides;
-  let id = 0;
   let sum = 0.0;
   for (let r0 = 0; r0 < rs0; r0++) {
     for (let r1 = 0; r1 < rs1; r1++) {
@@ -86,22 +82,21 @@ function sumReduction03(
       }
     }
   }
-  dy[id++] = sum;
+  dy[0] = sum;
 }
 
 function sumReduction04(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShapeStrides: ReadonlyArray<number>,
   reductionShape: ReadonlyArray<number>,
   reductionStrides: ReadonlyArray<number>
 ): void {
   const [rs0, rs1, rs2, rs3] = reductionShape;
   const [rt0, rt1, rt2, rt3] = reductionStrides;
-  let id = 0;
   let sum = 0.0;
   for (let r0 = 0; r0 < rs0; r0++) {
     for (let r1 = 0; r1 < rs1; r1++) {
@@ -112,7 +107,7 @@ function sumReduction04(
       }
     }
   }
-  dy[id++] = sum;
+  dy[0] = sum;
 }
 
 function sumReduction10(

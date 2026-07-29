@@ -1,11 +1,6 @@
 import { WebGPUMetaBuffer } from './webgpuMetaBuffer';
 import { WebGPUTensor } from './webgpuTensor';
 
-interface WebGPURunnerPipeline {
-  bindGroupLayout: GPUBindGroupLayout;
-  pipeline: GPUComputePipeline;
-}
-
 type WorkGroupDim = 'x' | 'y' | 'z';
 
 export interface WebGPUMetaBufferContentElement {
@@ -31,7 +26,7 @@ export class NNWebGPUContext {
 
   device!: GPUDevice;
 
-  private pipelines: Map<string, WebGPURunnerPipeline>;
+  private pipelines: Map<string, GPUComputePipeline>;
 
   pooledMetaBuffer: WebGPUMetaBuffer[] = [];
 
@@ -51,13 +46,23 @@ export class NNWebGPUContext {
     if (this.initialized) {
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const adapter = await navigator.gpu!.requestAdapter();
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    this.device = (await adapter!.requestDevice()) as GPUDevice;
-    if (!this.device) {
-      throw new Error('GPUAdapter.requestDevice() returned null');
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error('navigator.gpu.requestAdapter() returned null');
     }
+    this.device = await adapter.requestDevice();
+    void this.device.lost.then((info) => {
+      // 一度失われたデバイスは復帰しないため、再初期化が必要となる
+      this.initialized = false;
+      this.isSupported = false;
+      console.error(`WebGPU device is lost (${info.reason}): ${info.message}`);
+    });
+    this.device.addEventListener('uncapturederror', (event) => {
+      console.error(
+        'WebGPU uncaptured error:',
+        (event as GPUUncapturedErrorEvent).error.message
+      );
+    });
     this.isSupported = true;
     this.initialized = true;
   }
@@ -66,51 +71,47 @@ export class NNWebGPUContext {
     return this.pipelines.has(name);
   }
 
-  createPipeline(name: string, shader: Uint32Array, nBuffers: number): void {
+  createPipeline(name: string, shader: string): void {
     if (this.hasPipeline(name)) {
       return;
     }
     const { device } = this,
-      bindings: GPUBindGroupLayoutEntry[] = [];
-    for (let i = 0; i < nBuffers; i++) {
-      bindings.push({
-        binding: i,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'storage' },
-      });
-    }
-    const bindGroupLayout = device.createBindGroupLayout({
-        entries: bindings,
-      }),
-      pipelineLayout = device.createPipelineLayout({
-        bindGroupLayouts: [bindGroupLayout],
-      }),
       shaderModule = device.createShaderModule({ code: shader }),
+      // バインドグループのレイアウトはWGSLの宣言から自動生成される
       pipeline = device.createComputePipeline({
-        layout: pipelineLayout,
+        layout: 'auto',
         compute: {
-          // computeStage?
           module: shaderModule,
           entryPoint: 'main',
         },
       });
 
-    this.pipelines.set(name, { bindGroupLayout, pipeline });
+    this.pipelines.set(name, pipeline);
   }
 
   runKernel(request: WebGPURunnerRequest): void {
     const pipeline = this.pipelines.get(request.pipelineName);
     if (!pipeline) {
-      throw new Error(`Pipeline ${pipeline} not found`);
+      throw new Error(`Pipeline ${request.pipelineName} not found`);
     }
     const { device } = this,
-      entries: GPUBindGroupEntry[] = request.tensors.map((t, i) => ({
-        binding: i,
-        resource: {
-          buffer: t.buffer.gpuBuffer,
-          size: t.buffer.bufferShape.byteLength,
-        },
-      }));
+      maxWorkGroups = device.limits.maxComputeWorkgroupsPerDimension;
+    for (const dim of ['x', 'y', 'z'] as WorkGroupDim[]) {
+      const count = request.workGroups[dim];
+      if (count > maxWorkGroups) {
+        throw new Error(
+          `${request.pipelineName}: workgroup count for the ${dim} dimension ` +
+            `(${count}) exceeds the device limit ${maxWorkGroups}`
+        );
+      }
+    }
+    const entries: GPUBindGroupEntry[] = request.tensors.map((t, i) => ({
+      binding: i,
+      resource: {
+        buffer: t.buffer.gpuBuffer,
+        size: t.buffer.bufferShape.byteLength,
+      },
+    }));
     let meta: WebGPUMetaBuffer | null = null;
     if (request.meta) {
       meta = WebGPUMetaBuffer.createBuffer(request.meta);
@@ -123,14 +124,14 @@ export class NNWebGPUContext {
       });
     }
     const bindGroup = device.createBindGroup({
-        layout: pipeline.bindGroupLayout,
+        layout: pipeline.getBindGroupLayout(0),
         entries,
       }),
       commandEncoder = device.createCommandEncoder(),
       passEncoder = commandEncoder.beginComputePass();
     passEncoder.setBindGroup(0, bindGroup);
-    passEncoder.setPipeline(pipeline.pipeline);
-    passEncoder.dispatch(
+    passEncoder.setPipeline(pipeline);
+    passEncoder.dispatchWorkgroups(
       request.workGroups.x,
       request.workGroups.y,
       request.workGroups.z

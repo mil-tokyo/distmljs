@@ -7,9 +7,9 @@ import { CPUTensor, IndexingArg } from '../cpuTensor';
 function getCopy0(
   dx: TypedArrayTypes,
   dy: TypedArrayTypes,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   toShape: ReadonlyArray<number>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   xStrides: ReadonlyArray<number>,
   srcOffset: number
 ): void {
@@ -298,7 +298,6 @@ function calcStrides(
           `index ${idx} for axis ${i} is out of range for shape ${tShape}`
         );
       }
-      stop = start + 1;
       step = 1;
       vLen = 1;
     } else {

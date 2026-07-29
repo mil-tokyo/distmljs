@@ -2,10 +2,12 @@
 
 This sample illustrates very basic usage of distmljs.
 
-To run, run http server on the project root.
+This sample loads `webpack/distmljs.js` with a `<script>` tag, so the single
+file build is needed. Build it and run the http server on the project root.
 
 ```
 cd ../..
+npm run webpack
 npm run serve
 ```
 

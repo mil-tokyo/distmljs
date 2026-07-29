@@ -133,9 +133,13 @@ function addS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coreadd(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
+export function coreadd(
+  lhs: CPUTensor | number,
+  rhs: CPUTensor | number
+): CPUTensor {
   // TODO: type check
-  const ulhs = us(lhs), urhs = us(rhs);
+  const ulhs = us(lhs),
+    urhs = us(rhs);
   if (!arrayEqual(ulhs.shape, urhs.shape)) {
     return addBC(ulhs, urhs);
   } else {
@@ -262,9 +266,13 @@ function divS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function corediv(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
+export function corediv(
+  lhs: CPUTensor | number,
+  rhs: CPUTensor | number
+): CPUTensor {
   // TODO: type check
-  const ulhs = us(lhs), urhs = us(rhs);
+  const ulhs = us(lhs),
+    urhs = us(rhs);
   if (!arrayEqual(ulhs.shape, urhs.shape)) {
     return divBC(ulhs, urhs);
   } else {
@@ -391,9 +399,13 @@ function mulS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coremul(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
+export function coremul(
+  lhs: CPUTensor | number,
+  rhs: CPUTensor | number
+): CPUTensor {
   // TODO: type check
-  const ulhs = us(lhs), urhs = us(rhs);
+  const ulhs = us(lhs),
+    urhs = us(rhs);
   if (!arrayEqual(ulhs.shape, urhs.shape)) {
     return mulBC(ulhs, urhs);
   } else {
@@ -520,9 +532,13 @@ function powS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function corepow(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
+export function corepow(
+  lhs: CPUTensor | number,
+  rhs: CPUTensor | number
+): CPUTensor {
   // TODO: type check
-  const ulhs = us(lhs), urhs = us(rhs);
+  const ulhs = us(lhs),
+    urhs = us(rhs);
   if (!arrayEqual(ulhs.shape, urhs.shape)) {
     return powBC(ulhs, urhs);
   } else {
@@ -649,9 +665,13 @@ function subS(lhs: CPUTensor, rhs: CPUTensor): CPUTensor {
   return output;
 }
 
-export function coresub(lhs: CPUTensor | number, rhs: CPUTensor | number): CPUTensor {
+export function coresub(
+  lhs: CPUTensor | number,
+  rhs: CPUTensor | number
+): CPUTensor {
   // TODO: type check
-  const ulhs = us(lhs), urhs = us(rhs);
+  const ulhs = us(lhs),
+    urhs = us(rhs);
   if (!arrayEqual(ulhs.shape, urhs.shape)) {
     return subBC(ulhs, urhs);
   } else {

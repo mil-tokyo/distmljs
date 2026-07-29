@@ -1,5 +1,10 @@
+# Required by the distributed training server itself.
+# Verified with numpy 2.4 / fastapi 0.140 on Python 3.11.
 numpy
 fastapi[all]
+
+# Required only by the sample scripts, for dataset preparation and for
+# exporting a trained model to ONNX.
 torch
 torchvision
 onnx

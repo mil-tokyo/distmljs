@@ -27,7 +27,7 @@ function dispatchSum(
         `dispatchSum: toShape.length==${toShape.length}, reductionShape.length==${reductionShape.length} is not supported`
       );
     }
-    ctx.createPipeline(shaderName, shader, 3);
+    ctx.createPipeline(shaderName, shader);
   }
   const metaElements: WebGPUMetaBufferContentElement[] = [
     { value: y.size, type: 'uint32' },

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { assert } from 'chai';
 import { Backend } from '../../backend';
 import { Layer, Variable, VariableResolvable } from '../../nn/core';
@@ -17,7 +16,7 @@ import { CPUTensor } from '../../tensor/cpu/cpuTensor';
 import { WebGLTensor } from '../../tensor/webgl/webglTensor';
 import { arange } from '../../util';
 import { testFlag } from '../testFlag';
-import { arrayNearlyEqual } from '../testUtil';
+import { arrayNearlyEqual, assertInstanceOf } from '../testUtil';
 
 class Model extends Layer {
   l1: Linear;
@@ -50,7 +49,7 @@ for (const { backend, ctor } of [
     continue;
   }
   const ta = async (tensor: unknown): Promise<number[]> => {
-    assert.instanceOf(tensor, ctor);
+    assertInstanceOf(tensor, ctor);
     return await (tensor as Tensor).toArrayAsync();
   };
   describe(`nn/layer/${backend}`, () => {
@@ -368,7 +367,7 @@ for (const { backend, ctor } of [
     });
   });
 
-  if (backend === 'cpu') {
+  if (backend === 'cpu' || backend === 'webgpu') {
     describe('layerNorm', () => {
       it('forward / backward', async () => {
         const bn = new LayerNorm([2, 3, 4], {});

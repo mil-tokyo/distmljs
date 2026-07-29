@@ -30,7 +30,7 @@ export function softmax(x: WebGPUTensor): WebGPUTensor {
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 3);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty(x.shape);
   const metaElements: WebGPUMetaBufferContentElement[] = [
@@ -44,6 +44,42 @@ export function softmax(x: WebGPUTensor): WebGPUTensor {
       elements: metaElements,
     },
     workGroups: { x: Math.ceil(Math.min(x.shape[0], 4096) / 64), y: 1, z: 1 },
+  });
+
+  return output;
+}
+
+export function softmaxBackward(
+  y: WebGPUTensor,
+  gy: WebGPUTensor
+): WebGPUTensor {
+  assertFloat32([y, gy], 'softmaxBackward');
+  if (y.ndim < 2) {
+    throw new Error('softmaxBackward needs 2d input');
+  }
+  const cs = y.shape[y.ndim - 1];
+  const shaderName = 'softmax_backward';
+
+  const ctx = getNNWebGPUContext();
+  if (!ctx.hasPipeline(shaderName)) {
+    const shader = webgpuShaders[shaderName];
+    if (!shader) {
+      throw new Error(`${shaderName}: shader not found`);
+    }
+    ctx.createPipeline(shaderName, shader);
+  }
+  const output = WebGPUTensor.empty(y.shape);
+  const metaElements: WebGPUMetaBufferContentElement[] = [
+    { value: output.size, type: 'uint32' },
+    { value: cs, type: 'uint32' },
+  ];
+  ctx.runKernel({
+    pipelineName: shaderName,
+    tensors: [y, gy, output],
+    meta: {
+      elements: metaElements,
+    },
+    workGroups: { x: Math.ceil(Math.min(output.size, 4096) / 64), y: 1, z: 1 },
   });
 
   return output;
@@ -66,7 +102,7 @@ export function softmaxCrossEntropyBackward(
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 5);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty(softmax.shape);
   const metaElements: WebGPUMetaBufferContentElement[] = [
@@ -99,7 +135,7 @@ export function nllLoss(x: WebGPUTensor, label: WebGPUTensor): WebGPUTensor {
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 4);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty([], 'float32');
   const metaElements: WebGPUMetaBufferContentElement[] = [
@@ -131,7 +167,7 @@ export function mseLoss(a: WebGPUTensor, b: WebGPUTensor): WebGPUTensor {
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 4);
+    ctx.createPipeline(shaderName, shader);
   }
   const output = WebGPUTensor.empty([], 'float32');
   const metaElements: WebGPUMetaBufferContentElement[] = [
@@ -163,7 +199,7 @@ export function mseLossBackprop(
     if (!shader) {
       throw new Error();
     }
-    ctx.createPipeline(shaderName, shader, 6);
+    ctx.createPipeline(shaderName, shader);
   }
   const outputa = WebGPUTensor.empty(a.shape);
   const outputb = WebGPUTensor.empty(a.shape);

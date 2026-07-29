@@ -10,7 +10,10 @@ export interface DataLoaderOptions {
 export class DataLoader {
   length: number;
 
-  constructor(public dataset: Dataset, public options: DataLoaderOptions) {
+  constructor(
+    public dataset: Dataset,
+    public options: DataLoaderOptions
+  ) {
     this.length = Math.floor(dataset.length / options.batchSize);
   }
 

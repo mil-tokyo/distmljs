@@ -8,23 +8,23 @@ Python 3.8+
 
 ```bash
 pip install -r requirements.txt
-python setup.py develop
+pip install -e .
 ```
 
-How to run sample: see `samples/*/README.md`
+How to run sample: see `sample/*/README.md`
 
 # Build for distribution
 
 Prerequisites:
 
 ```bash
-pip install wheel
+pip install build
 ```
 
 Build:
 
 ```bash
-python setup.py bdist_wheel
+python -m build --wheel
 ```
 
 `dist/distmljs-<version>-py3-none-any.whl` will be generated. The user runs `pip install /path/to/distmljs-<version>-py3-none-any.whl` to install DistML.js along with required dependencies (numpy, etc.).

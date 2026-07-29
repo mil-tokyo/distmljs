@@ -11,7 +11,7 @@ function unaryWrap(x: WebGPUTensor, name: string): WebGPUTensor {
     if (!shader) {
       throw new Error(`${name}: dtype ${dtype} is not supported`);
     }
-    ctx.createPipeline(shaderName, shader, 3);
+    ctx.createPipeline(shaderName, shader);
   }
   const y = WebGPUTensor.empty(x.shape, x.dtype);
   ctx.runKernel({

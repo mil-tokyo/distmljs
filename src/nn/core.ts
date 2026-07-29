@@ -15,7 +15,10 @@ export class Variable {
   grad?: Variable;
   creator?: NNFunction;
   generation: number;
-  constructor(public data: Tensor, public name?: string) {
+  constructor(
+    public data: Tensor,
+    public name?: string
+  ) {
     this.generation = 0;
   }
 
@@ -111,7 +114,6 @@ export class Variable {
     if (this.creator) {
       const funcs = [this.creator];
       while (funcs.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const f = funcs.pop()!;
         f.inputs?.forEach((v) => {
           if (v.creator) {

@@ -4,7 +4,17 @@ This sample downloads dataset from static HTTP server and trains within web brow
 
 # Build
 
+Build DistML.js itself first, at the project root.
+
 ```
+cd ../..
+npm run build
+```
+
+Then build this sample.
+
+```
+cd sample/resnet
 npm install
 npm run build
 python prepare_dataset.py

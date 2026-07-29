@@ -13,7 +13,17 @@ See comments in the source code.
 
 # Build
 
+Build DistML.js itself first, at the project root.
+
 ```
+cd ../..
+npm run build
+```
+
+Then build this sample.
+
+```
+cd sample/mnist_train
 npm install
 npm run build
 python prepare_dataset.py
